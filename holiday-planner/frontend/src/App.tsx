@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, type HdayEvent } from './lib/hday'
+import { useFocusTrap } from './hooks/useFocusTrap'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
@@ -34,41 +35,8 @@ export default function App(){
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const dialogRef = React.useRef<HTMLDivElement>(null)
 
-  // Focus dialog when it opens and set up focus trap
-  useEffect(() => {
-    if (showConfirmDialog && dialogRef.current) {
-      dialogRef.current.focus()
-      
-      // Focus trap handler
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Tab' && dialogRef.current) {
-          const focusableElements = dialogRef.current.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          )
-          
-          if (focusableElements.length === 0) return
-          
-          const firstElement = focusableElements[0] as HTMLElement
-          const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
-          
-          if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-              lastElement?.focus()
-              e.preventDefault()
-            }
-          } else {
-            if (document.activeElement === lastElement) {
-              firstElement?.focus()
-              e.preventDefault()
-            }
-          }
-        }
-      }
-      
-      document.addEventListener('keydown', handleKeyDown)
-      return () => document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [showConfirmDialog])
+  // Use custom focus trap hook for the dialog
+  useFocusTrap(dialogRef, showConfirmDialog)
 
   // Backend mode functions
   const load = useCallback(async () => {
