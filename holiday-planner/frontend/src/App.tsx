@@ -20,6 +20,14 @@ export default function App(){
   const [eventWeekday, setEventWeekday] = useState(1)
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const dialogRef = React.useRef<HTMLDivElement>(null)
+
+  // Focus dialog when it opens
+  useEffect(() => {
+    if (showConfirmDialog && dialogRef.current) {
+      dialogRef.current.focus()
+    }
+  }, [showConfirmDialog])
 
   // Backend mode functions
   const load = useCallback(async () => {
@@ -346,12 +354,14 @@ export default function App(){
             )}
 
             <div>
-              <span>Flags</span><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('half_am')} onChange={() => handleFlagToggle('half_am')} /> half_am</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('half_pm')} onChange={() => handleFlagToggle('half_pm')} /> half_pm</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('business')} onChange={() => handleFlagToggle('business')} /> business</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('course')} onChange={() => handleFlagToggle('course')} /> course</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('in')} onChange={() => handleFlagToggle('in')} /> in</label>
+              <fieldset>
+                <legend>Flags</legend>
+                <label><input type="checkbox" checked={eventFlags.includes('half_am')} onChange={() => handleFlagToggle('half_am')} /> half_am</label><br/>
+                <label><input type="checkbox" checked={eventFlags.includes('half_pm')} onChange={() => handleFlagToggle('half_pm')} /> half_pm</label><br/>
+                <label><input type="checkbox" checked={eventFlags.includes('business')} onChange={() => handleFlagToggle('business')} /> business</label><br/>
+                <label><input type="checkbox" checked={eventFlags.includes('course')} onChange={() => handleFlagToggle('course')} /> course</label><br/>
+                <label><input type="checkbox" checked={eventFlags.includes('in')} onChange={() => handleFlagToggle('in')} /> in</label>
+              </fieldset>
             </div>
 
             <div>
@@ -374,7 +384,7 @@ export default function App(){
       {showConfirmDialog && (
         <>
           <div
-            role="button"
+            role="presentation"
             aria-label="Close dialog"
             tabIndex={-1}
             style={{
@@ -397,7 +407,7 @@ export default function App(){
             aria-labelledby="confirmDialogTitle"
             aria-describedby="confirmDialogDesc"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={dialogRef}
             style={{
               position: 'fixed',
               top: '50%',
