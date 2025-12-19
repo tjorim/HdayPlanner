@@ -54,5 +54,4 @@ def to_text(events: List[HdayEvent]) -> str:
             out_lines.append(f"{pref}d{ev.weekday}{title}")
         else:
             out_lines.append(ev.raw or '')
-    return '
-'.join(out_lines)
+    return '\n'.join(out_lines)

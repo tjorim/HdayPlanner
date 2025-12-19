@@ -1,5 +1,6 @@
 import React from 'react'
 import type { HdayEvent } from '../lib/hday'
+import { getEventColor, getHalfDaySymbol } from '../lib/hday'
 
 export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
   const [year, month] = ym.split('-').map(Number)
@@ -16,7 +17,20 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
     cells.push(
       <div className="day" key={d}>
         <div className="date">{dateStr}</div>
-        {todays.map((ev,i)=> <div className="item" key={i}>{ev.flags?.join(', ')} {ev.title||''}</div>)}
+        {todays.map((ev,i)=> {
+          const bgColor = getEventColor(ev.flags)
+          const symbol = getHalfDaySymbol(ev.flags)
+          return (
+            <div 
+              className="event-item" 
+              key={i}
+              style={{ backgroundColor: bgColor }}
+            >
+              {symbol && <span className="half-day-symbol">{symbol}</span>}
+              {ev.title || 'Event'}
+            </div>
+          )
+        })}
       </div>
     )
   }

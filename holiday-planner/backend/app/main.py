@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pathlib import Path
 from .config import SHARE_DIR
@@ -8,6 +9,14 @@ from .audit import log
 from .auth.auth import get_current_user
 
 app = FastAPI(title="Holiday Planner API", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def hday_path(user: str) -> Path:
