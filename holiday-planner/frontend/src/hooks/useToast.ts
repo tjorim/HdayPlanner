@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 export type ToastType = 'info' | 'success' | 'error' | 'warning'
 
@@ -26,6 +26,7 @@ let toastIdCounter = 0
  */
 export function useToast(duration: number = 4000) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const timeoutsRef = useRef<Map<number, NodeJS.Timeout>>(new Map())
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = toastIdCounter++
@@ -33,17 +34,32 @@ export function useToast(duration: number = 4000) {
     
     setToasts(prev => [...prev, newToast])
 
-    // Auto-remove toast after duration with cleanup
+    // Auto-remove toast after duration
     const timeoutId = setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
+      timeoutsRef.current.delete(id)
     }, duration)
 
-    // Return cleanup function
-    return () => clearTimeout(timeoutId)
+    // Store timeout ID for cleanup
+    timeoutsRef.current.set(id, timeoutId)
   }, [duration])
 
   const removeToast = useCallback((id: number) => {
     setToasts(prev => prev.filter(t => t.id !== id))
+    // Clear associated timeout if exists
+    const timeoutId = timeoutsRef.current.get(id)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      timeoutsRef.current.delete(id)
+    }
+  }, [])
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId))
+      timeoutsRef.current.clear()
+    }
   }, [])
 
   return { toasts, showToast, removeToast }
