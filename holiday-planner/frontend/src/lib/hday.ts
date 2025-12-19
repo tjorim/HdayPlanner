@@ -49,7 +49,7 @@ function parsePrefixFlags(prefix: string): string[] {
  */
 export function normalizeEventFlags(flags: string[]): string[] {
   // Default to 'holiday' if no type flags
-  if (!flags.some(f => TYPE_FLAGS.includes(f as any))) {
+  if (!flags.some(f => (TYPE_FLAGS as readonly string[]).includes(f))) {
     return [...flags, 'holiday']
   }
   return flags
