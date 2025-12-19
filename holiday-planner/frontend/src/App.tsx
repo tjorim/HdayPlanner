@@ -4,6 +4,7 @@ import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, type HdayEvent } from './lib/hday'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
+const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
 
 export default function App(){
   const [user, setUser] = useState('testuser')
@@ -100,11 +101,11 @@ export default function App(){
   function handleAddOrUpdate() {
     // Validate range event dates
     if (eventType === 'range') {
-      if (!eventStart || !eventStart.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+      if (!eventStart || !DATE_FORMAT_REGEX.test(eventStart)) {
         alert('Please provide a valid start date in YYYY/MM/DD format.')
         return
       }
-      if (eventEnd && !eventEnd.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+      if (eventEnd && !DATE_FORMAT_REGEX.test(eventEnd)) {
         alert('Please provide a valid end date in YYYY/MM/DD format.')
         return
       }
@@ -384,8 +385,6 @@ export default function App(){
       {showConfirmDialog && (
         <>
           <div
-            role="presentation"
-            aria-label="Close dialog"
             tabIndex={-1}
             style={{
               position: 'fixed',
