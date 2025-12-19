@@ -9,6 +9,9 @@ export type HdayEvent = {
   raw?: string
 }
 
+// Type flags that override the default 'holiday' flag
+const TYPE_FLAGS = ['business', 'course', 'in'] as const
+
 /**
  * Parse prefix flags from .hday format into normalized flag names.
  * Adds 'holiday' as default if no type flags (business/course/in) are present.
@@ -35,14 +38,18 @@ function parsePrefixFlags(prefix: string): string[] {
 
 /**
  * Normalize event flags by adding 'holiday' as default if no type flags are present.
- * Type flags are: business, course, in
+ * 
+ * Type flags that override the default 'holiday' are:
+ * - 'business' - Business trip or work-related event
+ * - 'course' - Training or educational course
+ * - 'in' - In-office day
  * 
  * @param flags Array of flag names
  * @returns Array with 'holiday' added if no type flags present
  */
 export function normalizeEventFlags(flags: string[]): string[] {
   // Default to 'holiday' if no type flags
-  if (!flags.some(f => ['business', 'course', 'in'].includes(f))) {
+  if (!flags.some(f => TYPE_FLAGS.includes(f as any))) {
     return [...flags, 'holiday']
   }
   return flags
