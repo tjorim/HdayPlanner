@@ -6,6 +6,17 @@ import { toLine, parseHday, normalizeEventFlags, type HdayEvent } from './lib/hd
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
 
+function isValidDate(dateString: string): boolean {
+  if (!DATE_FORMAT_REGEX.test(dateString)) {
+    return false
+  }
+  const [year, month, day] = dateString.split('/').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && 
+         date.getMonth() === month - 1 && 
+         date.getDate() === day
+}
+
 export default function App(){
   const [user, setUser] = useState('testuser')
   const [doc, setDoc] = useState<HdayDocument>({ raw:'', events:[] })
@@ -23,10 +34,36 @@ export default function App(){
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const dialogRef = React.useRef<HTMLDivElement>(null)
 
-  // Focus dialog when it opens
+  // Focus dialog when it opens and set up focus trap
   useEffect(() => {
     if (showConfirmDialog && dialogRef.current) {
       dialogRef.current.focus()
+      
+      // Focus trap handler
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Tab' && dialogRef.current) {
+          const focusableElements = dialogRef.current.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+          const firstElement = focusableElements[0] as HTMLElement
+          const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+          
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement) {
+              lastElement?.focus()
+              e.preventDefault()
+            }
+          } else {
+            if (document.activeElement === lastElement) {
+              firstElement?.focus()
+              e.preventDefault()
+            }
+          }
+        }
+      }
+      
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
     }
   }, [showConfirmDialog])
 
@@ -94,7 +131,7 @@ export default function App(){
 
   // Auto-sync events to text in standalone mode
   useEffect(() => {
-    if (!USE_BACKEND && doc.events.length > 0) {
+    if (!USE_BACKEND) {
       const text = doc.events.map(toLine).join('\n')
       setRawText(text)
     }
@@ -103,11 +140,11 @@ export default function App(){
   function handleAddOrUpdate() {
     // Validate range event dates
     if (eventType === 'range') {
-      if (!eventStart || !DATE_FORMAT_REGEX.test(eventStart)) {
+      if (!eventStart || !isValidDate(eventStart)) {
         alert('Please provide a valid start date in YYYY/MM/DD format.')
         return
       }
-      if (eventEnd && !DATE_FORMAT_REGEX.test(eventEnd)) {
+      if (eventEnd && !isValidDate(eventEnd)) {
         alert('Please provide a valid end date in YYYY/MM/DD format.')
         return
       }
@@ -361,11 +398,11 @@ export default function App(){
             <div>
               <fieldset>
                 <legend>Flags</legend>
-                <label><input type="checkbox" checked={eventFlags.includes('half_am')} onChange={() => handleFlagToggle('half_am')} /> half_am</label><br/>
-                <label><input type="checkbox" checked={eventFlags.includes('half_pm')} onChange={() => handleFlagToggle('half_pm')} /> half_pm</label><br/>
-                <label><input type="checkbox" checked={eventFlags.includes('business')} onChange={() => handleFlagToggle('business')} /> business</label><br/>
-                <label><input type="checkbox" checked={eventFlags.includes('course')} onChange={() => handleFlagToggle('course')} /> course</label><br/>
-                <label><input type="checkbox" checked={eventFlags.includes('in')} onChange={() => handleFlagToggle('in')} /> in</label>
+                <label htmlFor="flag-half-am"><input id="flag-half-am" type="checkbox" checked={eventFlags.includes('half_am')} onChange={() => handleFlagToggle('half_am')} /> half_am</label><br/>
+                <label htmlFor="flag-half-pm"><input id="flag-half-pm" type="checkbox" checked={eventFlags.includes('half_pm')} onChange={() => handleFlagToggle('half_pm')} /> half_pm</label><br/>
+                <label htmlFor="flag-business"><input id="flag-business" type="checkbox" checked={eventFlags.includes('business')} onChange={() => handleFlagToggle('business')} /> business</label><br/>
+                <label htmlFor="flag-course"><input id="flag-course" type="checkbox" checked={eventFlags.includes('course')} onChange={() => handleFlagToggle('course')} /> course</label><br/>
+                <label htmlFor="flag-in"><input id="flag-in" type="checkbox" checked={eventFlags.includes('in')} onChange={() => handleFlagToggle('in')} /> in</label>
               </fieldset>
             </div>
 
@@ -381,7 +418,13 @@ export default function App(){
 
       <h2>Month view</h2>
       <div className="row">
-        <input type="month" value={month} onChange={e=>setMonth(e.target.value)} />
+        <label htmlFor="month-view-input" style={{ marginRight: '0.5rem' }}>Select month:</label>
+        <input
+          id="month-view-input"
+          type="month"
+          value={month}
+          onChange={e => setMonth(e.target.value)}
+        />
       </div>
       {month && <MonthGrid events={doc.events} ym={month} />}
 
@@ -389,6 +432,7 @@ export default function App(){
       {showConfirmDialog && (
         <>
           <div
+            aria-hidden="true"
             style={{
               position: 'fixed',
               top: 0,
@@ -426,7 +470,7 @@ export default function App(){
             <h3 id="confirmDialogTitle">Confirm Clear All</h3>
             <p id="confirmDialogDesc">Are you sure you want to clear all events? This action cannot be undone.</p>
             <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button onClick={cancelClearAll} autoFocus>Cancel</button>
+              <button onClick={cancelClearAll}>Cancel</button>
               <button className="primary" onClick={confirmClearAll}>Clear All</button>
             </div>
           </div>

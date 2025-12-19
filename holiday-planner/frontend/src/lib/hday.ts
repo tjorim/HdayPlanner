@@ -11,6 +11,7 @@ export type HdayEvent = {
 
 // Type flags that override the default 'holiday' flag
 const TYPE_FLAGS = ['business', 'course', 'in'] as const
+const TYPE_FLAGS_SET = new Set<string>(TYPE_FLAGS)
 
 /**
  * Parse prefix flags from .hday format into normalized flag names.
@@ -49,10 +50,10 @@ function parsePrefixFlags(prefix: string): string[] {
  */
 export function normalizeEventFlags(flags: string[]): string[] {
   // Default to 'holiday' if no type flags
-  if (!flags.some(f => (TYPE_FLAGS as readonly string[]).includes(f))) {
+  if (!flags.some(f => TYPE_FLAGS_SET.has(f))) {
     return [...flags, 'holiday']
   }
-  return flags
+  return [...flags]
 }
 
 /**
