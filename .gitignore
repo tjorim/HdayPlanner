@@ -44,6 +44,9 @@ dist-ssr/
 *~
 .DS_Store
 
+# Claude AI settings (local configuration should not be tracked)
+.claude/settings.local.json
+
 # Environment files
 .env
 .env.local

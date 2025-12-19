@@ -11,10 +11,11 @@ function EventItem({ event }: EventItemProps) {
   const symbol = getHalfDaySymbol(event.flags)
 
   // Generate accessible label for half-day symbols
+  // getHalfDaySymbol only returns ◐ (AM), ◑ (PM) or '' (no symbol)
   const halfDayLabel =
     symbol === '◐' ? 'Morning half-day event' :
     symbol === '◑' ? 'Afternoon half-day event' :
-    'Half-day event'
+    undefined
   
   return (
     <div 

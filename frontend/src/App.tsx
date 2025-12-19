@@ -143,7 +143,25 @@ export default function App(){
     }
 
     const flags = eventFlags.filter(f => f !== 'holiday')
-    const finalFlags = normalizeEventFlags(flags as EventFlag[])
+    
+    // Enforce single type flag (business/course/in) - priority: business > course > in
+    const typeFlags = flags.filter(f => f === 'business' || f === 'course' || f === 'in')
+    let resolvedFlags = [...flags]
+    
+    if (typeFlags.length > 1) {
+      // Multiple type flags detected - apply priority order
+      const priorityFlag = typeFlags.includes('business') ? 'business' :
+                           typeFlags.includes('course') ? 'course' : 'in'
+      
+      // Remove all type flags and add only the priority one
+      resolvedFlags = flags.filter(f => f !== 'business' && f !== 'course' && f !== 'in')
+      resolvedFlags.push(priorityFlag)
+      
+      // Show user feedback
+      showToast(`Multiple event types selected. Using '${priorityFlag}' (priority: business > course > in).`, 'info')
+    }
+    
+    const finalFlags = normalizeEventFlags(resolvedFlags as EventFlag[])
 
     // Build base event object without raw field
     const baseEvent: Omit<HdayEvent, 'raw'> = eventType === 'range'
