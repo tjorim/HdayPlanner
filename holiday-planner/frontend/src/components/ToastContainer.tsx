@@ -29,7 +29,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
         <div
           key={toast.id}
           role="alert"
-          aria-live="polite"
+          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
           style={{
             backgroundColor: getToastColor(toast.type),
             color: '#fff',

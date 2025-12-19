@@ -125,7 +125,7 @@ export function parseHday(text: string): HdayEvent[] {
 }
 
 // Helper to serialize event back to .hday line format
-export function toLine(ev: HdayEvent): string {
+export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
   const flagMap: Record<string, string> = {
     half_am: 'a',
     half_pm: 'p',

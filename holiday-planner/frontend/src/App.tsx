@@ -155,7 +155,7 @@ export default function App(){
     // Create complete event with raw field generated from base event
     const newEvent: HdayEvent = {
       ...baseEvent,
-      raw: toLine(baseEvent as HdayEvent)
+      raw: toLine(baseEvent)
     }
 
     // Update or add event

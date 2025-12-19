@@ -33,10 +33,13 @@ export function useToast(duration: number = 4000) {
     
     setToasts(prev => [...prev, newToast])
 
-    // Auto-remove toast after duration
-    setTimeout(() => {
+    // Auto-remove toast after duration with cleanup
+    const timeoutId = setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
     }, duration)
+
+    // Return cleanup function
+    return () => clearTimeout(timeoutId)
   }, [duration])
 
   const removeToast = useCallback((id: number) => {
