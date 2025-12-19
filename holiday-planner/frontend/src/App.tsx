@@ -101,7 +101,10 @@ export default function App(){
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = 'export.hday'
+    a.style.display = 'none'
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
     URL.revokeObjectURL(a.href)
   }
 
