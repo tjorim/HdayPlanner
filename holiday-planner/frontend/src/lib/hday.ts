@@ -30,11 +30,21 @@ function parsePrefixFlags(prefix: string): string[] {
     flags.push(flagMap[ch] || `flag_${ch}`)
   }
 
+  return normalizeEventFlags(flags)
+}
+
+/**
+ * Normalize event flags by adding 'holiday' as default if no type flags are present.
+ * Type flags are: business, course, in
+ * 
+ * @param flags Array of flag names
+ * @returns Array with 'holiday' added if no type flags present
+ */
+export function normalizeEventFlags(flags: string[]): string[] {
   // Default to 'holiday' if no type flags
   if (!flags.some(f => ['business', 'course', 'in'].includes(f))) {
-    flags.push('holiday')
+    return [...flags, 'holiday']
   }
-
   return flags
 }
 

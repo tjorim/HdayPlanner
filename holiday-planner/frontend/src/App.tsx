@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
-import { toLine, parseHday, type HdayEvent } from './lib/hday'
+import { toLine, parseHday, normalizeEventFlags, type HdayEvent } from './lib/hday'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
@@ -65,8 +65,10 @@ export default function App(){
 
     const reader = new FileReader()
     reader.onload = (event) => {
-      const text = event.target?.result as string
-      setRawText(text)
+      const result = event.target?.result
+      if (typeof result === 'string') {
+        setRawText(result)
+      }
     }
     reader.onerror = () => {
       console.error('Failed to read file:', reader.error)
@@ -112,11 +114,7 @@ export default function App(){
     }
 
     const flags = eventFlags.filter(f => f !== 'holiday')
-
-    // Add default 'holiday' if no type flags
-    const finalFlags = flags.some(f => ['business', 'course', 'in'].includes(f))
-      ? flags
-      : [...flags, 'holiday']
+    const finalFlags = normalizeEventFlags(flags)
 
     let newEvent: HdayEvent
 
