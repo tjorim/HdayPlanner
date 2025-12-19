@@ -139,8 +139,8 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
           return dateStr >= ev.start && dateStr <= ev.end
         }
         // Weekly recurring events that match this day of week
-        if (ev.type === 'weekly' && ev.weekday === dayOfWeek) {
-          return true
+        if (ev.type === 'weekly' && ev.weekday !== undefined) {
+          return ev.weekday === dayOfWeek
         }
         return false
       })
