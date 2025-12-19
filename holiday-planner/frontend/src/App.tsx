@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
-import { toLine, parseHday, normalizeEventFlags, type HdayEvent } from './lib/hday'
+import { toLine, parseHday, normalizeEventFlags, type HdayEvent, type EventFlag } from './lib/hday'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
@@ -131,10 +131,19 @@ export default function App(){
         showToast('Please provide a valid end date in YYYY/MM/DD format.', 'warning')
         return
       }
+      // Validate that end date is not before start date
+      if (eventEnd && isValidDate(eventStart) && isValidDate(eventEnd)) {
+        const startDate = new Date(eventStart.replace(/\//g, '-'))
+        const endDate = new Date(eventEnd.replace(/\//g, '-'))
+        if (endDate < startDate) {
+          showToast('End date must be the same or after start date.', 'warning')
+          return
+        }
+      }
     }
 
     const flags = eventFlags.filter(f => f !== 'holiday')
-    const finalFlags = normalizeEventFlags(flags)
+    const finalFlags = normalizeEventFlags(flags as EventFlag[])
 
     // Build base event object without raw field
     const baseEvent: Omit<HdayEvent, 'raw'> = eventType === 'range'
@@ -189,7 +198,7 @@ export default function App(){
       setEventStart(ev.start || '')
       setEventEnd(ev.end || '')
     } else if (ev.type === 'weekly') {
-      setEventWeekday(ev.weekday || 1)
+      setEventWeekday(ev.weekday ?? 1)
     }
 
     // Set flags (filter out 'holiday' for display)
@@ -275,7 +284,7 @@ export default function App(){
             value={rawText}
             onChange={e => setRawText(e.target.value)}
             placeholder={`Example:\n2024/12/23-2025/01/05 # Kerstvakantie\np2024/07/17-2024/07/17\na2025/03/25-2025/03/25`}
-            style={{ width: '100%', height: '220px', fontFamily: 'monospace' }}
+            className="textarea-mono"
           />
         </>
       )}
@@ -387,13 +396,17 @@ export default function App(){
 
       <h2>Month view</h2>
       <div className="row">
-        <label htmlFor="month-view-input" style={{ marginRight: '0.5rem' }}>Select month:</label>
+        <label htmlFor="month-view-input" className="mr-2">Select month:</label>
         <input
           id="month-view-input"
-          type="month"
           value={month}
           onChange={e => setMonth(e.target.value)}
+          inputMode="numeric"
+          pattern="\d{4}-\d{2}"
+          placeholder="YYYY-MM"
+          aria-describedby="month-view-help"
         />
+        <span id="month-view-help" className="muted">Format: YYYY-MM</span>
       </div>
       {month && <MonthGrid events={doc.events} ym={month} />}
 

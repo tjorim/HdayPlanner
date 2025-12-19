@@ -8,8 +8,6 @@ export interface Toast {
   type: ToastType
 }
 
-let toastIdCounter = 0
-
 /**
  * Custom hook for managing toast notifications.
  * Provides a non-blocking way to show user feedback messages.
@@ -26,10 +24,12 @@ let toastIdCounter = 0
  */
 export function useToast(duration: number = 4000) {
   const [toasts, setToasts] = useState<Toast[]>([])
-  const timeoutsRef = useRef<Map<number, number>>(new Map())
+  const timeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    const id = toastIdCounter++
+    // Generate a local, non-persistent ID to avoid SSR/HMR/test leakage
+    // Uses timestamp + random component (numeric) to keep type stable
+    const id = Date.now() + Math.floor(Math.random() * 1_000_000)
     const newToast: Toast = { id, message, type }
     
     setToasts(prev => [...prev, newToast])

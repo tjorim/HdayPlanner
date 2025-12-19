@@ -35,4 +35,11 @@ Mount your network share (SMB/NFS) containing `.hday` files to the container hos
 For dev, a simple `X-User` header identifies the editor. In prod, replace `app/auth/auth.py` with proper JWT validation (Azure AD, Auth0, etc.).
 
 ### Audit
-Appends write events to `backend/app/data/audit.log`. Replace with DB-backed storage if preferred.
+Write operations are appended to `backend/app/data/audit.log` in **NDJSON** (newline-delimited JSON) format:
+
+```json
+{"ts":"2025-12-19T20:10:00.123Z","user":"alice","target":"testuser.hday","action":"write","details":"Updated 2 events"}
+{"ts":"2025-12-19T20:15:42.987Z","user":"bob","target":"jdoe.hday","action":"write","details":"Initial import"}
+```
+
+This format avoids corruption issues from tabs/newlines in free-text fields and is easy to stream/process. Replace with DB-backed storage if preferred.

@@ -51,8 +51,8 @@ describe('getEventColor', () => {
       expect(getEventColor(['business', 'half_pm'])).toBe(EVENT_COLORS.BUSINESS_HALF)
     })
 
-    it('returns BUSINESS_HALF for business with both half_am and half_pm', () => {
-      expect(getEventColor(['business', 'half_am', 'half_pm'])).toBe(EVENT_COLORS.BUSINESS_HALF)
+    it('returns BUSINESS_FULL for business with both half_am and half_pm (both halves = full day)', () => {
+      expect(getEventColor(['business', 'half_am', 'half_pm'])).toBe(EVENT_COLORS.BUSINESS_FULL)
     })
   })
 
@@ -116,13 +116,13 @@ describe('getEventColor', () => {
   })
 
   describe('color accessibility', () => {
-    it('returns darker yellow (#E6B800) for course, not bright yellow', () => {
-      expect(getEventColor(['course'])).toBe('#E6B800')
+    it('returns dark yellow/gold (#D9AD00) for course, not bright yellow', () => {
+      expect(getEventColor(['course'])).toBe('#D9AD00')
       expect(getEventColor(['course'])).not.toBe('#FFFF00')
     })
 
-    it('returns teal (#0099AA) for in-office, not cyan', () => {
-      expect(getEventColor(['in'])).toBe('#0099AA')
+    it('returns teal (#008899) for in-office, not cyan', () => {
+      expect(getEventColor(['in'])).toBe('#008899')
       expect(getEventColor(['in'])).not.toBe('#00FFFF')
     })
   })
@@ -160,9 +160,8 @@ describe('getHalfDaySymbol', () => {
     expect(getHalfDaySymbol(['holiday'])).toBe('')
   })
 
-  it('prioritizes half_am when both half_am and half_pm are present', () => {
-    // Based on the implementation, includes checks happen in order
-    expect(getHalfDaySymbol(['half_am', 'half_pm'])).toBe('◐')
+  it('returns empty string when both half_am and half_pm are present (full day)', () => {
+    expect(getHalfDaySymbol(['half_am', 'half_pm'])).toBe('')
   })
 
   it('uses Unicode symbols that are more intuitive than comma/apostrophe', () => {
@@ -215,15 +214,15 @@ describe('normalizeEventFlags', () => {
 })
 
 describe('EVENT_COLORS constants', () => {
-  it('defines all required color constants', () => {
-    expect(EVENT_COLORS.HOLIDAY_FULL).toBe('#FF0000')
-    expect(EVENT_COLORS.HOLIDAY_HALF).toBe('#FF9999')
-    expect(EVENT_COLORS.BUSINESS_FULL).toBe('#FFA500')
-    expect(EVENT_COLORS.BUSINESS_HALF).toBe('#FFCC77')
-    expect(EVENT_COLORS.COURSE_FULL).toBe('#E6B800')
-    expect(EVENT_COLORS.COURSE_HALF).toBe('#F5D966')
-    expect(EVENT_COLORS.IN_OFFICE_FULL).toBe('#0099AA')
-    expect(EVENT_COLORS.IN_OFFICE_HALF).toBe('#4DB8C9')
+  it('defines all required color constants (WCAG AA compliant palette)', () => {
+    expect(EVENT_COLORS.HOLIDAY_FULL).toBe('#EC0000')
+    expect(EVENT_COLORS.HOLIDAY_HALF).toBe('#FF8A8A')
+    expect(EVENT_COLORS.BUSINESS_FULL).toBe('#FF9500')
+    expect(EVENT_COLORS.BUSINESS_HALF).toBe('#FFC04D')
+    expect(EVENT_COLORS.COURSE_FULL).toBe('#D9AD00')
+    expect(EVENT_COLORS.COURSE_HALF).toBe('#F0D04D')
+    expect(EVENT_COLORS.IN_OFFICE_FULL).toBe('#008899')
+    expect(EVENT_COLORS.IN_OFFICE_HALF).toBe('#00B8CC')
   })
 
   it('has valid hex color format for all colors', () => {

@@ -13,53 +13,39 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   if (toasts.length === 0) return null
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        maxWidth: '400px'
-      }}
-    >
+    <div className="toast-container">
       {toasts.map(toast => (
-        <div
-          key={toast.id}
-          role="alert"
-          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
-          style={{
-            backgroundColor: getToastColor(toast.type),
-            color: '#fff',
-            padding: '12px 16px',
-            borderRadius: '6px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '10px',
-            animation: 'slideIn 0.3s ease-out'
-          }}
-        >
-          <span style={{ flex: 1 }}>{toast.message}</span>
-          <button
-            onClick={() => onRemove(toast.id)}
-            aria-label="Close notification"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '18px',
-              padding: '0 4px',
-              lineHeight: 1
-            }}
+        toast.type === 'error' ? (
+          <div
+            key={toast.id}
+            role="alert"
+            className={`toast toast--${toast.type}`}
           >
-            ×
-          </button>
-        </div>
+            <span className="toast-message">{toast.message}</span>
+            <button
+              onClick={() => onRemove(toast.id)}
+              aria-label="Close notification"
+              className="toast-close-btn"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <div
+            key={toast.id}
+            role="status"
+            className={`toast toast--${toast.type}`}
+          >
+            <span className="toast-message">{toast.message}</span>
+            <button
+              onClick={() => onRemove(toast.id)}
+              aria-label="Close notification"
+              className="toast-close-btn"
+            >
+              ×
+            </button>
+          </div>
+        )
       ))}
     </div>
   )

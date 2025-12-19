@@ -20,17 +20,22 @@ const TYPE_FLAGS_SET = new Set<string>(TYPE_FLAGS)
 
 /**
  * Color constants for event backgrounds.
- * All colors meet WCAG AA accessibility standards for contrast with black text.
+ * All colors meet WCAG AA accessibility standards (4.5:1 contrast minimum) with black text (#000).
+ * Verified contrast ratios:
+ * - HOLIDAY_FULL: 4.57:1   - HOLIDAY_HALF: 9.25:1
+ * - BUSINESS_FULL: 9.55:1  - BUSINESS_HALF: 12.90:1
+ * - COURSE_FULL: 9.93:1    - COURSE_HALF: 13.83:1
+ * - IN_OFFICE_FULL: 4.98:1 - IN_OFFICE_HALF: 8.73:1
  */
 export const EVENT_COLORS = {
-  HOLIDAY_FULL: '#FF0000',    // Red - full day vacation/holiday
-  HOLIDAY_HALF: '#FF9999',    // Pink - half day vacation/holiday
-  BUSINESS_FULL: '#FFA500',   // Orange - full day business trip
-  BUSINESS_HALF: '#FFCC77',   // Light orange - half day business
-  COURSE_FULL: '#E6B800',     // Dark yellow/gold - full day course (accessible)
-  COURSE_HALF: '#F5D966',     // Light yellow - half day course
-  IN_OFFICE_FULL: '#0099AA',  // Teal - full day in-office (accessible)
-  IN_OFFICE_HALF: '#4DB8C9',  // Light teal - half day in-office
+  HOLIDAY_FULL: '#EC0000',    // Red - full day vacation/holiday
+  HOLIDAY_HALF: '#FF8A8A',    // Pink - half day vacation/holiday
+  BUSINESS_FULL: '#FF9500',   // Orange - full day business trip
+  BUSINESS_HALF: '#FFC04D',   // Light orange - half day business
+  COURSE_FULL: '#D9AD00',     // Dark yellow/gold - full day course
+  COURSE_HALF: '#F0D04D',     // Light yellow - half day course
+  IN_OFFICE_FULL: '#008899',  // Teal - full day in-office
+  IN_OFFICE_HALF: '#00B8CC',  // Light teal - half day in-office
 } as const
 
 /**
@@ -168,8 +173,19 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
     return `${prefix}${ev.start}-${ev.end}${title}`
   } else if (ev.type === 'weekly') {
     return `${prefix}d${ev.weekday}${title}`
+  } else if (ev.type === 'unknown') {
+    // Unknown event types must have the raw field for serialization
+    if ('raw' in ev && ev.raw) {
+      return ev.raw
+    }
+    throw new Error(
+      `Cannot serialize unknown event type: missing 'raw' field. ` +
+      `Event: type=${ev.type}, title="${ev.title || '(none)'}", flags=${JSON.stringify(ev.flags || [])}`
+    )
   }
-  return ev.raw || ''
+  
+  // Fallback for completely unsupported types
+  throw new Error(`Unsupported event type for serialization: ${ev.type}`)
 }
 
 /**
@@ -178,8 +194,8 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
  * Color mapping (using EVENT_COLORS constants):
  *
  * - Default vacation/holiday (no `business`, `course` or `in` flag):
- *   - Full day (no `half_am` / `half_pm`): HOLIDAY_FULL (red)
- *   - Half day (with `half_am` or `half_pm`): HOLIDAY_HALF (pink)
+ *   - Full day (no half flag OR both `half_am` and `half_pm`): HOLIDAY_FULL (red)
+ *   - Half day (exactly one of `half_am` or `half_pm`): HOLIDAY_HALF (pink)
  *
  * - Business (`'business'` flag present):
  *   - Full day: BUSINESS_FULL (orange)
@@ -198,11 +214,15 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
  * Note: When multiple type flags are present (e.g., both 'business' and 'course'),
  * the function prioritizes in this order: business > course > in > holiday.
  *
+ * Note: When both `half_am` and `half_pm` are present, the event is treated as a
+ * full day since it spans both halves.
+ *
  * @example
  * ```ts
  * getEventColor(); // EVENT_COLORS.HOLIDAY_FULL
  * getEventColor([]); // EVENT_COLORS.HOLIDAY_FULL
  * getEventColor(['half_am']); // EVENT_COLORS.HOLIDAY_HALF
+ * getEventColor(['half_am', 'half_pm']); // EVENT_COLORS.HOLIDAY_FULL (both halves = full day)
  * getEventColor(['business']); // EVENT_COLORS.BUSINESS_FULL
  * getEventColor(['business', 'half_am']); // EVENT_COLORS.BUSINESS_HALF
  * getEventColor(['course']); // EVENT_COLORS.COURSE_FULL
@@ -217,7 +237,9 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
 export function getEventColor(flags?: EventFlag[]): string {
   if (!flags || flags.length === 0) return EVENT_COLORS.HOLIDAY_FULL
 
-  const hasHalfDay = flags.includes('half_am') || flags.includes('half_pm')
+  // Only treat as half-day if exactly one half flag is present (XOR logic)
+  // Both half_am and half_pm together means a full day
+  const hasHalfDay = flags.includes('half_am') !== flags.includes('half_pm')
 
   // Determine base color based on type flags (priority: business > course > in > holiday)
   if (flags.includes('business')) {
@@ -246,7 +268,30 @@ export function getEventColor(flags?: EventFlag[]): string {
  */
 export function getHalfDaySymbol(flags?: EventFlag[]): string {
   if (!flags) return ''
-  if (flags.includes('half_am')) return '◐'
-  if (flags.includes('half_pm')) return '◑'
+  
+  const hasAm = flags.includes('half_am')
+  const hasPm = flags.includes('half_pm')
+  
+  // Both flags = full day, no symbol
+  if (hasAm && hasPm) return ''
+  
+  // Only one flag = half day, show symbol
+  if (hasAm) return '◐'
+  if (hasPm) return '◑'
+  
   return ''
+}
+
+// Helper to get an event CSS class based on flags
+export function getEventClass(flags?: EventFlag[]): string {
+  if (!flags || flags.length === 0) return 'event--holiday-full'
+
+  const hasAm = flags.includes('half_am')
+  const hasPm = flags.includes('half_pm')
+  const half = hasAm !== hasPm ? 'half' : 'full'
+
+  if (flags.includes('business')) return `event--business-${half}`
+  if (flags.includes('course')) return `event--course-${half}`
+  if (flags.includes('in')) return `event--in-office-${half}`
+  return `event--holiday-${half}`
 }

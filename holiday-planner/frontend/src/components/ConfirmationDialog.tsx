@@ -41,6 +41,8 @@ export function ConfirmationDialog({
   onCancel
 }: ConfirmationDialogProps) {
   const dialogRef = React.useRef<HTMLDivElement>(null)
+  const titleId = React.useId()
+  const descId = React.useId()
 
   // Use focus trap hook
   useFocusTrap(dialogRef, isOpen)
@@ -61,19 +63,18 @@ export function ConfirmationDialog({
         className="dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dialogTitle"
-        aria-describedby="dialogDesc"
-        tabIndex={0}
+        aria-labelledby={titleId}
+        aria-describedby={descId}
         ref={dialogRef}
         onKeyDown={(e) => {
           if (e.key === 'Escape') onCancel()
         }}
       >
-        <h3 id="dialogTitle">{title}</h3>
-        <p id="dialogDesc">{message}</p>
+        <h3 id={titleId}>{title}</h3>
+        <p id={descId}>{message}</p>
         <div className="dialog-actions">
-          <button onClick={onCancel}>{cancelLabel}</button>
-          <button className="primary" onClick={onConfirm}>
+          <button type="button" onClick={onCancel}>{cancelLabel}</button>
+          <button type="button" className="primary" onClick={onConfirm}>
             {confirmLabel}
           </button>
         </div>

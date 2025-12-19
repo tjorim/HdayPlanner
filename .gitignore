@@ -10,7 +10,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/** This ignore was too broad; scope to repo root only */
+/lib/
 !holiday-planner/frontend/src/lib/
 lib64/
 parts/
@@ -56,6 +57,10 @@ holiday-planner/backend/data/
 # Build outputs
 holiday-planner/frontend/dist/
 holiday-planner/frontend/build/
+
+# Test coverage outputs (ignore generated reports)
+**/coverage/
+holiday-planner/frontend/coverage/
 
 # Logs
 *.log
