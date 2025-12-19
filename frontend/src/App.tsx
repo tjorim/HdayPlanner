@@ -9,6 +9,13 @@ import { ConfirmationDialog } from './components/ConfirmationDialog'
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
 
+function getCurrentMonth(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
+}
+
 function isValidDate(dateString: string): boolean {
   if (!DATE_FORMAT_REGEX.test(dateString)) {
     return false
@@ -23,7 +30,7 @@ function isValidDate(dateString: string): boolean {
 export default function App(){
   const [user, setUser] = useState('testuser')
   const [doc, setDoc] = useState<HdayDocument>({ raw:'', events:[] })
-  const [month, setMonth] = useState('')
+  const [month, setMonth] = useState(getCurrentMonth())
 
   // Standalone mode state
   const [rawText, setRawText] = useState('')
