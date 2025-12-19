@@ -385,7 +385,6 @@ export default function App(){
       {showConfirmDialog && (
         <>
           <div
-            tabIndex={-1}
             style={{
               position: 'fixed',
               top: 0,
@@ -396,17 +395,17 @@ export default function App(){
               zIndex: 999
             }}
             onClick={cancelClearAll}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') cancelClearAll()
-            }}
           />
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirmDialogTitle"
             aria-describedby="confirmDialogDesc"
-            tabIndex={-1}
+            tabIndex={0}
             ref={dialogRef}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') cancelClearAll()
+            }}
             style={{
               position: 'fixed',
               top: '50%',
