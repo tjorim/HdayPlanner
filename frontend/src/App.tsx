@@ -345,8 +345,10 @@ export default function App(){
         {sortedEvents.map((ev,sortedIdx)=>{
           // Get the original index from the map for edit/delete operations
           const originalIdx = sortedToOriginalIndex.get(ev) ?? -1
+          // Use original index as key when available, otherwise fall back to sorted index
+          const key = originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`
           return (
-          <tr key={`${originalIdx}-${sortedIdx}`}>
+          <tr key={key}>
             <td>{sortedIdx+1}</td>
             <td>{ev.type}</td>
             <td>{ev.start||''}</td>
