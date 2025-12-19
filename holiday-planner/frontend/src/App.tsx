@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, type HdayEvent } from './lib/hday'
-import { useFocusTrap } from './hooks/useFocusTrap'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
+import { ConfirmationDialog } from './components/ConfirmationDialog'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
@@ -35,11 +35,7 @@ export default function App(){
   const [eventWeekday, setEventWeekday] = useState(1)
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const dialogRef = React.useRef<HTMLDivElement>(null)
   const formRef = React.useRef<HTMLDivElement>(null)
-
-  // Use custom focus trap hook for the dialog
-  useFocusTrap(dialogRef, showConfirmDialog)
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
@@ -401,54 +397,16 @@ export default function App(){
       </div>
       {month && <MonthGrid events={doc.events} ym={month} />}
 
-      {/* Accessible confirmation dialog */}
-      {showConfirmDialog && (
-        <>
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              zIndex: 999
-            }}
-            onClick={cancelClearAll}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirmDialogTitle"
-            aria-describedby="confirmDialogDesc"
-            tabIndex={0}
-            ref={dialogRef}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') cancelClearAll()
-            }}
-            style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              backgroundColor: 'white',
-              padding: '20px',
-              border: '2px solid #333',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              zIndex: 1000
-            }}
-          >
-            <h3 id="confirmDialogTitle">Confirm Clear All</h3>
-            <p id="confirmDialogDesc">Are you sure you want to clear all events? This action cannot be undone.</p>
-            <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button onClick={cancelClearAll}>Cancel</button>
-              <button className="primary" onClick={confirmClearAll}>Clear All</button>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Confirmation dialog */}
+      <ConfirmationDialog
+        isOpen={showConfirmDialog}
+        title="Confirm Clear All"
+        message="Are you sure you want to clear all events? This action cannot be undone."
+        confirmLabel="Clear All"
+        cancelLabel="Cancel"
+        onConfirm={confirmClearAll}
+        onCancel={cancelClearAll}
+      />
     </div>
   )
 }
