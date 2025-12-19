@@ -132,36 +132,26 @@ export default function App(){
     const flags = eventFlags.filter(f => f !== 'holiday')
     const finalFlags = normalizeEventFlags(flags)
 
-    let newEvent: HdayEvent
-
-    if (eventType === 'range') {
-      newEvent = {
-        type: 'range',
-        start: eventStart,
-        end: eventEnd || eventStart,
-        title: eventTitle,
-        flags: finalFlags,
-        raw: toLine({
+    // Build base event object without raw field
+    const baseEvent: Omit<HdayEvent, 'raw'> = eventType === 'range'
+      ? {
           type: 'range',
           start: eventStart,
           end: eventEnd || eventStart,
           title: eventTitle,
           flags: finalFlags
-        })
-      }
-    } else {
-      newEvent = {
-        type: 'weekly',
-        weekday: eventWeekday,
-        title: eventTitle,
-        flags: finalFlags,
-        raw: toLine({
+        }
+      : {
           type: 'weekly',
           weekday: eventWeekday,
           title: eventTitle,
           flags: finalFlags
-        })
-      }
+        }
+
+    // Create complete event with raw field generated from base event
+    const newEvent: HdayEvent = {
+      ...baseEvent,
+      raw: toLine(baseEvent as HdayEvent)
     }
 
     // Update or add event
