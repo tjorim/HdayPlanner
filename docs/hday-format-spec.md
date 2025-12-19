@@ -47,12 +47,12 @@ Flags can be combined by concatenating them. Common patterns:
 | `b` | Business trip (full day) | Orange (#FFA500) |
 | `ab` | Business trip, half day AM | Orange with `,` (#FFCC77) |
 | `pb` | Business trip, half day PM | Orange with `'` (#FFCC77) |
-| `s` | Training/course (full day) | Yellow (#FFFF00) |
-| `as` | Training, half day AM | Yellow with `,` (#FFFF99) |
-| `ps` | Training, half day PM | Yellow with `'` (#FFFF99) |
-| `i` | In office | Cyan (#00FFFF) |
-| `ai` | In office, half day AM | Cyan with `,` (#99FFFF) |
-| `pi` | In office, half day PM | Cyan with `'` (#99FFFF) |
+| `s` | Training/course (full day) | Dark Yellow/Gold (#D9AD00) |
+| `as` | Training, half day AM | Light Yellow with `,` (#F0D04D) |
+| `ps` | Training, half day PM | Light Yellow with `'` (#F0D04D) |
+| `i` | In office | Teal (#008899) |
+| `ai` | In office, half day AM | Light Teal with `,` (#00B8CC) |
+| `pi` | In office, half day PM | Light Teal with `'` (#00B8CC) |
 | `d0-d6` | Weekly recurring | Magenta (#FF00FF) |
 
 ## Comments and Metadata
@@ -114,10 +114,10 @@ When rendered in team overview pages:
 | Magenta | #FF00FF | Regular weekly day off |
 | Orange | #FFA500 | Business trip |
 | Light Orange | #FFCC77 | Half day business |
-| Yellow | #FFFF00 | Training / course |
-| Light Yellow | #FFFF99 | Half day training |
-| Cyan | #00FFFF | Other / in office |
-| Light Cyan | #99FFFF | Half day other |
+| Yellow | #D9AD00 | Training / course |
+| Light Yellow | #F0D04D | Half day training |
+| Cyan | #008899 | Other / in office |
+| Light Cyan | #00B8CC | Half day other |
 | Gray | #AAAAAA | Weekend |
 | Light Blue | #AAAAFF | Official holiday (CR day) |
 | Light Green | #BBFFBB | In during school vacation |

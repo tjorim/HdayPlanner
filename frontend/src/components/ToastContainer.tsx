@@ -50,17 +50,3 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
     </div>
   )
 }
-
-function getToastColor(type: string): string {
-  switch (type) {
-    case 'success':
-      return '#10b981' // green
-    case 'error':
-      return '#ef4444' // red
-    case 'warning':
-      return '#f59e0b' // amber
-    case 'info':
-    default:
-      return '#3b82f6' // blue
-  }
-}

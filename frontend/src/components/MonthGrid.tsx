@@ -66,7 +66,7 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
   }
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-    let next = focusedIndex
+    let next: number
     switch (e.key) {
       case 'ArrowLeft':
         next = focusedIndex - 1
@@ -96,7 +96,6 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
   }
 
   const rows = Math.ceil((leadingPad + totalDays) / 7)
-  const totalCells = rows * 7
 
   const rowElements: JSX.Element[] = []
   for (let r = 0; r < rows; r++) {
