@@ -304,7 +304,13 @@ export default function App(){
             <td>{ev.title||''}</td>
             {!USE_BACKEND && (
               <td>
-                <button onClick={() => handleEdit(i)}>Edit</button>
+                <button 
+                  onClick={() => handleEdit(i)}
+                  disabled={ev.type === 'unknown'}
+                  title={ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'}
+                >
+                  Edit
+                </button>
                 <button onClick={() => handleDelete(i)}>Delete</button>
               </td>
             )}
