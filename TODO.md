@@ -1,6 +1,6 @@
 # TODO - Future Enhancements
 
-## Standalone Viewer (hday_viewer.html)
+## React Application (Standalone Mode Features)
 
 ### High Priority - Quick Wins
 - [ ] **Color-coded calendar events** - Add proper colors based on flag types
@@ -50,7 +50,7 @@
 
 - [ ] **Statistics view** - Show vacation days used/remaining, breakdown by type
 
-## Full-Stack Application (holiday-planner/)
+## Full-Stack Application
 
 ### Backend
 - [ ] Implement actual Azure AD authentication
