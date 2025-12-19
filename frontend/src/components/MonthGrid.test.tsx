@@ -123,3 +123,162 @@ describe('MonthGrid - Today Highlighting', () => {
     expect(todayCells.length).toBe(0)
   })
 })
+
+describe('MonthGrid - Weekly Recurring Events', () => {
+  it('displays weekly recurring event on correct weekday', () => {
+    // Create a weekly event for Monday (weekday 1)
+    const events: HdayEvent[] = [
+      {
+        type: 'weekly',
+        weekday: 1, // Monday
+        flags: ['holiday'],
+        title: 'Weekly Monday Off',
+        raw: 'd1 # Weekly Monday Off'
+      }
+    ]
+    
+    // Use January 2025: January 6, 13, 20, 27 are Mondays
+    const ym = '2025-01'
+    render(<MonthGrid events={events} ym={ym} />)
+    
+    // Check that the event appears on at least one Monday
+    const eventItems = screen.getAllByText('Weekly Monday Off')
+    
+    // Should appear multiple times (once for each Monday in the month)
+    expect(eventItems.length).toBeGreaterThan(0)
+  })
+
+  it('displays weekly recurring event on all matching weekdays in month', () => {
+    // Create a weekly event for Friday (weekday 5)
+    const events: HdayEvent[] = [
+      {
+        type: 'weekly',
+        weekday: 5, // Friday
+        flags: ['holiday'],
+        title: 'Weekly Friday',
+        raw: 'd5 # Weekly Friday'
+      }
+    ]
+    
+    // Use January 2025: has 5 Fridays (3, 10, 17, 24, 31)
+    const ym = '2025-01'
+    render(<MonthGrid events={events} ym={ym} />)
+    
+    const eventItems = screen.getAllByText('Weekly Friday')
+    
+    // January 2025 has exactly 5 Fridays
+    expect(eventItems.length).toBe(5)
+  })
+
+  it('displays multiple weekly recurring events on same day', () => {
+    // Create two weekly events for Wednesday (weekday 3)
+    const events: HdayEvent[] = [
+      {
+        type: 'weekly',
+        weekday: 3, // Wednesday
+        flags: ['holiday'],
+        title: 'Weekly Event 1',
+        raw: 'd3 # Weekly Event 1'
+      },
+      {
+        type: 'weekly',
+        weekday: 3, // Wednesday
+        flags: ['course'],
+        title: 'Weekly Event 2',
+        raw: 'sd3 # Weekly Event 2'
+      }
+    ]
+    
+    // Use January 2025: has 5 Wednesdays (1, 8, 15, 22, 29)
+    const ym = '2025-01'
+    render(<MonthGrid events={events} ym={ym} />)
+    
+    const event1Items = screen.getAllByText('Weekly Event 1')
+    const event2Items = screen.getAllByText('Weekly Event 2')
+    
+    // Both events should appear 5 times (once per Wednesday)
+    expect(event1Items.length).toBe(5)
+    expect(event2Items.length).toBe(5)
+  })
+
+  it('displays both range events and weekly recurring events together', () => {
+    // Create both a range event and a weekly event
+    const events: HdayEvent[] = [
+      {
+        type: 'range',
+        start: '2025/01/06',
+        end: '2025/01/10',
+        flags: ['holiday'],
+        title: 'Vacation Week',
+        raw: '2025/01/06-2025/01/10 # Vacation Week'
+      },
+      {
+        type: 'weekly',
+        weekday: 1, // Monday
+        flags: ['holiday'],
+        title: 'Weekly Monday',
+        raw: 'd1 # Weekly Monday'
+      }
+    ]
+    
+    // Use January 2025
+    const ym = '2025-01'
+    render(<MonthGrid events={events} ym={ym} />)
+    
+    // Range event should appear on days in its range
+    const vacationItems = screen.getAllByText('Vacation Week')
+    expect(vacationItems.length).toBe(5) // 5 days: Jan 6-10
+    
+    // Weekly event should appear on all Mondays (Jan 6, 13, 20, 27)
+    const mondayItems = screen.getAllByText('Weekly Monday')
+    expect(mondayItems.length).toBe(4) // 4 Mondays in January 2025
+  })
+
+  it('displays weekly recurring event with half-day flags correctly', () => {
+    // Create a weekly event for Tuesday with half-day AM flag
+    const events: HdayEvent[] = [
+      {
+        type: 'weekly',
+        weekday: 2, // Tuesday
+        flags: ['half_am', 'holiday'],
+        title: 'Tuesday AM Off',
+        raw: 'ad2 # Tuesday AM Off'
+      }
+    ]
+    
+    // Use January 2025, which has 4 Tuesdays (7, 14, 21, 28)
+    const ym = '2025-01'
+    render(<MonthGrid events={events} ym={ym} />)
+    
+    const eventItems = screen.getAllByText('Tuesday AM Off')
+    
+    // January 2025 has 4 Tuesdays (7, 14, 21, 28)
+    expect(eventItems.length).toBe(4)
+    
+    // Check that the half-day symbol is present
+    const halfDaySymbols = screen.getAllByLabelText('Morning half-day event')
+    expect(halfDaySymbols.length).toBe(4)
+  })
+
+  it('displays weekly recurring event only on matching weekdays', () => {
+    // Create a weekly event for Sunday (weekday 0)
+    const events: HdayEvent[] = [
+      {
+        type: 'weekly',
+        weekday: 0, // Sunday
+        flags: ['holiday'],
+        title: 'Sunday Event',
+        raw: 'd0 # Sunday Event'
+      }
+    ]
+    
+    // Use January 2025
+    const ym = '2025-01'
+    render(<MonthGrid events={events} ym={ym} />)
+    
+    const eventItems = screen.getAllByText('Sunday Event')
+    
+    // January 2025 has 4 Sundays (5, 12, 19, 26)
+    expect(eventItems.length).toBe(4)
+  })
+})

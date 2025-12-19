@@ -127,9 +127,23 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
       const d = i - leadingPad + 1
       const dateStr = `${year}/${pad2(month)}/${pad2(d)}`
       const isToday = dateStr === todayStr
-      const todays = events.filter(
-        (ev) => ev.type === 'range' && ev.start && ev.end && dateStr >= ev.start && dateStr <= ev.end
-      )
+      
+      // Get the day of week (0 = Sunday, 6 = Saturday) for this date
+      const currentDate = new Date(year, month - 1, d)
+      const dayOfWeek = currentDate.getDay()
+      
+      // Filter all events that apply to this date in a single pass
+      const todays = events.filter((ev) => {
+        // Range events that include this date
+        if (ev.type === 'range' && ev.start && ev.end) {
+          return dateStr >= ev.start && dateStr <= ev.end
+        }
+        // Weekly recurring events that match this day of week
+        if (ev.type === 'weekly' && ev.weekday !== undefined) {
+          return ev.weekday === dayOfWeek
+        }
+        return false
+      })
       rowCells.push(
         <div
           className={`day${isToday ? ' day--today' : ''}`}
