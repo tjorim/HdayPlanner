@@ -3,6 +3,8 @@ import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, type HdayEvent } from './lib/hday'
 import { useFocusTrap } from './hooks/useFocusTrap'
+import { useToast } from './hooks/useToast'
+import { ToastContainer } from './components/ToastContainer'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
@@ -38,6 +40,9 @@ export default function App(){
   // Use custom focus trap hook for the dialog
   useFocusTrap(dialogRef, showConfirmDialog)
 
+  // Use toast notifications
+  const { toasts, showToast, removeToast } = useToast()
+
   // Backend mode functions
   const load = useCallback(async () => {
     try {
@@ -45,9 +50,9 @@ export default function App(){
       setDoc(d)
     } catch (error) {
       console.error('Failed to load from API:', error)
-      alert('Failed to load from API. Make sure the backend is running.')
+      showToast('Failed to load from API. Make sure the backend is running.', 'error')
     }
-  }, [user])
+  }, [user, showToast])
 
   // Only auto-load if using backend
   useEffect(()=>{
@@ -59,10 +64,10 @@ export default function App(){
   async function save(){
     try {
       const res = await putHday(user, doc)
-      alert(res)
+      showToast(res, 'success')
     } catch (error) {
       console.error('Failed to save to API:', error)
-      alert('Failed to save to API. Make sure the backend is running.')
+      showToast('Failed to save to API. Make sure the backend is running.', 'error')
     }
   }
 
@@ -80,7 +85,7 @@ export default function App(){
     }
     reader.onerror = () => {
       console.error('Failed to read file:', reader.error)
-      alert('Failed to read file. Please make sure the file is accessible and try again.')
+      showToast('Failed to read file. Please make sure the file is accessible and try again.', 'error')
     }
     reader.readAsText(file)
   }
@@ -112,11 +117,11 @@ export default function App(){
     // Validate range event dates
     if (eventType === 'range') {
       if (!eventStart || !isValidDate(eventStart)) {
-        alert('Please provide a valid start date in YYYY/MM/DD format.')
+        showToast('Please provide a valid start date in YYYY/MM/DD format.', 'warning')
         return
       }
       if (eventEnd && !isValidDate(eventEnd)) {
-        alert('Please provide a valid end date in YYYY/MM/DD format.')
+        showToast('Please provide a valid end date in YYYY/MM/DD format.', 'warning')
         return
       }
     }
@@ -175,7 +180,7 @@ export default function App(){
     // Only allow editing of supported event types
     if (ev.type !== 'range' && ev.type !== 'weekly') {
       console.warn('Attempted to edit unsupported event type:', ev.type)
-      alert('Cannot edit events of unknown type. Please delete and recreate the event.')
+      showToast('Cannot edit events of unknown type. Please delete and recreate the event.', 'warning')
       return
     }
 
@@ -238,6 +243,7 @@ export default function App(){
 
   return (
     <div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <header>
         <h1>Holiday Planner</h1>
 

@@ -22,3 +22,14 @@ input,select{padding:6px}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .controls{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:12px;margin-top:10px}
 .muted{color:#666;font-size:13px}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
