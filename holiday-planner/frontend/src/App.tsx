@@ -1,9 +1,21 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
-import { toLine, parseHday, type HdayEvent } from './lib/hday'
+import { toLine, parseHday, normalizeEventFlags, type HdayEvent } from './lib/hday'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
+const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
+
+function isValidDate(dateString: string): boolean {
+  if (!DATE_FORMAT_REGEX.test(dateString)) {
+    return false
+  }
+  const [year, month, day] = dateString.split('/').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && 
+         date.getMonth() === month - 1 && 
+         date.getDate() === day
+}
 
 export default function App(){
   const [user, setUser] = useState('testuser')
@@ -19,16 +31,47 @@ export default function App(){
   const [eventEnd, setEventEnd] = useState('')
   const [eventWeekday, setEventWeekday] = useState(1)
   const [eventFlags, setEventFlags] = useState<string[]>([])
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const dialogRef = React.useRef<HTMLDivElement>(null)
 
-  // Only auto-load if using backend
-  useEffect(()=>{
-    if (USE_BACKEND) {
-      load()
+  // Focus dialog when it opens and set up focus trap
+  useEffect(() => {
+    if (showConfirmDialog && dialogRef.current) {
+      dialogRef.current.focus()
+      
+      // Focus trap handler
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Tab' && dialogRef.current) {
+          const focusableElements = dialogRef.current.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+          
+          if (focusableElements.length === 0) return
+          
+          const firstElement = focusableElements[0] as HTMLElement
+          const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+          
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement) {
+              lastElement?.focus()
+              e.preventDefault()
+            }
+          } else {
+            if (document.activeElement === lastElement) {
+              firstElement?.focus()
+              e.preventDefault()
+            }
+          }
+        }
+      }
+      
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
     }
-  },[])
+  }, [showConfirmDialog])
 
   // Backend mode functions
-  async function load(){
+  const load = useCallback(async () => {
     try {
       const d = await getHday(user)
       setDoc(d)
@@ -36,7 +79,14 @@ export default function App(){
       console.error('Failed to load from API:', error)
       alert('Failed to load from API. Make sure the backend is running.')
     }
-  }
+  }, [user])
+
+  // Only auto-load if using backend
+  useEffect(()=>{
+    if (USE_BACKEND) {
+      load()
+    }
+  },[load])
 
   async function save(){
     try {
@@ -55,8 +105,14 @@ export default function App(){
 
     const reader = new FileReader()
     reader.onload = (event) => {
-      const text = event.target?.result as string
-      setRawText(text)
+      const result = event.target?.result
+      if (typeof result === 'string') {
+        setRawText(result)
+      }
+    }
+    reader.onerror = () => {
+      console.error('Failed to read file:', reader.error)
+      alert('Failed to read file. Please make sure the file is accessible and try again.')
     }
     reader.readAsText(file)
   }
@@ -76,21 +132,34 @@ export default function App(){
     URL.revokeObjectURL(a.href)
   }
 
-  function syncEventsToText() {
-    const text = doc.events.map(toLine).join('\n')
-    setRawText(text)
-  }
+  // Auto-sync events to text in standalone mode
+  useEffect(() => {
+    if (!USE_BACKEND) {
+      const text = doc.events.map(toLine).join('\n')
+      setRawText(text)
+    }
+  }, [doc.events])
 
   function handleAddOrUpdate() {
-    const flags = eventFlags.filter(f => f !== 'holiday')
+    // Validate range event dates
+    if (eventType === 'range') {
+      if (!eventStart || !isValidDate(eventStart)) {
+        alert('Please provide a valid start date in YYYY/MM/DD format.')
+        return
+      }
+      if (eventEnd && !isValidDate(eventEnd)) {
+        alert('Please provide a valid end date in YYYY/MM/DD format.')
+        return
+      }
+    }
 
-    // Add default 'holiday' if no type flags
-    const finalFlags = flags.some(f => ['business', 'course', 'in'].includes(f))
-      ? flags
-      : [...flags, 'holiday']
+    const flags = eventFlags.filter(f => f !== 'holiday')
+    const finalFlags = normalizeEventFlags(flags)
+
+    let newEvent: HdayEvent
 
     if (eventType === 'range') {
-      const ev: HdayEvent = {
+      newEvent = {
         type: 'range',
         start: eventStart,
         end: eventEnd || eventStart,
@@ -104,17 +173,8 @@ export default function App(){
           flags: finalFlags
         })
       }
-
-      if (editIndex >= 0) {
-        const newEvents = [...doc.events]
-        newEvents[editIndex] = ev
-        setDoc({ ...doc, events: newEvents })
-        setEditIndex(-1)
-      } else {
-        setDoc({ ...doc, events: [...doc.events, ev] })
-      }
     } else {
-      const ev: HdayEvent = {
+      newEvent = {
         type: 'weekly',
         weekday: eventWeekday,
         title: eventTitle,
@@ -126,26 +186,33 @@ export default function App(){
           flags: finalFlags
         })
       }
-
-      if (editIndex >= 0) {
-        const newEvents = [...doc.events]
-        newEvents[editIndex] = ev
-        setDoc({ ...doc, events: newEvents })
-        setEditIndex(-1)
-      } else {
-        setDoc({ ...doc, events: [...doc.events, ev] })
-      }
     }
 
-    // Sync to textarea
-    setTimeout(() => syncEventsToText(), 0)
+    // Update or add event
+    if (editIndex >= 0) {
+      const newEvents = [...doc.events]
+      newEvents[editIndex] = newEvent
+      setDoc({ ...doc, events: newEvents })
+      setEditIndex(-1)
+    } else {
+      setDoc({ ...doc, events: [...doc.events, newEvent] })
+    }
+
     handleResetForm()
   }
 
   function handleEdit(index: number) {
     const ev = doc.events[index]
+
+    // Only allow editing of supported event types
+    if (ev.type !== 'range' && ev.type !== 'weekly') {
+      console.warn('Attempted to edit unsupported event type:', ev.type)
+      alert('Cannot edit events of unknown type. Please delete and recreate the event.')
+      return
+    }
+
     setEditIndex(index)
-    setEventType(ev.type as 'range' | 'weekly')
+    setEventType(ev.type)
     setEventTitle(ev.title || '')
 
     if (ev.type === 'range') {
@@ -167,7 +234,6 @@ export default function App(){
   function handleDelete(index: number) {
     const newEvents = doc.events.filter((_, i) => i !== index)
     setDoc({ ...doc, events: newEvents })
-    setTimeout(() => syncEventsToText(), 0)
   }
 
   function handleResetForm() {
@@ -181,10 +247,17 @@ export default function App(){
   }
 
   function handleClearAll() {
-    if (confirm('Clear all events?')) {
-      setDoc({ ...doc, events: [] })
-      setRawText('')
-    }
+    setShowConfirmDialog(true)
+  }
+
+  function confirmClearAll() {
+    setDoc({ ...doc, events: [] })
+    setRawText('')
+    setShowConfirmDialog(false)
+  }
+
+  function cancelClearAll() {
+    setShowConfirmDialog(false)
   }
 
   function handleFlagToggle(flag: string) {
@@ -210,7 +283,12 @@ export default function App(){
         ) : (
           // Standalone mode UI
           <div className="row">
-            <input type="file" accept=".hday,.txt" onChange={handleFileUpload} />
+            <input
+              type="file"
+              accept=".hday,.txt"
+              onChange={handleFileUpload}
+              aria-label="Upload .hday or .txt file"
+            />
             <button className="primary" onClick={handleParse}>Parse</button>
             <button className="primary" onClick={handleDownload}>Download .hday</button>
           </div>
@@ -225,6 +303,7 @@ export default function App(){
             Flags: <code>a</code>=half AM, <code>p</code>=half PM, <code>b</code>=business,
             <code>s</code>=course, <code>i</code>=in; weekly entries use <code>d0..d6</code>.
           </p>
+          <label htmlFor="hdayText">Raw .hday content</label>
           <textarea
             id="hdayText"
             value={rawText}
@@ -265,7 +344,13 @@ export default function App(){
             <td>{ev.title||''}</td>
             {!USE_BACKEND && (
               <td>
-                <button onClick={() => handleEdit(i)}>Edit</button>
+                <button 
+                  onClick={() => handleEdit(i)}
+                  disabled={ev.type === 'unknown'}
+                  title={ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'}
+                >
+                  Edit
+                </button>
                 <button onClick={() => handleDelete(i)}>Delete</button>
               </td>
             )}
@@ -279,29 +364,29 @@ export default function App(){
           <h2>Add / Edit event</h2>
           <div className="event-form controls">
             <div>
-              <label>Event type</label><br/>
-              <select value={eventType} onChange={e => setEventType(e.target.value as 'range' | 'weekly')}>
+              <label htmlFor="eventType">Event type</label><br/>
+              <select id="eventType" value={eventType} onChange={e => setEventType(e.target.value as 'range' | 'weekly')}>
                 <option value="range">Range (start-end)</option>
                 <option value="weekly">Weekly (weekday)</option>
               </select>
             </div>
 
             <div>
-              <label>Title (optional)</label><br/>
-              <input value={eventTitle} onChange={e => setEventTitle(e.target.value)} />
+              <label htmlFor="eventTitle">Title (optional)</label><br/>
+              <input id="eventTitle" value={eventTitle} onChange={e => setEventTitle(e.target.value)} />
             </div>
 
             {eventType === 'range' ? (
               <div>
-                <label>Start (YYYY/MM/DD)</label><br/>
-                <input value={eventStart} onChange={e => setEventStart(e.target.value)} placeholder="2025/12/18" /><br/>
-                <label>End (YYYY/MM/DD)</label><br/>
-                <input value={eventEnd} onChange={e => setEventEnd(e.target.value)} placeholder="2025/12/18" />
+                <label htmlFor="eventStart">Start (YYYY/MM/DD)</label><br/>
+                <input id="eventStart" value={eventStart} onChange={e => setEventStart(e.target.value)} placeholder="2025/12/18" /><br/>
+                <label htmlFor="eventEnd">End (YYYY/MM/DD)</label><br/>
+                <input id="eventEnd" value={eventEnd} onChange={e => setEventEnd(e.target.value)} placeholder="2025/12/18" />
               </div>
             ) : (
               <div>
-                <label>Weekday</label><br/>
-                <select value={eventWeekday} onChange={e => setEventWeekday(parseInt(e.target.value))}>
+                <label htmlFor="eventWeekday">Weekday</label><br/>
+                <select id="eventWeekday" value={eventWeekday} onChange={e => setEventWeekday(parseInt(e.target.value))}>
                   <option value="0">Sun</option>
                   <option value="1">Mon</option>
                   <option value="2">Tue</option>
@@ -314,12 +399,14 @@ export default function App(){
             )}
 
             <div>
-              <label>Flags</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('half_am')} onChange={() => handleFlagToggle('half_am')} /> half_am</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('half_pm')} onChange={() => handleFlagToggle('half_pm')} /> half_pm</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('business')} onChange={() => handleFlagToggle('business')} /> business</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('course')} onChange={() => handleFlagToggle('course')} /> course</label><br/>
-              <label><input type="checkbox" checked={eventFlags.includes('in')} onChange={() => handleFlagToggle('in')} /> in</label>
+              <fieldset>
+                <legend>Flags</legend>
+                <label htmlFor="flag-half-am"><input id="flag-half-am" type="checkbox" checked={eventFlags.includes('half_am')} onChange={() => handleFlagToggle('half_am')} /> half_am</label><br/>
+                <label htmlFor="flag-half-pm"><input id="flag-half-pm" type="checkbox" checked={eventFlags.includes('half_pm')} onChange={() => handleFlagToggle('half_pm')} /> half_pm</label><br/>
+                <label htmlFor="flag-business"><input id="flag-business" type="checkbox" checked={eventFlags.includes('business')} onChange={() => handleFlagToggle('business')} /> business</label><br/>
+                <label htmlFor="flag-course"><input id="flag-course" type="checkbox" checked={eventFlags.includes('course')} onChange={() => handleFlagToggle('course')} /> course</label><br/>
+                <label htmlFor="flag-in"><input id="flag-in" type="checkbox" checked={eventFlags.includes('in')} onChange={() => handleFlagToggle('in')} /> in</label>
+              </fieldset>
             </div>
 
             <div>
@@ -334,9 +421,64 @@ export default function App(){
 
       <h2>Month view</h2>
       <div className="row">
-        <input type="month" value={month} onChange={e=>setMonth(e.target.value)} />
+        <label htmlFor="month-view-input" style={{ marginRight: '0.5rem' }}>Select month:</label>
+        <input
+          id="month-view-input"
+          type="month"
+          value={month}
+          onChange={e => setMonth(e.target.value)}
+        />
       </div>
       {month && <MonthGrid events={doc.events} ym={month} />}
+
+      {/* Accessible confirmation dialog */}
+      {showConfirmDialog && (
+        <>
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 999
+            }}
+            onClick={cancelClearAll}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmDialogTitle"
+            aria-describedby="confirmDialogDesc"
+            tabIndex={0}
+            ref={dialogRef}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') cancelClearAll()
+            }}
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'white',
+              padding: '20px',
+              border: '2px solid #333',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              zIndex: 1000
+            }}
+          >
+            <h3 id="confirmDialogTitle">Confirm Clear All</h3>
+            <p id="confirmDialogDesc">Are you sure you want to clear all events? This action cannot be undone.</p>
+            <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={cancelClearAll}>Cancel</button>
+              <button className="primary" onClick={confirmClearAll}>Clear All</button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

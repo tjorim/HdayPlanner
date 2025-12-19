@@ -9,6 +9,53 @@ export type HdayEvent = {
   raw?: string
 }
 
+// Type flags that override the default 'holiday' flag
+const TYPE_FLAGS = ['business', 'course', 'in'] as const
+const TYPE_FLAGS_SET = new Set<string>(TYPE_FLAGS)
+
+/**
+ * Parse prefix flags from .hday format into normalized flag names.
+ * Adds 'holiday' as default if no type flags (business/course/in) are present.
+ * 
+ * @param prefix String of single-character flags (e.g., 'ap' for half_am + half_pm)
+ * @returns Array of normalized flag names
+ */
+function parsePrefixFlags(prefix: string): string[] {
+  const flagMap: Record<string, string> = {
+    a: 'half_am',
+    p: 'half_pm',
+    b: 'business',
+    s: 'course',
+    i: 'in'
+  }
+
+  const flags: string[] = []
+  for (const ch of prefix) {
+    flags.push(flagMap[ch] || `flag_${ch}`)
+  }
+
+  return normalizeEventFlags(flags)
+}
+
+/**
+ * Normalize event flags by adding 'holiday' as default if no type flags are present.
+ * 
+ * Type flags that override the default 'holiday' are:
+ * - 'business' - Business trip or work-related event
+ * - 'course' - Training or educational course
+ * - 'in' - In-office day
+ * 
+ * @param flags Array of flag names
+ * @returns Array with 'holiday' added if no type flags present
+ */
+export function normalizeEventFlags(flags: string[]): string[] {
+  // Default to 'holiday' if no type flags
+  if (!flags.some(f => TYPE_FLAGS_SET.has(f))) {
+    return [...flags, 'holiday']
+  }
+  return [...flags]
+}
+
 /**
  * Parse .hday text format into an array of HdayEvent objects.
  *
@@ -24,13 +71,6 @@ export type HdayEvent = {
 export function parseHday(text: string): HdayEvent[] {
   const reRange = /^(?<prefix>[a-z]*)?(?<start>\d{4}\/\d{2}\/\d{2})(?:-(?<end>\d{4}\/\d{2}\/\d{2}))?(?:\s*#\s*(?<title>.*))?$/i
   const reWeekly = /^(?<prefix>[a-z]*?)d(?<weekday>[0-6])(?:\s*#\s*(?<title>.*))?$/i
-  const flagMap: Record<string, string> = {
-    a: 'half_am',
-    p: 'half_pm',
-    b: 'business',
-    s: 'course',
-    i: 'in'
-  }
 
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
   const events: HdayEvent[] = []
@@ -40,17 +80,7 @@ export function parseHday(text: string): HdayEvent[] {
     const rangeMatch = line.match(reRange)
     if (rangeMatch?.groups) {
       const { prefix = '', start, end, title = '' } = rangeMatch.groups
-      const flags: string[] = []
-
-      // Parse prefix flags
-      for (const ch of prefix) {
-        flags.push(flagMap[ch] || `flag_${ch}`)
-      }
-
-      // Default to 'holiday' if no type flags
-      if (!flags.some(f => ['business', 'course', 'in'].includes(f))) {
-        flags.push('holiday')
-      }
+      const flags = parsePrefixFlags(prefix)
 
       events.push({
         type: 'range',
@@ -67,17 +97,7 @@ export function parseHday(text: string): HdayEvent[] {
     const weeklyMatch = line.match(reWeekly)
     if (weeklyMatch?.groups) {
       const { prefix = '', weekday, title = '' } = weeklyMatch.groups
-      const flags: string[] = []
-
-      // Parse prefix flags
-      for (const ch of prefix) {
-        flags.push(flagMap[ch] || `flag_${ch}`)
-      }
-
-      // Default to 'holiday' if no type flags
-      if (!flags.some(f => ['business', 'course', 'in'].includes(f))) {
-        flags.push('holiday')
-      }
+      const flags = parsePrefixFlags(prefix)
 
       events.push({
         type: 'weekly',
