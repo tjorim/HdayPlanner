@@ -10,9 +10,10 @@ from .auth.auth import get_current_user
 
 app = FastAPI(title="Holiday Planner API", version="0.1.0")
 
+# CORS middleware for development - restrict origins in production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # TODO: Replace with specific frontend URL in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
