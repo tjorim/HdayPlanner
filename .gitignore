@@ -10,7 +10,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/** This ignore was too broad; scope to repo root only */
+/lib/
+!frontend/src/lib/
 lib64/
 parts/
 sdist/
@@ -42,19 +44,26 @@ dist-ssr/
 *~
 .DS_Store
 
+# Claude AI settings (local configuration should not be tracked)
+.claude/settings.local.json
+
 # Environment files
 .env
 .env.local
 .env.*.local
 
 # Data directories (contains user .hday files)
-holiday-planner/backend/data/
+backend/data/
 *.hday
-!example-user.hday
+!examples/example-user.hday
 
 # Build outputs
-holiday-planner/frontend/dist/
-holiday-planner/frontend/build/
+frontend/dist/
+frontend/build/
+
+# Test coverage outputs (ignore generated reports)
+**/coverage/
+frontend/coverage/
 
 # Logs
 *.log

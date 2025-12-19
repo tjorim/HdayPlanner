@@ -1,0 +1,158 @@
+:root{--b:#ddd;--bg:#f6f8fa;--p:#1976d2}
+body{font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:20px;}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+button{padding:8px 12px;border:1px solid var(--b);border-radius:6px;background:#fff;cursor:pointer}
+button.primary{background:var(--p);color:#fff;border-color:var(--p)}
+.table{border-collapse:collapse;width:100%}
+.table th,.table td{border:1px solid var(--b);padding:6px}
+.badge{display:inline-block;padding:2px 6px;border-radius:4px;margin-right:4px;font-size:12px;background:#eceff1;color:#37474f}
+.badge.holiday{background:#e8f5e9;color:#1b5e20}
+.badge.business{background:#e3f2fd;color:#0d47a1}
+.badge.course{background:#fff3e0;color:#e65100}
+.badge.half_am{background:#ede7f6;color:#4527a0}
+.badge.half_pm{background:#fce4ec;color:#ad1457}
+.calendar{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.calendar-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{border:1px solid var(--b);min-height:90px;padding:6px;border-radius:6px}
+.date{font-weight:600;font-size:12px;color:#555}
+.item{font-size:12px;margin-top:4px}
+.event-item{font-size:12px;margin-top:4px;padding:4px 6px;border-radius:4px;color:#000;font-weight:500}
+.event--holiday-full{background-color:#EC0000}
+.event--holiday-half{background-color:#FF8A8A}
+.event--business-full{background-color:#FF9500}
+.event--business-half{background-color:#FFC04D}
+.event--course-full{background-color:#D9AD00}
+.event--course-half{background-color:#F0D04D}
+.event--in-office-full{background-color:#008899}
+.event--in-office-half{background-color:#00B8CC}
+.half-day-symbol{font-weight:bold;margin-right:4px}
+label{font-weight:600}
+input,select{padding:6px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:12px;margin-top:10px}
+.muted{color:#666;font-size:13px}
+
+/* Utility: monospace textarea full width */
+.textarea-mono {
+  width: 100%;
+  height: 220px;
+  font-family: monospace;
+}
+
+/* Utility: right margin spacing */
+.mr-2 { margin-right: 0.5rem; }
+
+/* Keyboard focus ring for calendar day cells */
+.day:focus-visible {
+  outline: 2px solid var(--p);
+  outline-offset: 2px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Confirmation Dialog Styles */
+.dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border: 2px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.dialog h3 {
+  margin-top: 0;
+}
+
+.dialog-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Toast Close Button */
+.toast-close-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.toast-close-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+/* Fallback for older browsers that don't support :focus-visible */
+.toast-close-btn:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.toast-close-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Toast Container */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+}
+
+/* Toast Item */
+.toast {
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toast-message { flex: 1; }
+
+/* Toast Type Colors */
+.toast--success { background-color: #10b981; }
+.toast--error   { background-color: #ef4444; }
+.toast--warning { background-color: #f59e0b; }
+.toast--info    { background-color: #3b82f6; }
