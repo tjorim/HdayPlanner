@@ -36,6 +36,7 @@ export default function App(){
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const dialogRef = React.useRef<HTMLDivElement>(null)
+  const formRef = React.useRef<HTMLDivElement>(null)
 
   // Use custom focus trap hook for the dialog
   useFocusTrap(dialogRef, showConfirmDialog)
@@ -116,6 +117,13 @@ export default function App(){
     }
   }, [doc.events])
 
+  // Scroll to form when entering edit mode
+  useEffect(() => {
+    if (editIndex >= 0 && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editIndex])
+
   function handleAddOrUpdate() {
     // Validate range event dates
     if (eventType === 'range') {
@@ -190,11 +198,6 @@ export default function App(){
 
     // Set flags (filter out 'holiday' for display)
     setEventFlags(ev.flags?.filter(f => f !== 'holiday') || [])
-
-    // Scroll to form
-    setTimeout(() => {
-      document.querySelector('.event-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
   }
 
   function handleDelete(index: number) {
@@ -329,7 +332,7 @@ export default function App(){
       {!USE_BACKEND && (
         <>
           <h2>Add / Edit event</h2>
-          <div className="event-form controls">
+          <div ref={formRef} className="event-form controls">
             <div>
               <label htmlFor="eventType">Event type</label><br/>
               <select id="eventType" value={eventType} onChange={e => setEventType(e.target.value as 'range' | 'weekly')}>
