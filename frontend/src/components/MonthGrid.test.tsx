@@ -246,17 +246,13 @@ describe('MonthGrid - Weekly Recurring Events', () => {
       }
     ]
     
-    // Use January 2025: has 4 Tuesdays (7, 14, 21, 28)
-    // Wait, actually has 5 Tuesdays: Jan 1 is Wednesday, so Tuesdays are 7, 14, 21, 28
-    // Actually checking: Jan 1 is Wed, so Jan 6 is Mon, Jan 7 is Tue, Jan 14 is Tue, Jan 21 is Tue, Jan 28 is Tue
-    // So we need to check more carefully
+    // Use January 2025, which has 4 Tuesdays (7, 14, 21, 28)
     const ym = '2025-01'
     render(<MonthGrid events={events} ym={ym} />)
     
     const eventItems = screen.getAllByText('Tuesday AM Off')
     
-    // Based on calendar, January 2025 has 4 Tuesdays (7, 14, 21, 28)
-    // But our earlier check said 5 - let me use the correct number which is 4 based on test results
+    // January 2025 has 4 Tuesdays (7, 14, 21, 28)
     expect(eventItems.length).toBe(4)
     
     // Check that the half-day symbol is present
@@ -264,7 +260,7 @@ describe('MonthGrid - Weekly Recurring Events', () => {
     expect(halfDaySymbols.length).toBe(4)
   })
 
-  it('does not display weekly recurring event on wrong weekday', () => {
+  it('displays weekly recurring event only on matching weekdays', () => {
     // Create a weekly event for Sunday (weekday 0)
     const events: HdayEvent[] = [
       {
@@ -283,7 +279,6 @@ describe('MonthGrid - Weekly Recurring Events', () => {
     const eventItems = screen.getAllByText('Sunday Event')
     
     // January 2025 has 4 Sundays (5, 12, 19, 26)
-    // Should NOT appear on any other day
     expect(eventItems.length).toBe(4)
   })
 })

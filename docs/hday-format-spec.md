@@ -53,7 +53,8 @@ Flags can be combined by concatenating them. Common patterns:
 | `i` | In office | Teal (#008899) |
 | `ai` | In office, half day AM | Light Teal with `,` (#00B8CC) |
 | `pi` | In office, half day PM | Light Teal with `'` (#00B8CC) |
-| `d0-d6` | Weekly recurring | Magenta (#FF00FF) |
+
+**Note:** Weekly recurring events (`d0-d6`) follow the same flag-based color scheme as above. For example, `d1` (Monday) is red, `bd5` (business Friday) is orange, `sd2` (training Tuesday) is dark yellow, etc.
 
 ## Comments and Metadata
 
@@ -111,7 +112,6 @@ When rendered in team overview pages:
 |-------|-----|---------|
 | Red | #FF0000 | Off work / vacation |
 | Pink | #FF9999 | Half day off (`,` = AM, `'` = PM) |
-| Magenta | #FF00FF | Regular weekly day off |
 | Orange | #FFA500 | Business trip |
 | Light Orange | #FFCC77 | Half day business |
 | Yellow | #D9AD00 | Training / course |
@@ -122,6 +122,8 @@ When rendered in team overview pages:
 | Light Blue | #AAAAFF | Official holiday (CR day) |
 | Light Green | #BBFFBB | In during school vacation |
 | Green | #90EE90 | Regular work day / "today" marker |
+
+**Note:** Weekly recurring events (regular weekly day off) use the same color scheme based on their flags (business/course/in) rather than a fixed Magenta color.
 
 ## Special Symbols (in team overviews)
 
