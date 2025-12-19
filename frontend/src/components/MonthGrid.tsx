@@ -43,6 +43,10 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
   const last = new Date(year, month, 0)
   const pad2 = (n: number) => String(n).padStart(2, '0')
 
+  // Get today's date in YYYY/MM/DD format for comparison
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}/${pad2(today.getMonth() + 1)}/${pad2(today.getDate())}`
+
   const leadingPad = first.getDay() // 0..6 (Sun..Sat)
   const totalDays = last.getDate()
   const firstDayIndex = leadingPad
@@ -122,14 +126,16 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
       // Real day
       const d = i - leadingPad + 1
       const dateStr = `${year}/${pad2(month)}/${pad2(d)}`
+      const isToday = dateStr === todayStr
       const todays = events.filter(
         (ev) => ev.type === 'range' && ev.start && ev.end && dateStr >= ev.start && dateStr <= ev.end
       )
       rowCells.push(
         <div
-          className="day"
+          className={`day${isToday ? ' day--today' : ''}`}
           tabIndex={i === focusedIndex ? 0 : -1}
-          aria-label={dateStr}
+          aria-label={`${dateStr}${isToday ? ' (Today)' : ''}`}
+          aria-current={isToday ? 'date' : undefined}
           key={`day-${i}`}
           ref={(el) => (cellRefs.current[i] = el)}
           data-index={i}
