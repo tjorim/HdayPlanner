@@ -1,10 +1,15 @@
+// Type definitions for event flags
+export type HalfDayFlag = 'half_am' | 'half_pm'
+export type TypeFlag = 'business' | 'course' | 'in' | 'holiday'
+export type EventFlag = HalfDayFlag | TypeFlag
+
 // Type definitions for .hday format
 export type HdayEvent = {
   type: 'range' | 'weekly' | 'unknown'
   start?: string
   end?: string
   weekday?: number
-  flags?: string[]
+  flags?: EventFlag[]
   title?: string
   raw?: string
 }
@@ -14,14 +19,29 @@ const TYPE_FLAGS = ['business', 'course', 'in'] as const
 const TYPE_FLAGS_SET = new Set<string>(TYPE_FLAGS)
 
 /**
+ * Color constants for event backgrounds.
+ * All colors meet WCAG AA accessibility standards for contrast with black text.
+ */
+export const EVENT_COLORS = {
+  HOLIDAY_FULL: '#FF0000',    // Red - full day vacation/holiday
+  HOLIDAY_HALF: '#FF9999',    // Pink - half day vacation/holiday
+  BUSINESS_FULL: '#FFA500',   // Orange - full day business trip
+  BUSINESS_HALF: '#FFCC77',   // Light orange - half day business
+  COURSE_FULL: '#E6B800',     // Dark yellow/gold - full day course (accessible)
+  COURSE_HALF: '#F5D966',     // Light yellow - half day course
+  IN_OFFICE_FULL: '#0099AA',  // Teal - full day in-office (accessible)
+  IN_OFFICE_HALF: '#4DB8C9',  // Light teal - half day in-office
+} as const
+
+/**
  * Parse prefix flags from .hday format into normalized flag names.
  * Adds 'holiday' as default if no type flags (business/course/in) are present.
- * 
+ *
  * @param prefix String of single-character flags (e.g., 'ap' for half_am + half_pm)
  * @returns Array of normalized flag names
  */
-function parsePrefixFlags(prefix: string): string[] {
-  const flagMap: Record<string, string> = {
+function parsePrefixFlags(prefix: string): EventFlag[] {
+  const flagMap: Record<string, EventFlag> = {
     a: 'half_am',
     p: 'half_pm',
     b: 'business',
@@ -29,7 +49,7 @@ function parsePrefixFlags(prefix: string): string[] {
     i: 'in'
   }
 
-  const flags: string[] = []
+  const flags: EventFlag[] = []
   for (const ch of prefix) {
     if (flagMap[ch]) {
       flags.push(flagMap[ch])
@@ -43,16 +63,16 @@ function parsePrefixFlags(prefix: string): string[] {
 
 /**
  * Normalize event flags by adding 'holiday' as default if no type flags are present.
- * 
+ *
  * Type flags that override the default 'holiday' are:
  * - 'business' - Business trip or work-related event
  * - 'course' - Training or educational course
  * - 'in' - In-office day
- * 
+ *
  * @param flags Array of flag names
  * @returns Array with 'holiday' added if no type flags present
  */
-export function normalizeEventFlags(flags: string[]): string[] {
+export function normalizeEventFlags(flags: EventFlag[]): EventFlag[] {
   // Default to 'holiday' if no type flags
   if (!flags.some(f => TYPE_FLAGS_SET.has(f))) {
     return [...flags, 'holiday']
@@ -155,77 +175,78 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
 /**
  * Returns the hex background color for an event based on its flags.
  *
- * Color mapping:
+ * Color mapping (using EVENT_COLORS constants):
  *
  * - Default vacation/holiday (no `business`, `course` or `in` flag):
- *   - Full day (no `half_am` / `half_pm`): `'#FF0000'` (red)
- *   - Half day (with `half_am` or `half_pm`): `'#FF9999'` (pink)
+ *   - Full day (no `half_am` / `half_pm`): HOLIDAY_FULL (red)
+ *   - Half day (with `half_am` or `half_pm`): HOLIDAY_HALF (pink)
  *
  * - Business (`'business'` flag present):
- *   - Full day: `'#FFA500'` (orange)
- *   - Half day (with `half_am` or `half_pm`): `'#FFCC77'` (light orange)
+ *   - Full day: BUSINESS_FULL (orange)
+ *   - Half day: BUSINESS_HALF (light orange)
  *
  * - Course (`'course'` flag present):
- *   - Full day: `'#E6B800'` (darker yellow for accessibility)
- *   - Half day (with `half_am` or `half_pm`): `'#F5D966'` (light yellow)
+ *   - Full day: COURSE_FULL (dark yellow/gold)
+ *   - Half day: COURSE_HALF (light yellow)
  *
  * - In-office (`'in'` flag present):
- *   - Full day: `'#0099AA'` (teal for accessibility)
- *   - Half day (with `half_am` or `half_pm`): `'#4DB8C9'` (light teal)
+ *   - Full day: IN_OFFICE_FULL (teal)
+ *   - Half day: IN_OFFICE_HALF (light teal)
  *
- * If `flags` is omitted or an empty array, the function uses the default
- * vacation/holiday color for a full day: `'#FF0000'`.
+ * If `flags` is omitted or an empty array, returns HOLIDAY_FULL.
  *
  * Note: When multiple type flags are present (e.g., both 'business' and 'course'),
  * the function prioritizes in this order: business > course > in > holiday.
  *
  * @example
  * ```ts
- * getEventColor(); // '#FF0000' (default full-day vacation)
- * getEventColor([]); // '#FF0000'
- * getEventColor(['half_am']); // '#FF9999' (half-day vacation)
- * getEventColor(['business']); // '#FFA500'
- * getEventColor(['business', 'half_am']); // '#FFCC77'
- * getEventColor(['course']); // '#E6B800'
- * getEventColor(['course', 'half_pm']); // '#F5D966'
- * getEventColor(['in']); // '#0099AA'
- * getEventColor(['in', 'half_am']); // '#4DB8C9'
+ * getEventColor(); // EVENT_COLORS.HOLIDAY_FULL
+ * getEventColor([]); // EVENT_COLORS.HOLIDAY_FULL
+ * getEventColor(['half_am']); // EVENT_COLORS.HOLIDAY_HALF
+ * getEventColor(['business']); // EVENT_COLORS.BUSINESS_FULL
+ * getEventColor(['business', 'half_am']); // EVENT_COLORS.BUSINESS_HALF
+ * getEventColor(['course']); // EVENT_COLORS.COURSE_FULL
+ * getEventColor(['course', 'half_pm']); // EVENT_COLORS.COURSE_HALF
+ * getEventColor(['in']); // EVENT_COLORS.IN_OFFICE_FULL
+ * getEventColor(['in', 'half_am']); // EVENT_COLORS.IN_OFFICE_HALF
  * ```
  *
  * @param flags Optional list of flags describing the event type and half-day status.
  * @returns A CSS hex color string representing the event background color.
  */
-export function getEventColor(flags?: string[]): string {
-  if (!flags || flags.length === 0) return '#FF0000' // Red - default vacation
-  
+export function getEventColor(flags?: EventFlag[]): string {
+  if (!flags || flags.length === 0) return EVENT_COLORS.HOLIDAY_FULL
+
   const hasHalfDay = flags.includes('half_am') || flags.includes('half_pm')
-  
+
   // Determine base color based on type flags (priority: business > course > in > holiday)
   if (flags.includes('business')) {
-    return hasHalfDay ? '#FFCC77' : '#FFA500' // Orange (light for half day)
+    return hasHalfDay ? EVENT_COLORS.BUSINESS_HALF : EVENT_COLORS.BUSINESS_FULL
   } else if (flags.includes('course')) {
-    return hasHalfDay ? '#F5D966' : '#E6B800' // Darker yellow for better contrast
+    return hasHalfDay ? EVENT_COLORS.COURSE_HALF : EVENT_COLORS.COURSE_FULL
   } else if (flags.includes('in')) {
-    return hasHalfDay ? '#4DB8C9' : '#0099AA' // Teal for better contrast
+    return hasHalfDay ? EVENT_COLORS.IN_OFFICE_HALF : EVENT_COLORS.IN_OFFICE_FULL
   } else {
     // Holiday/vacation (default)
-    return hasHalfDay ? '#FF9999' : '#FF0000' // Red (pink for half day)
+    return hasHalfDay ? EVENT_COLORS.HOLIDAY_HALF : EVENT_COLORS.HOLIDAY_FULL
   }
 }
 
 /**
  * Get symbol to display for half-day events.
- * 
- * Uses comma (`,`) for AM and apostrophe (`'`) for PM to match the
- * .hday format specification and legacy team overview displays.
+ *
+ * Uses Unicode half-circle symbols for visual clarity:
+ * - ◐ (U+25D0) for AM - left half filled represents morning
+ * - ◑ (U+25D1) for PM - right half filled represents afternoon
+ *
  * These symbols are combined with aria-labels for accessibility.
- * 
+ *
  * @param flags Optional list of flags
- * @returns Half-day symbol: `,` for AM, `'` for PM, or empty string
+ * @returns Half-day symbol: `◐` for AM, `◑` for PM, or empty string
  */
-export function getHalfDaySymbol(flags?: string[]): string {
+export function getHalfDaySymbol(flags?: EventFlag[]): string {
   if (!flags) return ''
-  if (flags.includes('half_am')) return ','
-  if (flags.includes('half_pm')) return "'"
+  if (flags.includes('half_am')) return '◐'
+  if (flags.includes('half_pm')) return '◑'
   return ''
 }

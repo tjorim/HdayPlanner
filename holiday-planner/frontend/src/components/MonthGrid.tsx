@@ -9,11 +9,11 @@ interface EventItemProps {
 function EventItem({ event }: EventItemProps) {
   const backgroundColor = getEventColor(event.flags)
   const symbol = getHalfDaySymbol(event.flags)
-  
+
   // Generate accessible label for half-day symbols
   const halfDayLabel =
-    symbol === ',' ? 'Morning half-day event' :
-    symbol === "'" ? 'Afternoon half-day event' :
+    symbol === '◐' ? 'Morning half-day event' :
+    symbol === '◑' ? 'Afternoon half-day event' :
     undefined
   
   return (

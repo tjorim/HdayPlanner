@@ -3,11 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pathlib import Path
 import os
+import logging
 from .config import SHARE_DIR
 from .hday.parser import parse_text, to_text
 from .hday.models import HdayDocument, HdayEvent
 from .audit import log
 from .auth.auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Holiday Planner API", version="0.1.0")
 
@@ -16,32 +19,56 @@ app = FastAPI(title="Holiday Planner API", version="0.1.0")
 # In development, defaults to localhost:5173
 # Set CORS_ORIGINS="*" only for local development if needed
 def get_cors_origins():
-    """Parse and validate CORS origins from environment variable."""
+    """
+    Parse and validate CORS origins from environment variable.
+
+    Returns:
+        List of allowed origins. Returns empty list [] if wildcard is attempted
+        in production, which will block all cross-origin requests (forcing
+        explicit origin configuration for security).
+    """
     cors_env = os.getenv('CORS_ORIGINS', '').strip()
-    
+    env_mode = os.getenv('ENVIRONMENT', 'development').lower()
+
     # Development mode: allow wildcard only if explicitly set
     if cors_env == '*':
         # Only allow wildcard in non-production environments
-        env_mode = os.getenv('ENVIRONMENT', 'development').lower()
         if env_mode in ('production', 'prod'):
-            # Fallback to safe default in production
+            # Fallback to empty list in production - will block all CORS requests
+            # This forces explicit origin configuration for security
+            logger.warning(
+                "⚠️  CORS_ORIGINS='*' is not allowed in production. "
+                "No origins will be allowed. Set CORS_ORIGINS to explicit origins."
+            )
             return []
+        logger.info("CORS: Allowing all origins (*) in development mode")
         return ['*']
-    
+
     # Parse comma-separated origins
     if cors_env:
         origins = [origin.strip() for origin in cors_env.split(',') if origin.strip()]
+        logger.info(f"CORS: Configured origins: {origins}")
         return origins
-    
+
     # Default for development
+    logger.info("CORS: Using default development origin: http://localhost:5173")
     return ['http://localhost:5173']
 
 ALLOWED_ORIGINS = get_cors_origins()
 
+# Log final CORS configuration
+if not ALLOWED_ORIGINS:
+    logger.error(
+        "⚠️  No CORS origins configured - all cross-origin requests will be blocked! "
+        "Set CORS_ORIGINS environment variable."
+    )
+else:
+    logger.info(f"CORS middleware configured with origins: {ALLOWED_ORIGINS}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True if ALLOWED_ORIGINS != ['*'] else False,
+    allow_credentials='*' not in ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
