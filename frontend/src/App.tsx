@@ -50,6 +50,15 @@ export default function App(){
   // Sort events by date for display (range events by start date, weekly by weekday, unknown last)
   const sortedEvents = useMemo(() => sortEvents(doc.events), [doc.events])
 
+  // Create a mapping from sorted events to their original indices for edit/delete operations
+  const sortedToOriginalIndex = useMemo(() => {
+    const map = new Map<HdayEvent, number>()
+    doc.events.forEach((event, index) => {
+      map.set(event, index)
+    })
+    return map
+  }, [doc.events])
+
   // Backend mode functions
   const load = useCallback(async () => {
     try {
@@ -334,10 +343,10 @@ export default function App(){
         </thead>
         <tbody>
         {sortedEvents.map((ev,sortedIdx)=>{
-          // Find the original index in doc.events for edit/delete operations
-          const originalIdx = doc.events.indexOf(ev)
+          // Get the original index from the map for edit/delete operations
+          const originalIdx = sortedToOriginalIndex.get(ev) ?? -1
           return (
-          <tr key={originalIdx}>
+          <tr key={`${originalIdx}-${sortedIdx}`}>
             <td>{sortedIdx+1}</td>
             <td>{ev.type}</td>
             <td>{ev.start||''}</td>
@@ -352,12 +361,17 @@ export default function App(){
               <td>
                 <button 
                   onClick={() => handleEdit(originalIdx)}
-                  disabled={ev.type === 'unknown'}
+                  disabled={ev.type === 'unknown' || originalIdx === -1}
                   title={ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'}
                 >
                   Edit
                 </button>
-                <button onClick={() => handleDelete(originalIdx)}>Delete</button>
+                <button 
+                  onClick={() => handleDelete(originalIdx)}
+                  disabled={originalIdx === -1}
+                >
+                  Delete
+                </button>
               </td>
             )}
           </tr>
