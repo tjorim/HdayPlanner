@@ -2,6 +2,39 @@ import React from 'react'
 import type { HdayEvent } from '../lib/hday'
 import { getEventColor, getHalfDaySymbol } from '../lib/hday'
 
+interface EventItemProps {
+  event: HdayEvent
+}
+
+function EventItem({ event }: EventItemProps) {
+  const backgroundColor = getEventColor(event.flags)
+  const symbol = getHalfDaySymbol(event.flags)
+  
+  // Generate accessible label for half-day symbols
+  const halfDayLabel =
+    symbol === ',' ? 'Morning half-day event' :
+    symbol === "'" ? 'Afternoon half-day event' :
+    undefined
+  
+  return (
+    <div 
+      className="event-item" 
+      style={{ backgroundColor }}
+    >
+      {symbol && (
+        <span
+          className="half-day-symbol"
+          aria-label={halfDayLabel}
+          role="img"
+        >
+          {symbol}
+        </span>
+      )}
+      {event.title || 'Event'}
+    </div>
+  )
+}
+
 export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
   const [year, month] = ym.split('-').map(Number)
   const first = new Date(year, month-1, 1)
@@ -17,20 +50,7 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
     cells.push(
       <div className="day" key={d}>
         <div className="date">{dateStr}</div>
-        {todays.map((ev,i)=> {
-          const bgColor = getEventColor(ev.flags)
-          const symbol = getHalfDaySymbol(ev.flags)
-          return (
-            <div 
-              className="event-item" 
-              key={i}
-              style={{ backgroundColor: bgColor }}
-            >
-              {symbol && <span className="half-day-symbol">{symbol}</span>}
-              {ev.title || 'Event'}
-            </div>
-          )
-        })}
+        {todays.map((ev,i)=> <EventItem key={i} event={ev} />)}
       </div>
     )
   }
