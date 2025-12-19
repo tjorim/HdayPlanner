@@ -98,7 +98,16 @@ export function getEventColor(flags?: string[]): string {
   }
 }
 
-// Get symbol to display for half-day events
+/**
+ * Get symbol to display for half-day events.
+ * 
+ * Uses comma (`,`) for AM and apostrophe (`'`) for PM to match the
+ * .hday format specification and legacy team overview displays.
+ * These symbols are combined with aria-labels for accessibility.
+ * 
+ * @param flags Optional list of flags
+ * @returns Half-day symbol: `,` for AM, `'` for PM, or empty string
+ */
 export function getHalfDaySymbol(flags?: string[]): string {
   if (!flags) return ''
   if (flags.includes('half_am')) return ','

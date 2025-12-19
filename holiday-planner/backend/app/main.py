@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pathlib import Path
+import os
 from .config import SHARE_DIR
 from .hday.parser import parse_text, to_text
 from .hday.models import HdayDocument, HdayEvent
@@ -10,15 +11,37 @@ from .auth.auth import get_current_user
 
 app = FastAPI(title="Holiday Planner API", version="0.1.0")
 
-# CORS middleware - restrict allowed origins
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Frontend dev server
-]
+# CORS middleware - read allowed origins from environment
+# In production, set CORS_ORIGINS env var (comma-separated list of allowed origins)
+# In development, defaults to localhost:5173
+# Set CORS_ORIGINS="*" only for local development if needed
+def get_cors_origins():
+    """Parse and validate CORS origins from environment variable."""
+    cors_env = os.getenv('CORS_ORIGINS', '').strip()
+    
+    # Development mode: allow wildcard only if explicitly set
+    if cors_env == '*':
+        # Only allow wildcard in non-production environments
+        env_mode = os.getenv('ENVIRONMENT', 'development').lower()
+        if env_mode in ('production', 'prod'):
+            # Fallback to safe default in production
+            return []
+        return ['*']
+    
+    # Parse comma-separated origins
+    if cors_env:
+        origins = [origin.strip() for origin in cors_env.split(',') if origin.strip()]
+        return origins
+    
+    # Default for development
+    return ['http://localhost:5173']
+
+ALLOWED_ORIGINS = get_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=True if ALLOWED_ORIGINS != ['*'] else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
