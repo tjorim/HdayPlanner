@@ -295,3 +295,47 @@ export function getEventClass(flags?: EventFlag[]): string {
   if (flags.includes('in')) return `event--in-office-${half}`
   return `event--holiday-${half}`
 }
+
+/**
+ * Sort events by date and type.
+ * 
+ * Sorting order:
+ * 1. Range events sorted by start date (oldest first)
+ * 2. Weekly events sorted by weekday (Sunday=0 to Saturday=6)
+ * 3. Unknown events at the end (maintain original order)
+ * 
+ * @param events Array of HdayEvent objects to sort
+ * @returns A new sorted array (does not mutate the original)
+ */
+export function sortEvents(events: HdayEvent[]): HdayEvent[] {
+  return [...events].sort((a, b) => {
+    // Range events come first, sorted by start date
+    if (a.type === 'range' && b.type === 'range') {
+      const aStart = a.start || ''
+      const bStart = b.start || ''
+      return aStart.localeCompare(bStart)
+    }
+    
+    // Range before weekly
+    if (a.type === 'range' && b.type === 'weekly') return -1
+    if (a.type === 'weekly' && b.type === 'range') return 1
+    
+    // Weekly events sorted by weekday
+    if (a.type === 'weekly' && b.type === 'weekly') {
+      const aDay = a.weekday ?? 0
+      const bDay = b.weekday ?? 0
+      return aDay - bDay
+    }
+    
+    // Weekly before unknown
+    if (a.type === 'weekly' && b.type === 'unknown') return -1
+    if (a.type === 'unknown' && b.type === 'weekly') return 1
+    
+    // Range before unknown
+    if (a.type === 'range' && b.type === 'unknown') return -1
+    if (a.type === 'unknown' && b.type === 'range') return 1
+    
+    // Unknown events maintain original order (stable sort)
+    return 0
+  })
+}

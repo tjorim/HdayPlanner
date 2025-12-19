@@ -3,8 +3,10 @@ import {
   getEventColor,
   getHalfDaySymbol,
   normalizeEventFlags,
+  sortEvents,
   EVENT_COLORS,
-  type EventFlag
+  type EventFlag,
+  type HdayEvent
 } from './hday'
 
 describe('getEventColor', () => {
@@ -230,5 +232,127 @@ describe('EVENT_COLORS constants', () => {
     Object.values(EVENT_COLORS).forEach(color => {
       expect(color).toMatch(hexPattern)
     })
+  })
+})
+
+describe('sortEvents', () => {
+  it('sorts range events by start date (oldest first)', () => {
+    const events: HdayEvent[] = [
+      { type: 'range', start: '2025/03/15', end: '2025/03/20', flags: ['holiday'], title: 'March vacation' },
+      { type: 'range', start: '2025/01/10', end: '2025/01/15', flags: ['holiday'], title: 'January vacation' },
+      { type: 'range', start: '2025/02/20', end: '2025/02/25', flags: ['holiday'], title: 'February vacation' }
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted[0].start).toBe('2025/01/10')
+    expect(sorted[1].start).toBe('2025/02/20')
+    expect(sorted[2].start).toBe('2025/03/15')
+  })
+
+  it('places range events before weekly events', () => {
+    const events: HdayEvent[] = [
+      { type: 'weekly', weekday: 1, flags: ['in'], title: 'Monday in office' },
+      { type: 'range', start: '2025/12/25', end: '2025/12/25', flags: ['holiday'], title: 'Christmas' }
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted[0].type).toBe('range')
+    expect(sorted[1].type).toBe('weekly')
+  })
+
+  it('sorts weekly events by weekday (Sunday=0 to Saturday=6)', () => {
+    const events: HdayEvent[] = [
+      { type: 'weekly', weekday: 5, flags: ['in'], title: 'Friday' },
+      { type: 'weekly', weekday: 1, flags: ['in'], title: 'Monday' },
+      { type: 'weekly', weekday: 3, flags: ['in'], title: 'Wednesday' }
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted[0].weekday).toBe(1)
+    expect(sorted[1].weekday).toBe(3)
+    expect(sorted[2].weekday).toBe(5)
+  })
+
+  it('places weekly events before unknown events', () => {
+    const events: HdayEvent[] = [
+      { type: 'unknown', raw: 'invalid line', flags: ['holiday'] },
+      { type: 'weekly', weekday: 1, flags: ['in'], title: 'Monday' }
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted[0].type).toBe('weekly')
+    expect(sorted[1].type).toBe('unknown')
+  })
+
+  it('places range events before unknown events', () => {
+    const events: HdayEvent[] = [
+      { type: 'unknown', raw: 'invalid line', flags: ['holiday'] },
+      { type: 'range', start: '2025/12/25', end: '2025/12/25', flags: ['holiday'], title: 'Christmas' }
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted[0].type).toBe('range')
+    expect(sorted[1].type).toBe('unknown')
+  })
+
+  it('sorts mixed event types correctly', () => {
+    const events: HdayEvent[] = [
+      { type: 'unknown', raw: 'line1', flags: ['holiday'] },
+      { type: 'weekly', weekday: 2, flags: ['in'], title: 'Tuesday' },
+      { type: 'range', start: '2025/06/01', end: '2025/06/05', flags: ['holiday'], title: 'June' },
+      { type: 'range', start: '2025/01/01', end: '2025/01/01', flags: ['holiday'], title: 'New Year' },
+      { type: 'weekly', weekday: 1, flags: ['in'], title: 'Monday' },
+      { type: 'unknown', raw: 'line2', flags: ['holiday'] }
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted[0].type).toBe('range')
+    expect(sorted[0].start).toBe('2025/01/01')
+    expect(sorted[1].type).toBe('range')
+    expect(sorted[1].start).toBe('2025/06/01')
+    expect(sorted[2].type).toBe('weekly')
+    expect(sorted[2].weekday).toBe(1)
+    expect(sorted[3].type).toBe('weekly')
+    expect(sorted[3].weekday).toBe(2)
+    expect(sorted[4].type).toBe('unknown')
+    expect(sorted[5].type).toBe('unknown')
+  })
+
+  it('does not mutate the original array', () => {
+    const events: HdayEvent[] = [
+      { type: 'range', start: '2025/03/15', end: '2025/03/20', flags: ['holiday'], title: 'March' },
+      { type: 'range', start: '2025/01/10', end: '2025/01/15', flags: ['holiday'], title: 'January' }
+    ]
+    
+    const original = [...events]
+    const sorted = sortEvents(events)
+    
+    // Original array should be unchanged
+    expect(events).toEqual(original)
+    expect(events[0].start).toBe('2025/03/15')
+    
+    // Sorted array should be different
+    expect(sorted[0].start).toBe('2025/01/10')
+  })
+
+  it('handles empty array', () => {
+    const sorted = sortEvents([])
+    expect(sorted).toEqual([])
+  })
+
+  it('handles single event', () => {
+    const events: HdayEvent[] = [
+      { type: 'range', start: '2025/12/25', end: '2025/12/25', flags: ['holiday'], title: 'Christmas' }
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted).toEqual(events)
   })
 })

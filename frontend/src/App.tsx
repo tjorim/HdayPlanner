@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
-import { toLine, parseHday, normalizeEventFlags, type HdayEvent, type EventFlag } from './lib/hday'
+import { toLine, parseHday, normalizeEventFlags, sortEvents, type HdayEvent, type EventFlag } from './lib/hday'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
@@ -46,6 +46,9 @@ export default function App(){
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
+
+  // Sort events by date for display (range events by start date, weekly by weekday, unknown last)
+  const sortedEvents = useMemo(() => sortEvents(doc.events), [doc.events])
 
   // Backend mode functions
   const load = useCallback(async () => {
@@ -330,9 +333,12 @@ export default function App(){
           </tr>
         </thead>
         <tbody>
-        {doc.events.map((ev,i)=>
-          <tr key={i}>
-            <td>{i+1}</td>
+        {sortedEvents.map((ev,sortedIdx)=>{
+          // Find the original index in doc.events for edit/delete operations
+          const originalIdx = doc.events.indexOf(ev)
+          return (
+          <tr key={originalIdx}>
+            <td>{sortedIdx+1}</td>
             <td>{ev.type}</td>
             <td>{ev.start||''}</td>
             <td>
@@ -345,17 +351,17 @@ export default function App(){
             {!USE_BACKEND && (
               <td>
                 <button 
-                  onClick={() => handleEdit(i)}
+                  onClick={() => handleEdit(originalIdx)}
                   disabled={ev.type === 'unknown'}
                   title={ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'}
                 >
                   Edit
                 </button>
-                <button onClick={() => handleDelete(i)}>Delete</button>
+                <button onClick={() => handleDelete(originalIdx)}>Delete</button>
               </td>
             )}
           </tr>
-        )}
+        )})}
         </tbody>
       </table>
 
