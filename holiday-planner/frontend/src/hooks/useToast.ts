@@ -26,7 +26,7 @@ let toastIdCounter = 0
  */
 export function useToast(duration: number = 4000) {
   const [toasts, setToasts] = useState<Toast[]>([])
-  const timeoutsRef = useRef<Map<number, NodeJS.Timeout>>(new Map())
+  const timeoutsRef = useRef<Map<number, number>>(new Map())
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = toastIdCounter++
