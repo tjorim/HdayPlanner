@@ -9,6 +9,97 @@ export type HdayEvent = {
   raw?: string
 }
 
+/**
+ * Parse .hday text format into an array of HdayEvent objects.
+ *
+ * Format:
+ * - Range events: `[prefix]YYYY/MM/DD-YYYY/MM/DD # title`
+ * - Weekly events: `[prefix]dN # title` where N is 0-6 (Sun-Sat)
+ * - Prefix flags: a=half_am, p=half_pm, b=business, s=course, i=in
+ * - Events without type flags (b/s/i) default to 'holiday'
+ *
+ * @param text Raw .hday file content
+ * @returns Array of parsed events
+ */
+export function parseHday(text: string): HdayEvent[] {
+  const reRange = /^(?<prefix>[a-z]*)?(?<start>\d{4}\/\d{2}\/\d{2})(?:-(?<end>\d{4}\/\d{2}\/\d{2}))?(?:\s*#\s*(?<title>.*))?$/i
+  const reWeekly = /^(?<prefix>[a-z]*?)d(?<weekday>[0-6])(?:\s*#\s*(?<title>.*))?$/i
+  const flagMap: Record<string, string> = {
+    a: 'half_am',
+    p: 'half_pm',
+    b: 'business',
+    s: 'course',
+    i: 'in'
+  }
+
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+  const events: HdayEvent[] = []
+
+  for (const line of lines) {
+    // Try parsing as range event
+    const rangeMatch = line.match(reRange)
+    if (rangeMatch?.groups) {
+      const { prefix = '', start, end, title = '' } = rangeMatch.groups
+      const flags: string[] = []
+
+      // Parse prefix flags
+      for (const ch of prefix) {
+        flags.push(flagMap[ch] || `flag_${ch}`)
+      }
+
+      // Default to 'holiday' if no type flags
+      if (!flags.some(f => ['business', 'course', 'in'].includes(f))) {
+        flags.push('holiday')
+      }
+
+      events.push({
+        type: 'range',
+        start,
+        end: end || start,
+        flags,
+        title: title.trim(),
+        raw: line
+      })
+      continue
+    }
+
+    // Try parsing as weekly event
+    const weeklyMatch = line.match(reWeekly)
+    if (weeklyMatch?.groups) {
+      const { prefix = '', weekday, title = '' } = weeklyMatch.groups
+      const flags: string[] = []
+
+      // Parse prefix flags
+      for (const ch of prefix) {
+        flags.push(flagMap[ch] || `flag_${ch}`)
+      }
+
+      // Default to 'holiday' if no type flags
+      if (!flags.some(f => ['business', 'course', 'in'].includes(f))) {
+        flags.push('holiday')
+      }
+
+      events.push({
+        type: 'weekly',
+        weekday: parseInt(weekday, 10),
+        flags,
+        title: title.trim(),
+        raw: line
+      })
+      continue
+    }
+
+    // Unknown format - keep as-is
+    events.push({
+      type: 'unknown',
+      raw: line,
+      flags: ['holiday']
+    })
+  }
+
+  return events
+}
+
 // Helper to serialize event back to .hday line format
 export function toLine(ev: HdayEvent): string {
   const flagMap: Record<string, string> = {
