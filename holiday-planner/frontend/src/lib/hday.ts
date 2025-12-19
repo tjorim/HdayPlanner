@@ -31,7 +31,11 @@ function parsePrefixFlags(prefix: string): string[] {
 
   const flags: string[] = []
   for (const ch of prefix) {
-    flags.push(flagMap[ch] || `flag_${ch}`)
+    if (flagMap[ch]) {
+      flags.push(flagMap[ch])
+    } else {
+      console.warn(`Unknown flag character '${ch}' ignored. Known flags: a, p, b, s, i`)
+    }
   }
 
   return normalizeEventFlags(flags)
@@ -121,7 +125,7 @@ export function parseHday(text: string): HdayEvent[] {
 }
 
 // Helper to serialize event back to .hday line format
-export function toLine(ev: HdayEvent): string {
+export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
   const flagMap: Record<string, string> = {
     half_am: 'a',
     half_pm: 'p',

@@ -2,6 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, type HdayEvent } from './lib/hday'
+import { useToast } from './hooks/useToast'
+import { ToastContainer } from './components/ToastContainer'
+import { ConfirmationDialog } from './components/ConfirmationDialog'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
@@ -32,43 +35,10 @@ export default function App(){
   const [eventWeekday, setEventWeekday] = useState(1)
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const dialogRef = React.useRef<HTMLDivElement>(null)
+  const formRef = React.useRef<HTMLDivElement>(null)
 
-  // Focus dialog when it opens and set up focus trap
-  useEffect(() => {
-    if (showConfirmDialog && dialogRef.current) {
-      dialogRef.current.focus()
-      
-      // Focus trap handler
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Tab' && dialogRef.current) {
-          const focusableElements = dialogRef.current.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          )
-          
-          if (focusableElements.length === 0) return
-          
-          const firstElement = focusableElements[0] as HTMLElement
-          const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
-          
-          if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-              lastElement?.focus()
-              e.preventDefault()
-            }
-          } else {
-            if (document.activeElement === lastElement) {
-              firstElement?.focus()
-              e.preventDefault()
-            }
-          }
-        }
-      }
-      
-      document.addEventListener('keydown', handleKeyDown)
-      return () => document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [showConfirmDialog])
+  // Use toast notifications
+  const { toasts, showToast, removeToast } = useToast()
 
   // Backend mode functions
   const load = useCallback(async () => {
@@ -77,9 +47,9 @@ export default function App(){
       setDoc(d)
     } catch (error) {
       console.error('Failed to load from API:', error)
-      alert('Failed to load from API. Make sure the backend is running.')
+      showToast('Failed to load from API. Make sure the backend is running.', 'error')
     }
-  }, [user])
+  }, [user, showToast])
 
   // Only auto-load if using backend
   useEffect(()=>{
@@ -91,10 +61,10 @@ export default function App(){
   async function save(){
     try {
       const res = await putHday(user, doc)
-      alert(res)
+      showToast(res, 'success')
     } catch (error) {
       console.error('Failed to save to API:', error)
-      alert('Failed to save to API. Make sure the backend is running.')
+      showToast('Failed to save to API. Make sure the backend is running.', 'error')
     }
   }
 
@@ -112,7 +82,7 @@ export default function App(){
     }
     reader.onerror = () => {
       console.error('Failed to read file:', reader.error)
-      alert('Failed to read file. Please make sure the file is accessible and try again.')
+      showToast('Failed to read file. Please make sure the file is accessible and try again.', 'error')
     }
     reader.readAsText(file)
   }
@@ -128,7 +98,10 @@ export default function App(){
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = 'export.hday'
+    a.style.display = 'none'
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
     URL.revokeObjectURL(a.href)
   }
 
@@ -140,15 +113,22 @@ export default function App(){
     }
   }, [doc.events])
 
+  // Scroll to form when entering edit mode
+  useEffect(() => {
+    if (editIndex >= 0 && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editIndex])
+
   function handleAddOrUpdate() {
     // Validate range event dates
     if (eventType === 'range') {
       if (!eventStart || !isValidDate(eventStart)) {
-        alert('Please provide a valid start date in YYYY/MM/DD format.')
+        showToast('Please provide a valid start date in YYYY/MM/DD format.', 'warning')
         return
       }
       if (eventEnd && !isValidDate(eventEnd)) {
-        alert('Please provide a valid end date in YYYY/MM/DD format.')
+        showToast('Please provide a valid end date in YYYY/MM/DD format.', 'warning')
         return
       }
     }
@@ -156,36 +136,26 @@ export default function App(){
     const flags = eventFlags.filter(f => f !== 'holiday')
     const finalFlags = normalizeEventFlags(flags)
 
-    let newEvent: HdayEvent
-
-    if (eventType === 'range') {
-      newEvent = {
-        type: 'range',
-        start: eventStart,
-        end: eventEnd || eventStart,
-        title: eventTitle,
-        flags: finalFlags,
-        raw: toLine({
+    // Build base event object without raw field
+    const baseEvent: Omit<HdayEvent, 'raw'> = eventType === 'range'
+      ? {
           type: 'range',
           start: eventStart,
           end: eventEnd || eventStart,
           title: eventTitle,
           flags: finalFlags
-        })
-      }
-    } else {
-      newEvent = {
-        type: 'weekly',
-        weekday: eventWeekday,
-        title: eventTitle,
-        flags: finalFlags,
-        raw: toLine({
+        }
+      : {
           type: 'weekly',
           weekday: eventWeekday,
           title: eventTitle,
           flags: finalFlags
-        })
-      }
+        }
+
+    // Create complete event with raw field generated from base event
+    const newEvent: HdayEvent = {
+      ...baseEvent,
+      raw: toLine(baseEvent)
     }
 
     // Update or add event
@@ -207,7 +177,7 @@ export default function App(){
     // Only allow editing of supported event types
     if (ev.type !== 'range' && ev.type !== 'weekly') {
       console.warn('Attempted to edit unsupported event type:', ev.type)
-      alert('Cannot edit events of unknown type. Please delete and recreate the event.')
+      showToast('Cannot edit events of unknown type. Please delete and recreate the event.', 'warning')
       return
     }
 
@@ -224,11 +194,6 @@ export default function App(){
 
     // Set flags (filter out 'holiday' for display)
     setEventFlags(ev.flags?.filter(f => f !== 'holiday') || [])
-
-    // Scroll to form
-    setTimeout(() => {
-      document.querySelector('.event-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
   }
 
   function handleDelete(index: number) {
@@ -270,6 +235,7 @@ export default function App(){
 
   return (
     <div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <header>
         <h1>Holiday Planner</h1>
 
@@ -362,7 +328,7 @@ export default function App(){
       {!USE_BACKEND && (
         <>
           <h2>Add / Edit event</h2>
-          <div className="event-form controls">
+          <div ref={formRef} className="event-form controls">
             <div>
               <label htmlFor="eventType">Event type</label><br/>
               <select id="eventType" value={eventType} onChange={e => setEventType(e.target.value as 'range' | 'weekly')}>
@@ -431,54 +397,16 @@ export default function App(){
       </div>
       {month && <MonthGrid events={doc.events} ym={month} />}
 
-      {/* Accessible confirmation dialog */}
-      {showConfirmDialog && (
-        <>
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              zIndex: 999
-            }}
-            onClick={cancelClearAll}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirmDialogTitle"
-            aria-describedby="confirmDialogDesc"
-            tabIndex={0}
-            ref={dialogRef}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') cancelClearAll()
-            }}
-            style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              backgroundColor: 'white',
-              padding: '20px',
-              border: '2px solid #333',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              zIndex: 1000
-            }}
-          >
-            <h3 id="confirmDialogTitle">Confirm Clear All</h3>
-            <p id="confirmDialogDesc">Are you sure you want to clear all events? This action cannot be undone.</p>
-            <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button onClick={cancelClearAll}>Cancel</button>
-              <button className="primary" onClick={confirmClearAll}>Clear All</button>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Confirmation dialog */}
+      <ConfirmationDialog
+        isOpen={showConfirmDialog}
+        title="Confirm Clear All"
+        message="Are you sure you want to clear all events? This action cannot be undone."
+        confirmLabel="Clear All"
+        cancelLabel="Cancel"
+        onConfirm={confirmClearAll}
+        onCancel={cancelClearAll}
+      />
     </div>
   )
 }
