@@ -37,6 +37,7 @@ The `.hday` format is a line-based text format for tracking time off:
 - In office: Teal (#008899)
 - Half-day variants: Lighter shades
 
+These color names and hex codes are the canonical standard; keep `docs/hday-format-spec.md`, `TODO.md`, and `frontend/src/lib/hday.ts` in sync with this list.
 See `docs/hday-format-spec.md` for complete specification.
 
 ## Frontend Development
