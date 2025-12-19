@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { HdayEvent } from '../lib/hday'
 import { getHalfDaySymbol, getEventClass } from '../lib/hday'
 
@@ -43,11 +43,9 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
   const last = new Date(year, month, 0)
   const pad2 = (n: number) => String(n).padStart(2, '0')
 
-  // Memoize today's date calculation to avoid recalculating on every render
-  const todayStr = useMemo(() => {
-    const today = new Date()
-    return `${today.getFullYear()}/${pad2(today.getMonth() + 1)}/${pad2(today.getDate())}`
-  }, [])
+  // Get today's date in YYYY/MM/DD format for comparison
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}/${pad2(today.getMonth() + 1)}/${pad2(today.getDate())}`
 
   const leadingPad = first.getDay() // 0..6 (Sun..Sat)
   const totalDays = last.getDate()
