@@ -31,7 +31,11 @@ function parsePrefixFlags(prefix: string): string[] {
 
   const flags: string[] = []
   for (const ch of prefix) {
-    flags.push(flagMap[ch] || `flag_${ch}`)
+    if (flagMap[ch]) {
+      flags.push(flagMap[ch])
+    } else {
+      console.warn(`Unknown flag character '${ch}' ignored. Known flags: a, p, b, s, i`)
+    }
   }
 
   return normalizeEventFlags(flags)
