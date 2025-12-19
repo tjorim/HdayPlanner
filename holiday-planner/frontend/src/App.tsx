@@ -372,44 +372,53 @@ export default function App(){
 
       {/* Accessible confirmation dialog */}
       {showConfirmDialog && (
-        <div
-          role="dialog"
-          aria-labelledby="confirmDialogTitle"
-          aria-describedby="confirmDialogDesc"
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'white',
-            padding: '20px',
-            border: '2px solid #333',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            zIndex: 1000
-          }}
-        >
-          <h3 id="confirmDialogTitle">Confirm Clear All</h3>
-          <p id="confirmDialogDesc">Are you sure you want to clear all events? This action cannot be undone.</p>
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-            <button onClick={cancelClearAll}>Cancel</button>
-            <button className="primary" onClick={confirmClearAll}>Clear All</button>
+        <>
+          <div
+            role="button"
+            aria-label="Close dialog"
+            tabIndex={-1}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 999
+            }}
+            onClick={cancelClearAll}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') cancelClearAll()
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmDialogTitle"
+            aria-describedby="confirmDialogDesc"
+            tabIndex={-1}
+            ref={(el) => el?.focus()}
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'white',
+              padding: '20px',
+              border: '2px solid #333',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              zIndex: 1000
+            }}
+          >
+            <h3 id="confirmDialogTitle">Confirm Clear All</h3>
+            <p id="confirmDialogDesc">Are you sure you want to clear all events? This action cannot be undone.</p>
+            <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={cancelClearAll} autoFocus>Cancel</button>
+              <button className="primary" onClick={confirmClearAll}>Clear All</button>
+            </div>
           </div>
-        </div>
-      )}
-      {showConfirmDialog && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 999
-          }}
-          onClick={cancelClearAll}
-        />
+        </>
       )}
     </div>
   )
