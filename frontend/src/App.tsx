@@ -52,9 +52,9 @@ export default function App(){
 
   // Create a mapping from sorted indices to original indices for edit/delete operations
   const sortedToOriginalIndex = useMemo(() => {
-    // For each event in the sorted list, find its index in the original doc.events array.
-    // This avoids relying on object identity via Map keys, which can break after edits.
-    return sortedEvents.map((event) => doc.events.indexOf(event))
+    // Create a Map for O(1) lookup instead of O(n) indexOf
+    const indexMap = new Map(doc.events.map((event, idx) => [event, idx]))
+    return sortedEvents.map((event) => indexMap.get(event) ?? -1)
   }, [sortedEvents, doc.events])
 
   // Backend mode functions
