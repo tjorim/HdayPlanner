@@ -553,7 +553,7 @@ export default function App(){
                   aria-required="true"
                   aria-describedby={startDateError ? 'eventStart-error' : undefined}
                 />
-                {/* Error message wrapper always rendered to maintain layout spacing */}
+                {/* Error message wrapper reserves space to prevent layout shifts when error appears */}
                 <div className="error-message-wrapper">
                   {startDateError && (
                     <div id="eventStart-error" className="error-message" role="alert">
@@ -572,7 +572,7 @@ export default function App(){
                   aria-invalid={!!endDateError}
                   aria-describedby={endDateError ? 'eventEnd-error' : undefined}
                 />
-                {/* Error message wrapper always rendered to maintain layout spacing */}
+                {/* Error message wrapper reserves space to prevent layout shifts when error appears */}
                 <div className="error-message-wrapper">
                   {endDateError && (
                     <div id="eventEnd-error" className="error-message" role="alert">
