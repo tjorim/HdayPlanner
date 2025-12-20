@@ -2,30 +2,24 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, sortEvents, type HdayEvent, type EventFlag } from './lib/hday'
+import { isValidDate, parseHdayDate } from './lib/dateValidation'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
-const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
 const SCROLL_FOCUS_DELAY = 300 // Delay in ms for focusing after smooth scroll
+
+// Error message constants
+const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)'
+const ERROR_END_DATE_BEFORE_START = 'End date must be the same or after start date'
+const ERROR_START_DATE_REQUIRED = 'Start date is required'
 
 function getCurrentMonth(): string {
   const now = new Date()
   const year = now.getFullYear()
   const month = String(now.getMonth() + 1).padStart(2, '0')
   return `${year}-${month}`
-}
-
-function isValidDate(dateString: string): boolean {
-  if (!DATE_FORMAT_REGEX.test(dateString)) {
-    return false
-  }
-  const [year, month, day] = dateString.split('/').map(Number)
-  const date = new Date(year, month - 1, day)
-  return date.getFullYear() === year && 
-         date.getMonth() === month - 1 && 
-         date.getDate() === day
 }
 
 export default function App(){
@@ -44,6 +38,23 @@ export default function App(){
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const formRef = React.useRef<HTMLDivElement>(null)
+  
+  // Refs for date values to avoid callback dependencies
+  const eventStartRef = React.useRef(eventStart)
+  const eventEndRef = React.useRef(eventEnd)
+  
+  // Keep refs in sync with state
+  React.useEffect(() => {
+    eventStartRef.current = eventStart
+  }, [eventStart])
+  
+  React.useEffect(() => {
+    eventEndRef.current = eventEnd
+  }, [eventEnd])
+  
+  // Validation error states
+  const [startDateError, setStartDateError] = useState('')
+  const [endDateError, setEndDateError] = useState('')
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
@@ -131,7 +142,62 @@ export default function App(){
     setEventEnd('')
     setEventWeekday(1)
     setEventFlags([])
+    setStartDateError('')
+    setEndDateError('')
   }, [])
+
+  // Validate start date in real-time
+  const validateStartDate = useCallback((value: string) => {
+    if (!value) {
+      setStartDateError('')
+      return true
+    }
+    if (!isValidDate(value)) {
+      setStartDateError(ERROR_INVALID_DATE_FORMAT)
+      return false
+    }
+    setStartDateError('')
+    return true
+  }, [])
+
+  // Validate end date in real-time
+  const validateEndDate = useCallback((value: string, startValue: string) => {
+    if (!value) {
+      setEndDateError('')
+      return true
+    }
+    if (!isValidDate(value)) {
+      setEndDateError(ERROR_INVALID_DATE_FORMAT)
+      return false
+    }
+    // Check if end is before start
+    if (startValue && isValidDate(startValue)) {
+      const startDate = parseHdayDate(startValue)
+      const endDate = parseHdayDate(value)
+      if (endDate < startDate) {
+        setEndDateError(ERROR_END_DATE_BEFORE_START)
+        return false
+      }
+    }
+    setEndDateError('')
+    return true
+  }, [])
+
+  // Handle start date change with validation
+  const handleStartDateChange = useCallback((value: string) => {
+    setEventStart(value)
+    validateStartDate(value)
+    // Re-validate end date since the range validity may have changed with the new start date
+    if (eventEndRef.current) {
+      validateEndDate(eventEndRef.current, value)
+    }
+  }, [validateStartDate, validateEndDate])
+
+  // Handle end date change with validation
+  const handleEndDateChange = useCallback((value: string) => {
+    setEventEnd(value)
+    validateEndDate(value, eventStartRef.current)
+  }, [validateEndDate])
 
   // Auto-sync events to text in standalone mode
   useEffect(() => {
@@ -214,19 +280,31 @@ export default function App(){
   function handleAddOrUpdate() {
     // Validate range event dates
     if (eventType === 'range') {
-      if (!eventStart || !isValidDate(eventStart)) {
+      // Validate start date
+      if (!eventStart) {
+        setStartDateError(ERROR_START_DATE_REQUIRED)
+        showToast('Please provide a valid start date.', 'warning')
+        return
+      }
+      if (!isValidDate(eventStart)) {
+        setStartDateError(ERROR_INVALID_DATE_FORMAT)
         showToast('Please provide a valid start date in YYYY/MM/DD format.', 'warning')
         return
       }
+      
+      // Validate end date if provided
       if (eventEnd && !isValidDate(eventEnd)) {
+        setEndDateError(ERROR_INVALID_DATE_FORMAT)
         showToast('Please provide a valid end date in YYYY/MM/DD format.', 'warning')
         return
       }
+      
       // Validate that end date is not before start date
-      if (eventEnd && isValidDate(eventStart) && isValidDate(eventEnd)) {
-        const startDate = new Date(eventStart.replace(/\//g, '-'))
-        const endDate = new Date(eventEnd.replace(/\//g, '-'))
+      if (eventEnd && isValidDate(eventEnd)) {
+        const startDate = parseHdayDate(eventStart)
+        const endDate = parseHdayDate(eventEnd)
         if (endDate < startDate) {
+          setEndDateError(ERROR_END_DATE_BEFORE_START)
           showToast('End date must be the same or after start date.', 'warning')
           return
         }
@@ -302,6 +380,10 @@ export default function App(){
     setEditIndex(index)
     setEventType(ev.type)
     setEventTitle(ev.title || '')
+    
+    // Clear validation errors
+    setStartDateError('')
+    setEndDateError('')
 
     if (ev.type === 'range') {
       setEventStart(ev.start || '')
@@ -460,10 +542,44 @@ export default function App(){
 
             {eventType === 'range' ? (
               <div>
-                <label htmlFor="eventStart">Start (YYYY/MM/DD)</label><br/>
-                <input id="eventStart" value={eventStart} onChange={e => setEventStart(e.target.value)} placeholder="2025/12/18" /><br/>
+                <label htmlFor="eventStart">Start (YYYY/MM/DD) <span className="required-indicator">*</span></label><br/>
+                <input 
+                  id="eventStart" 
+                  value={eventStart} 
+                  onChange={e => handleStartDateChange(e.target.value)} 
+                  placeholder="2025/12/18"
+                  className={startDateError ? 'input-error' : ''}
+                  aria-invalid={!!startDateError}
+                  aria-required="true"
+                  aria-describedby={startDateError ? 'eventStart-error' : undefined}
+                />
+                {/* Wrapper always occupies space (min-height) to prevent layout shifts */}
+                <div className="error-message-wrapper">
+                  {startDateError && (
+                    <div id="eventStart-error" className="error-message" role="alert">
+                      {startDateError}
+                    </div>
+                  )}
+                </div>
+                <br/>
                 <label htmlFor="eventEnd">End (YYYY/MM/DD)</label><br/>
-                <input id="eventEnd" value={eventEnd} onChange={e => setEventEnd(e.target.value)} placeholder="2025/12/18" />
+                <input 
+                  id="eventEnd" 
+                  value={eventEnd} 
+                  onChange={e => handleEndDateChange(e.target.value)} 
+                  placeholder="2025/12/18"
+                  className={endDateError ? 'input-error' : ''}
+                  aria-invalid={!!endDateError}
+                  aria-describedby={endDateError ? 'eventEnd-error' : undefined}
+                />
+                {/* Wrapper always occupies space (min-height) to prevent layout shifts */}
+                <div className="error-message-wrapper">
+                  {endDateError && (
+                    <div id="eventEnd-error" className="error-message" role="alert">
+                      {endDateError}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div>
