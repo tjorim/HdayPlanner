@@ -37,7 +37,10 @@ export default function App(){
   const [eventWeekday, setEventWeekday] = useState(1)
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
   const formRef = React.useRef<HTMLDivElement>(null)
+  const importFileInputRef = React.useRef<HTMLInputElement>(null)
+  const selectAllCheckboxRef = React.useRef<HTMLInputElement>(null)
   
   // Refs for date values to avoid callback dependencies
   const eventStartRef = React.useRef(eventStart)
@@ -58,6 +61,15 @@ export default function App(){
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
+
+  // Set indeterminate state for select-all checkbox
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      const hasSelection = selectedIndices.size > 0
+      const allSelected = selectedIndices.size === doc.events.length
+      selectAllCheckboxRef.current.indeterminate = hasSelection && !allSelected
+    }
+  }, [selectedIndices.size, doc.events.length])
 
   // Sort events by date for display (range events by start date, weekly by weekday, unknown last)
   const sortedEvents = useMemo(() => sortEvents(doc.events), [doc.events])
@@ -199,6 +211,225 @@ export default function App(){
     validateEndDate(value, eventStartRef.current)
   }, [validateEndDate])
 
+  // Bulk operations - defined before keyboard shortcuts to avoid hoisting issues
+  // Helper function to generate accessible aria-labels for event checkboxes
+  const getEventAriaLabel = (ev: HdayEvent): string => {
+    if (ev.title) {
+      return `Select ${ev.title}`
+    }
+    
+    if (ev.type === 'weekly') {
+      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      return `Select weekly event on ${weekdays[ev.weekday || 0]}`
+    }
+    
+    if (ev.end && ev.end !== ev.start) {
+      return `Select event from ${ev.start || ''} to ${ev.end}`
+    }
+    
+    if (ev.flags && ev.flags.length > 0) {
+      const readableFlags = ev.flags.map(flag => {
+        switch (flag) {
+          case 'half_am':
+            return 'morning half-day'
+          case 'half_pm':
+            return 'afternoon half-day'
+          case 'holiday':
+            return 'vacation'
+          case 'business':
+            return 'business trip'
+          case 'course':
+            return 'training'
+          case 'in':
+            return 'in office'
+          default:
+            return flag
+        }
+      }).join(', ')
+      return `Select event on ${ev.start || ''} with ${readableFlags}`
+    }
+    
+    return `Select event on ${ev.start || ''}`
+  }
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedIndices(prev => {
+      const totalEvents = doc.events.length
+      // Toggle selection based on current state
+      if (prev.size === totalEvents) {
+        return new Set()
+      }
+      return new Set(doc.events.map((_, idx) => idx))
+    })
+  }, [doc])
+
+  const handleToggleSelect = useCallback((index: number) => {
+    setSelectedIndices(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(index)) {
+        newSet.delete(index)
+      } else {
+        newSet.add(index)
+      }
+      return newSet
+    })
+  }, [])
+
+  const handleBulkDelete = useCallback(() => {
+    // Use the current selectedIndices state to decide behavior,
+    // and keep side effects (showToast) outside of state setter callbacks.
+    if (selectedIndices.size === 0) {
+      showToast('No events selected', 'warning')
+      return
+    }
+
+    const indicesToDelete = new Set(selectedIndices)
+    const count = indicesToDelete.size
+
+    setDoc(prevDoc => ({
+      ...prevDoc,
+      events: prevDoc.events.filter((_, idx) => !indicesToDelete.has(idx))
+    }))
+
+    // Clear selection after deleting the selected events
+    setSelectedIndices(new Set())
+
+    // Show success toast after scheduling state updates
+    showToast(`Deleted ${count} event(s)`, 'success')
+  }, [selectedIndices, showToast])
+
+  const handleDuplicate = useCallback((index: number) => {
+    let duplicated = false
+    
+    setDoc(prevDoc => {
+      // Validate bounds with current state
+      if (index < 0 || index >= prevDoc.events.length) {
+        return prevDoc
+      }
+      
+      const ev = prevDoc.events[index]
+      
+      // Create a duplicate event
+      const duplicatedEvent = { ...ev }
+      
+      // Insert the duplicated event right after the original
+      const newEvents = [
+        ...prevDoc.events.slice(0, index + 1),
+        duplicatedEvent,
+        ...prevDoc.events.slice(index + 1)
+      ]
+      
+      duplicated = true
+      return { ...prevDoc, events: newEvents }
+    })
+    
+    // Show toast only if duplication actually occurred
+    if (duplicated) {
+      showToast('Event duplicated', 'success')
+    }
+    
+    // Adjust selected indices so they continue to point to the same logical events
+    // after inserting a new event at index + 1.
+    setSelectedIndices(prevSelected => {
+      if (prevSelected.size === 0) {
+        return prevSelected
+      }
+      const updated = new Set<number>()
+      prevSelected.forEach(i => {
+        if (i > index) {
+          updated.add(i + 1)
+        } else {
+          updated.add(i)
+        }
+      })
+      return updated
+    })
+  }, [showToast])
+
+  const handleBulkDuplicate = useCallback(() => {
+    // Use current selectedIndices state for validation and duplication logic.
+    if (selectedIndices.size === 0) {
+      showToast('No events selected', 'warning')
+      return
+    }
+
+    // Filter to ensure all indices are within bounds (non-negative)
+    const sortedIndices = Array.from(selectedIndices)
+      .filter(i => i >= 0)
+      .sort((a, b) => b - a)
+
+    let duplicatedCount = 0
+
+    setDoc(prevDoc => {
+      let newEvents = [...prevDoc.events]
+
+      // Validate indices against the current events array
+      const validIndices = sortedIndices.filter(i => i < newEvents.length)
+
+      // If all indices were filtered out, don't modify document
+      if (validIndices.length === 0) {
+        return prevDoc
+      }
+
+      validIndices.forEach(index => {
+        const ev = newEvents[index]
+        const duplicatedEvent = { ...ev }
+        // Insert right after the original
+        newEvents.splice(index + 1, 0, duplicatedEvent)
+      })
+
+      duplicatedCount = validIndices.length
+      return { ...prevDoc, events: newEvents }
+    })
+
+    // Show toast with accurate count of duplicated events
+    if (duplicatedCount > 0) {
+      showToast(`Duplicated ${duplicatedCount} event(s)`, 'success')
+    }
+
+    // Clear selection after duplication
+    setSelectedIndices(new Set())
+  }, [selectedIndices, showToast])
+
+  const handleImportFile = useCallback(() => {
+    importFileInputRef.current?.click()
+  }, [])
+
+  const handleImportFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const result = event.target?.result
+      if (typeof result === 'string') {
+        try {
+          const importedEvents = parseHday(result)
+          // Use functional update to avoid stale closure
+          setDoc(prevDoc => ({
+            ...prevDoc,
+            events: [...prevDoc.events, ...importedEvents]
+          }))
+          // Clear selection after import for better UX
+          setSelectedIndices(new Set())
+          showToast(`Imported ${importedEvents.length} event(s)`, 'success')
+        } catch (error) {
+          console.error('Failed to parse import file:', error)
+          showToast('Failed to parse import file. Please make sure the file contains valid .hday format.', 'error')
+        }
+      }
+    }
+    reader.onerror = () => {
+      const errorMsg = reader.error ? `: ${reader.error.message}` : ''
+      console.error('Failed to read import file:', reader.error)
+      showToast(`Failed to read import file${errorMsg}. Please ensure the file is valid and try again.`, 'error')
+    }
+    reader.readAsText(file)
+
+    // Reset input so same file can be imported again
+    e.target.value = ''
+  }, [showToast])
+
   // Auto-sync events to text in standalone mode
   useEffect(() => {
     if (!USE_BACKEND) {
@@ -265,6 +496,30 @@ export default function App(){
           handleResetForm()
         }
       }
+
+      // Ctrl+A / Cmd+A - Select all events (standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        if (!USE_BACKEND) {
+          e.preventDefault()
+          handleSelectAll()
+        }
+      }
+
+      // Delete - Delete selected events (standalone mode only)
+      if (e.key === 'Delete') {
+        if (!USE_BACKEND && selectedIndices.size > 0) {
+          e.preventDefault()
+          handleBulkDelete()
+        }
+      }
+
+      // Ctrl+D / Cmd+D - Duplicate selected events (standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        if (!USE_BACKEND && selectedIndices.size > 0) {
+          e.preventDefault()
+          handleBulkDuplicate()
+        }
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)
@@ -275,7 +530,7 @@ export default function App(){
         clearTimeout(focusTimeoutId)
       }
     }
-  }, [editIndex, handleDownload, handleResetForm])
+  }, [editIndex, handleDownload, handleResetForm, selectedIndices.size, handleSelectAll, handleBulkDelete, handleBulkDuplicate])
 
   function handleAddOrUpdate() {
     // Validate range event dates
@@ -471,11 +726,60 @@ export default function App(){
       )}
 
       <h2>Events</h2>
-      {!USE_BACKEND && <button onClick={handleClearAll}>Clear table</button>}
+      {!USE_BACKEND && (
+        <div className="row" style={{ gap: '0.5rem', marginBottom: '1rem' }}>
+          <button onClick={handleClearAll}>Clear table</button>
+          <button 
+            onClick={handleBulkDelete}
+            disabled={selectedIndices.size === 0}
+            title="Delete selected events"
+          >
+            {selectedIndices.size === 0
+              ? 'Delete Selected'
+              : selectedIndices.size === 1
+              ? 'Delete 1 event'
+              : `Delete ${selectedIndices.size} events`}
+          </button>
+          <button 
+            onClick={handleBulkDuplicate}
+            disabled={selectedIndices.size === 0}
+            title="Duplicate selected events"
+          >
+            {selectedIndices.size === 0
+              ? 'Duplicate Selected'
+              : selectedIndices.size === 1
+              ? 'Duplicate 1 event'
+              : `Duplicate ${selectedIndices.size} events`}
+          </button>
+          <button onClick={handleImportFile} title="Import events from another .hday file">
+            Import from .hday
+          </button>
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".hday,.txt"
+            onChange={handleImportFileChange}
+            style={{ display: 'none' }}
+            aria-label="Import .hday file"
+          />
+        </div>
+      )}
 
       <table className="table">
         <thead>
           <tr>
+            {!USE_BACKEND && (
+              <th>
+                <input
+                  ref={selectAllCheckboxRef}
+                  type="checkbox"
+                  checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
+                  onChange={handleSelectAll}
+                  aria-label="Select or deselect all events in the table"
+                  title="Select/deselect all events"
+                />
+              </th>
+            )}
             <th>#</th>
             <th>Type</th>
             <th>Start</th>
@@ -491,6 +795,17 @@ export default function App(){
           const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1
           return (
           <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
+            {!USE_BACKEND && (
+              <td>
+                <input
+                  type="checkbox"
+                  checked={selectedIndices.has(originalIdx)}
+                  onChange={() => handleToggleSelect(originalIdx)}
+                  disabled={originalIdx === -1}
+                  aria-label={getEventAriaLabel(ev)}
+                />
+              </td>
+            )}
             <td>{sortedIdx+1}</td>
             <td>{ev.type}</td>
             <td>{ev.start||''}</td>
@@ -509,6 +824,13 @@ export default function App(){
                   title={ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'}
                 >
                   Edit
+                </button>
+                <button 
+                  onClick={() => handleDuplicate(originalIdx)}
+                  disabled={originalIdx === -1}
+                  title="Duplicate this event"
+                >
+                  Duplicate
                 </button>
                 <button 
                   onClick={() => handleDelete(originalIdx)}
