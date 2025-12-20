@@ -8,6 +8,7 @@ import { ConfirmationDialog } from './components/ConfirmationDialog'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
+const SCROLL_FOCUS_DELAY = 300 // Delay in ms for focusing after smooth scroll
 
 function getCurrentMonth(): string {
   const now = new Date()
@@ -109,7 +110,7 @@ export default function App(){
     setDoc({ raw: rawText, events })
   }
 
-  function handleDownload() {
+  const handleDownload = useCallback(() => {
     const text = doc.events.map(toLine).join('\n')
     const blob = new Blob([text], { type: 'text/plain' })
     const a = document.createElement('a')
@@ -120,7 +121,17 @@ export default function App(){
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(a.href)
-  }
+  }, [doc.events])
+
+  const handleResetForm = useCallback(() => {
+    setEditIndex(-1)
+    setEventType('range')
+    setEventTitle('')
+    setEventStart('')
+    setEventEnd('')
+    setEventWeekday(1)
+    setEventFlags([])
+  }, [])
 
   // Auto-sync events to text in standalone mode
   useEffect(() => {
@@ -136,6 +147,69 @@ export default function App(){
       formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [editIndex])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    let focusTimeoutId: ReturnType<typeof setTimeout> | null = null
+
+    function handleKeyDown(e: KeyboardEvent) {
+      // Skip keyboard shortcuts when user is typing in an input, textarea, or select
+      const target = e.target
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+        // Allow Escape to work even in input fields (to cancel edit)
+        if (e.key !== 'Escape') {
+          return
+        }
+      }
+
+      // Ctrl+S / Cmd+S - Download .hday file (standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        if (!USE_BACKEND) {
+          e.preventDefault()
+          handleDownload()
+        }
+      }
+
+      // Ctrl+N / Cmd+N - Add new event (focus form, standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        if (!USE_BACKEND) {
+          e.preventDefault()
+          // Clear any existing timeout before creating a new one
+          if (focusTimeoutId) {
+            clearTimeout(focusTimeoutId)
+          }
+          // Reset form and scroll to it
+          handleResetForm()
+          if (formRef.current) {
+            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            // Focus the first input in the form after scrolling
+            focusTimeoutId = setTimeout(() => {
+              const firstInput = formRef.current?.querySelector('input, select')
+              if (firstInput instanceof HTMLElement) {
+                firstInput.focus()
+              }
+            }, SCROLL_FOCUS_DELAY)
+          }
+        }
+      }
+
+      // Escape - Cancel edit mode (works in both standalone and backend modes)
+      if (e.key === 'Escape') {
+        if (editIndex >= 0) {
+          handleResetForm()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      // Clean up pending timeout on unmount
+      if (focusTimeoutId) {
+        clearTimeout(focusTimeoutId)
+      }
+    }
+  }, [editIndex, handleDownload, handleResetForm])
 
   function handleAddOrUpdate() {
     // Validate range event dates
@@ -243,16 +317,6 @@ export default function App(){
   function handleDelete(index: number) {
     const newEvents = doc.events.filter((_, i) => i !== index)
     setDoc({ ...doc, events: newEvents })
-  }
-
-  function handleResetForm() {
-    setEditIndex(-1)
-    setEventType('range')
-    setEventTitle('')
-    setEventStart('')
-    setEventEnd('')
-    setEventWeekday(1)
-    setEventFlags([])
   }
 
   function handleClearAll() {
