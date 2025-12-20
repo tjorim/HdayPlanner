@@ -184,7 +184,12 @@ export function MonthGrid({
           <div className="date">
             {dateStr}
             {holidayInfo && (
-              <span className="holiday-indicator" title={holidayInfo.localName}>
+              <span 
+                className="holiday-indicator" 
+                title={holidayInfo.localName}
+                aria-label={holidayInfo.localName}
+                role="img"
+              >
                 🎉
               </span>
             )}
