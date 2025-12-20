@@ -44,6 +44,10 @@ export default function App(){
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const formRef = React.useRef<HTMLDivElement>(null)
+  
+  // Validation error states
+  const [startDateError, setStartDateError] = useState('')
+  const [endDateError, setEndDateError] = useState('')
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
@@ -131,7 +135,62 @@ export default function App(){
     setEventEnd('')
     setEventWeekday(1)
     setEventFlags([])
+    setStartDateError('')
+    setEndDateError('')
   }, [])
+
+  // Validate start date in real-time
+  const validateStartDate = useCallback((value: string) => {
+    if (!value) {
+      setStartDateError('')
+      return true
+    }
+    if (!isValidDate(value)) {
+      setStartDateError('Invalid date format or impossible date (use YYYY/MM/DD)')
+      return false
+    }
+    setStartDateError('')
+    return true
+  }, [])
+
+  // Validate end date in real-time
+  const validateEndDate = useCallback((value: string, startValue: string) => {
+    if (!value) {
+      setEndDateError('')
+      return true
+    }
+    if (!isValidDate(value)) {
+      setEndDateError('Invalid date format or impossible date (use YYYY/MM/DD)')
+      return false
+    }
+    // Check if end is before start
+    if (startValue && isValidDate(startValue)) {
+      const startDate = new Date(startValue.replace(/\//g, '-'))
+      const endDate = new Date(value.replace(/\//g, '-'))
+      if (endDate < startDate) {
+        setEndDateError('End date must be the same or after start date')
+        return false
+      }
+    }
+    setEndDateError('')
+    return true
+  }, [])
+
+  // Handle start date change with validation
+  const handleStartDateChange = useCallback((value: string) => {
+    setEventStart(value)
+    validateStartDate(value)
+    // Re-validate end date in case the range is now valid
+    if (eventEnd) {
+      validateEndDate(eventEnd, value)
+    }
+  }, [eventEnd, validateStartDate, validateEndDate])
+
+  // Handle end date change with validation
+  const handleEndDateChange = useCallback((value: string) => {
+    setEventEnd(value)
+    validateEndDate(value, eventStart)
+  }, [eventStart, validateEndDate])
 
   // Auto-sync events to text in standalone mode
   useEffect(() => {
@@ -214,19 +273,31 @@ export default function App(){
   function handleAddOrUpdate() {
     // Validate range event dates
     if (eventType === 'range') {
-      if (!eventStart || !isValidDate(eventStart)) {
+      // Validate start date
+      if (!eventStart) {
+        setStartDateError('Start date is required')
+        showToast('Please provide a valid start date.', 'warning')
+        return
+      }
+      if (!isValidDate(eventStart)) {
+        setStartDateError('Invalid date format or impossible date (use YYYY/MM/DD)')
         showToast('Please provide a valid start date in YYYY/MM/DD format.', 'warning')
         return
       }
+      
+      // Validate end date if provided
       if (eventEnd && !isValidDate(eventEnd)) {
+        setEndDateError('Invalid date format or impossible date (use YYYY/MM/DD)')
         showToast('Please provide a valid end date in YYYY/MM/DD format.', 'warning')
         return
       }
+      
       // Validate that end date is not before start date
       if (eventEnd && isValidDate(eventStart) && isValidDate(eventEnd)) {
         const startDate = new Date(eventStart.replace(/\//g, '-'))
         const endDate = new Date(eventEnd.replace(/\//g, '-'))
         if (endDate < startDate) {
+          setEndDateError('End date must be the same or after start date')
           showToast('End date must be the same or after start date.', 'warning')
           return
         }
@@ -302,6 +373,10 @@ export default function App(){
     setEditIndex(index)
     setEventType(ev.type)
     setEventTitle(ev.title || '')
+    
+    // Clear validation errors
+    setStartDateError('')
+    setEndDateError('')
 
     if (ev.type === 'range') {
       setEventStart(ev.start || '')
@@ -460,10 +535,37 @@ export default function App(){
 
             {eventType === 'range' ? (
               <div>
-                <label htmlFor="eventStart">Start (YYYY/MM/DD)</label><br/>
-                <input id="eventStart" value={eventStart} onChange={e => setEventStart(e.target.value)} placeholder="2025/12/18" /><br/>
+                <label htmlFor="eventStart">Start (YYYY/MM/DD) <span style={{color: 'red'}}>*</span></label><br/>
+                <input 
+                  id="eventStart" 
+                  value={eventStart} 
+                  onChange={e => handleStartDateChange(e.target.value)} 
+                  placeholder="2025/12/18"
+                  className={startDateError ? 'input-error' : ''}
+                  aria-invalid={!!startDateError}
+                  aria-describedby={startDateError ? 'eventStart-error' : undefined}
+                />
+                {startDateError && (
+                  <div id="eventStart-error" className="error-message" role="alert">
+                    {startDateError}
+                  </div>
+                )}
+                <br/>
                 <label htmlFor="eventEnd">End (YYYY/MM/DD)</label><br/>
-                <input id="eventEnd" value={eventEnd} onChange={e => setEventEnd(e.target.value)} placeholder="2025/12/18" />
+                <input 
+                  id="eventEnd" 
+                  value={eventEnd} 
+                  onChange={e => handleEndDateChange(e.target.value)} 
+                  placeholder="2025/12/18"
+                  className={endDateError ? 'input-error' : ''}
+                  aria-invalid={!!endDateError}
+                  aria-describedby={endDateError ? 'eventEnd-error' : undefined}
+                />
+                {endDateError && (
+                  <div id="eventEnd-error" className="error-message" role="alert">
+                    {endDateError}
+                  </div>
+                )}
               </div>
             ) : (
               <div>

@@ -158,3 +158,28 @@ input,select{padding:6px}
 .toast--error   { background-color: #ef4444; }
 .toast--warning { background-color: #f59e0b; }
 .toast--info    { background-color: #3b82f6; }
+
+/* Input validation error styles */
+.input-error {
+  border: 2px solid #ef4444;
+  background-color: #fef2f2;
+}
+
+.input-error:focus {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.error-message::before {
+  content: "⚠";
+  font-weight: bold;
+}
