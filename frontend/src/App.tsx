@@ -10,6 +10,11 @@ import { ConfirmationDialog } from './components/ConfirmationDialog'
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const SCROLL_FOCUS_DELAY = 300 // Delay in ms for focusing after smooth scroll
 
+// Error message constants
+const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)'
+const ERROR_END_DATE_BEFORE_START = 'End date must be the same or after start date'
+const ERROR_START_DATE_REQUIRED = 'Start date is required'
+
 function getCurrentMonth(): string {
   const now = new Date()
   const year = now.getFullYear()
@@ -135,7 +140,7 @@ export default function App(){
       return true
     }
     if (!isValidDate(value)) {
-      setStartDateError('Invalid date format or impossible date (use YYYY/MM/DD)')
+      setStartDateError(ERROR_INVALID_DATE_FORMAT)
       return false
     }
     setStartDateError('')
@@ -149,7 +154,7 @@ export default function App(){
       return true
     }
     if (!isValidDate(value)) {
-      setEndDateError('Invalid date format or impossible date (use YYYY/MM/DD)')
+      setEndDateError(ERROR_INVALID_DATE_FORMAT)
       return false
     }
     // Check if end is before start
@@ -157,7 +162,7 @@ export default function App(){
       const startDate = parseHdayDate(startValue)
       const endDate = parseHdayDate(value)
       if (endDate < startDate) {
-        setEndDateError('End date must be the same or after start date')
+        setEndDateError(ERROR_END_DATE_BEFORE_START)
         return false
       }
     }
@@ -264,19 +269,19 @@ export default function App(){
     if (eventType === 'range') {
       // Validate start date
       if (!eventStart) {
-        setStartDateError('Start date is required')
+        setStartDateError(ERROR_START_DATE_REQUIRED)
         showToast('Please provide a valid start date.', 'warning')
         return
       }
       if (!isValidDate(eventStart)) {
-        setStartDateError('Invalid date format or impossible date (use YYYY/MM/DD)')
+        setStartDateError(ERROR_INVALID_DATE_FORMAT)
         showToast('Please provide a valid start date in YYYY/MM/DD format.', 'warning')
         return
       }
       
       // Validate end date if provided
       if (eventEnd && !isValidDate(eventEnd)) {
-        setEndDateError('Invalid date format or impossible date (use YYYY/MM/DD)')
+        setEndDateError(ERROR_INVALID_DATE_FORMAT)
         showToast('Please provide a valid end date in YYYY/MM/DD format.', 'warning')
         return
       }
@@ -286,7 +291,7 @@ export default function App(){
         const startDate = parseHdayDate(eventStart)
         const endDate = parseHdayDate(eventEnd)
         if (endDate < startDate) {
-          setEndDateError('End date must be the same or after start date')
+          setEndDateError(ERROR_END_DATE_BEFORE_START)
           showToast('End date must be the same or after start date.', 'warning')
           return
         }
@@ -524,7 +529,7 @@ export default function App(){
 
             {eventType === 'range' ? (
               <div>
-                <label htmlFor="eventStart">Start (YYYY/MM/DD) <span style={{color: 'red'}}>*</span></label><br/>
+                <label htmlFor="eventStart">Start (YYYY/MM/DD) <span className="required-indicator">*</span></label><br/>
                 <input 
                   id="eventStart" 
                   value={eventStart} 
@@ -532,6 +537,7 @@ export default function App(){
                   placeholder="2025/12/18"
                   className={startDateError ? 'input-error' : ''}
                   aria-invalid={!!startDateError}
+                  aria-required="true"
                   aria-describedby={startDateError ? 'eventStart-error' : undefined}
                 />
                 {startDateError && (

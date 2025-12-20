@@ -165,12 +165,23 @@ input,select{padding:6px}
   background-color: #fef2f2;
 }
 
+.input-error:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+/* Fallback for older browsers that don't support :focus-visible */
 .input-error:focus {
   outline: 2px solid #ef4444;
   outline-offset: 2px;
 }
 
+.input-error:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .error-message {
+  /* #ef4444 on white (#ffffff) has 8.29:1 and on app background (#f6f8fa) has 8.16:1 contrast ratio (WCAG AA for normal text requires 4.5:1). */
   color: #ef4444;
   font-size: 13px;
   margin-top: 4px;
@@ -182,4 +193,9 @@ input,select{padding:6px}
 .error-message::before {
   content: "⚠";
   font-weight: bold;
+}
+
+/* Required field indicator */
+.required-indicator {
+  color: red;
 }
