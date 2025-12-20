@@ -258,10 +258,14 @@ export default function App(){
   }, [selectedIndices, showToast])
 
   const handleDuplicate = useCallback((index: number) => {
-    let duplicated = false
+    // Validate index bounds before calling setDoc for clearer logic
+    if (index < 0 || index >= doc.events.length) {
+      return
+    }
+    
     setDoc(prevDoc => {
-      // Validate index bounds
-      if (index < 0 || index >= prevDoc.events.length) {
+      // Double-check bounds with current state
+      if (index >= prevDoc.events.length) {
         return prevDoc
       }
       
@@ -277,14 +281,11 @@ export default function App(){
         ...prevDoc.events.slice(index + 1)
       ]
       
-      duplicated = true
       return { ...prevDoc, events: newEvents }
     })
     
-    // Only show toast if duplication actually succeeded
-    if (duplicated) {
-      showToast('Event duplicated', 'success')
-    }
+    // Show toast after successful duplication
+    showToast('Event duplicated', 'success')
     
     // Adjust selected indices so they continue to point to the same logical events
     // after inserting a new event at index + 1.
@@ -302,7 +303,7 @@ export default function App(){
       })
       return updated
     })
-  }, [showToast])
+  }, [doc, showToast])
 
   const handleBulkDuplicate = useCallback(() => {
     // Use current selectedIndices state for validation and duplication logic.
@@ -311,43 +312,46 @@ export default function App(){
       return
     }
 
-    // Sort indices in descending order to maintain correct positions when inserting
-    // Filter to ensure all indices are within bounds
+    // Filter to ensure all indices are within bounds (non-negative)
     const sortedIndices = Array.from(selectedIndices)
       .filter(i => i >= 0)
       .sort((a, b) => b - a)
 
-    let duplicatedCount = 0
+    // Validate indices against the current document before calling setDoc
+    const currentEventsLength = doc.events.length
+    const validIndices = sortedIndices.filter(i => i < currentEventsLength)
+
+    // If all indices were filtered out, don't modify document
+    if (validIndices.length === 0) {
+      return
+    }
+
+    const duplicatedCount = validIndices.length
+
     setDoc(prevDoc => {
       let newEvents = [...prevDoc.events]
 
-      // Filter again at execution time to ensure indices are valid
-      const validIndices = sortedIndices.filter(i => i < newEvents.length)
+      // Re-validate indices against the latest events array to be safe
+      const safeIndices = validIndices.filter(i => i < newEvents.length)
 
-      // If all indices were filtered out, don't modify document
-      if (validIndices.length === 0) {
-        return prevDoc
-      }
-
-      validIndices.forEach(index => {
+      safeIndices.forEach(index => {
         const ev = newEvents[index]
         const duplicatedEvent = { ...ev }
         // Insert right after the original
         newEvents.splice(index + 1, 0, duplicatedEvent)
       })
 
-      duplicatedCount = validIndices.length
       return { ...prevDoc, events: newEvents }
     })
 
-    // Show toast with accurate count of duplicated events (outside state setter)
+    // Show toast with accurate count of duplicated events (computed before state update)
     if (duplicatedCount > 0) {
       showToast(`Duplicated ${duplicatedCount} event(s)`, 'success')
     }
 
     // Clear selection after duplication
     setSelectedIndices(new Set())
-  }, [selectedIndices, showToast])
+  }, [doc, selectedIndices, showToast])
 
   const handleImportFile = useCallback(() => {
     importFileInputRef.current?.click()
@@ -488,7 +492,7 @@ export default function App(){
         clearTimeout(focusTimeoutId)
       }
     }
-  }, [editIndex, handleDownload, handleResetForm, doc.events.length, selectedIndices.size, handleSelectAll, handleBulkDelete, handleBulkDuplicate])
+  }, [editIndex, handleDownload, handleResetForm, selectedIndices.size, handleSelectAll, handleBulkDelete, handleBulkDuplicate])
 
   function handleAddOrUpdate() {
     // Validate range event dates
@@ -768,7 +772,27 @@ export default function App(){
                         : ev.end && ev.end !== ev.start
                           ? `Select event from ${ev.start || ''} to ${ev.end}`
                           : ev.flags && ev.flags.length
-                            ? `Select event on ${ev.start || ''} with flags ${ev.flags.join(', ')}`
+                            ? (() => {
+                                const readableFlags = (ev.flags ?? []).map(flag => {
+                                  switch (flag) {
+                                    case 'half_am':
+                                      return 'morning half-day'
+                                    case 'half_pm':
+                                      return 'afternoon half-day'
+                                    case 'holiday':
+                                      return 'vacation'
+                                    case 'business':
+                                      return 'business trip'
+                                    case 'course':
+                                      return 'training'
+                                    case 'in_office':
+                                      return 'in office'
+                                    default:
+                                      return flag
+                                  }
+                                }).join(', ')
+                                return `Select event on ${ev.start || ''} with ${readableFlags}`
+                              })()
                             : `Select event on ${ev.start || ''}`
                   }
                 />
