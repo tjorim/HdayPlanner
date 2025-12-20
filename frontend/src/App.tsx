@@ -38,7 +38,6 @@ export default function App(){
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
-  const [showImportDialog, setShowImportDialog] = useState(false)
   const formRef = React.useRef<HTMLDivElement>(null)
   const importFileInputRef = React.useRef<HTMLInputElement>(null)
   
@@ -302,7 +301,7 @@ export default function App(){
         clearTimeout(focusTimeoutId)
       }
     }
-  }, [editIndex, handleDownload, handleResetForm, doc.events.length, selectedIndices.size])
+  }, [editIndex, handleDownload, handleResetForm, doc.events.length, selectedIndices.size, handleSelectAll, handleBulkDelete, handleBulkDuplicate])
 
   function handleAddOrUpdate() {
     // Validate range event dates
@@ -451,7 +450,7 @@ export default function App(){
   }
 
   // Bulk operations
-  function handleSelectAll() {
+  const handleSelectAll = useCallback(() => {
     if (selectedIndices.size === doc.events.length) {
       // If all selected, deselect all
       setSelectedIndices(new Set())
@@ -459,7 +458,7 @@ export default function App(){
       // Select all
       setSelectedIndices(new Set(doc.events.map((_, idx) => idx)))
     }
-  }
+  }, [selectedIndices.size, doc.events.length])
 
   function handleToggleSelect(index: number) {
     setSelectedIndices(prev => {
@@ -473,7 +472,7 @@ export default function App(){
     })
   }
 
-  function handleBulkDelete() {
+  const handleBulkDelete = useCallback(() => {
     if (selectedIndices.size === 0) {
       showToast('No events selected', 'warning')
       return
@@ -483,7 +482,7 @@ export default function App(){
     setDoc({ ...doc, events: newEvents })
     setSelectedIndices(new Set())
     showToast(`Deleted ${selectedIndices.size} event(s)`, 'success')
-  }
+  }, [selectedIndices, doc, showToast])
 
   function handleDuplicate(index: number) {
     const ev = doc.events[index]
@@ -502,7 +501,7 @@ export default function App(){
     showToast('Event duplicated', 'success')
   }
 
-  function handleBulkDuplicate() {
+  const handleBulkDuplicate = useCallback(() => {
     if (selectedIndices.size === 0) {
       showToast('No events selected', 'warning')
       return
@@ -522,7 +521,7 @@ export default function App(){
     setDoc({ ...doc, events: newEvents })
     setSelectedIndices(new Set())
     showToast(`Duplicated ${selectedIndices.size} event(s)`, 'success')
-  }
+  }, [selectedIndices, doc, showToast])
 
   function handleImportFile() {
     importFileInputRef.current?.click()
