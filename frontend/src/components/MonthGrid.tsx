@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react'
 import type { HdayEvent } from '../lib/hday'
 import { getHalfDaySymbol, getEventClass } from '../lib/hday'
 
+interface NationalHolidayInfo {
+  name: string
+  localName: string
+}
+
 interface EventItemProps {
   event: HdayEvent
 }
@@ -37,7 +42,15 @@ function EventItem({ event }: EventItemProps) {
   )
 }
 
-export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
+export function MonthGrid({ 
+  events, 
+  ym,
+  nationalHolidays = new Map()
+}: { 
+  events: HdayEvent[]
+  ym: string
+  nationalHolidays?: Map<string, NationalHolidayInfo>
+}){
   const [year, month] = ym.split('-').map(Number)
   const first = new Date(year, month - 1, 1)
   const last = new Date(year, month, 0)
@@ -131,6 +144,8 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
       // Get the day of week (0 = Sunday, 6 = Saturday) for this date
       const currentDate = new Date(year, month - 1, d)
       const dayOfWeek = currentDate.getDay()
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+      const holidayInfo = nationalHolidays.get(dateStr)
       
       // Filter all events that apply to this date in a single pass
       const todays = events.filter((ev) => {
@@ -146,16 +161,23 @@ export function MonthGrid({ events, ym }: { events: HdayEvent[]; ym: string }){
       })
       rowCells.push(
         <div
-          className={`day${isToday ? ' day--today' : ''}`}
+          className={`day${isToday ? ' day--today' : ''}${isWeekend ? ' day--weekend' : ''}${holidayInfo ? ' day--holiday' : ''}`}
           tabIndex={i === focusedIndex ? 0 : -1}
-          aria-label={`${dateStr}${isToday ? ' (Today)' : ''}`}
+          aria-label={`${dateStr}${isToday ? ' (Today)' : ''}${holidayInfo ? ` - ${holidayInfo.name}` : ''}`}
           aria-current={isToday ? 'date' : undefined}
           key={`day-${i}`}
           ref={(el) => (cellRefs.current[i] = el)}
           data-index={i}
           onFocus={() => setFocusedIndex(i)}
         >
-          <div className="date">{dateStr}</div>
+          <div className="date">
+            {dateStr}
+            {holidayInfo && (
+              <span className="holiday-indicator" title={holidayInfo.localName}>
+                🎉
+              </span>
+            )}
+          </div>
           {todays.map((ev, k) => (
             <EventItem key={k} event={ev} />
           ))}

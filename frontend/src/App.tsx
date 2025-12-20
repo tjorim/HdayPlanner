@@ -6,6 +6,7 @@ import { isValidDate, parseHdayDate } from './lib/dateValidation'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
+import { useNationalHolidays, convertDateFormat, type NationalHoliday } from './hooks/useNationalHolidays'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const SCROLL_FOCUS_DELAY = 300 // Delay in ms for focusing after smooth scroll
@@ -61,6 +62,43 @@ export default function App(){
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
+
+  // National holidays configuration
+  const [showNationalHolidays, setShowNationalHolidays] = useState(false)
+  const [holidayCountryCode, setHolidayCountryCode] = useState('NL') // Default to Netherlands
+
+  // Extract year from current month for holidays API
+  const currentYear = useMemo(() => {
+    const [year] = month.split('-').map(Number)
+    return year
+  }, [month])
+
+  // Fetch national holidays
+  const { holidays, loading: holidaysLoading, error: holidaysError } = useNationalHolidays(
+    holidayCountryCode,
+    currentYear,
+    showNationalHolidays
+  )
+
+  // Convert holidays to a Map for quick lookup by date
+  const holidayMap = useMemo(() => {
+    const map = new Map<string, { name: string; localName: string }>()
+    holidays.forEach((holiday: NationalHoliday) => {
+      const dateKey = convertDateFormat(holiday.date)
+      map.set(dateKey, {
+        name: holiday.name,
+        localName: holiday.localName
+      })
+    })
+    return map
+  }, [holidays])
+
+  // Show toast if holidays fail to load
+  useEffect(() => {
+    if (holidaysError) {
+      showToast(`Failed to load national holidays: ${holidaysError}`, 'error')
+    }
+  }, [holidaysError, showToast])
 
   // Set indeterminate state for select-all checkbox
   useEffect(() => {
@@ -953,7 +991,49 @@ export default function App(){
         />
         <span id="month-view-help" className="muted">Format: YYYY-MM</span>
       </div>
-      {month && <MonthGrid events={doc.events} ym={month} />}
+
+      <div className="row" style={{ marginTop: '10px', marginBottom: '10px' }}>
+        <label htmlFor="show-holidays-checkbox">
+          <input
+            id="show-holidays-checkbox"
+            type="checkbox"
+            checked={showNationalHolidays}
+            onChange={e => setShowNationalHolidays(e.target.checked)}
+          />
+          {' '}Show national holidays
+        </label>
+        
+        {showNationalHolidays && (
+          <>
+            <label htmlFor="holiday-country-select" className="mr-2">Country:</label>
+            <select
+              id="holiday-country-select"
+              value={holidayCountryCode}
+              onChange={e => setHolidayCountryCode(e.target.value)}
+            >
+              <option value="US">United States</option>
+              <option value="GB">United Kingdom</option>
+              <option value="NL">Netherlands</option>
+              <option value="DE">Germany</option>
+              <option value="FR">France</option>
+              <option value="ES">Spain</option>
+              <option value="IT">Italy</option>
+              <option value="CA">Canada</option>
+              <option value="AU">Australia</option>
+              <option value="JP">Japan</option>
+              <option value="CN">China</option>
+              <option value="IN">India</option>
+              <option value="BR">Brazil</option>
+              <option value="MX">Mexico</option>
+              <option value="ZA">South Africa</option>
+            </select>
+            
+            {holidaysLoading && <span className="muted">Loading holidays...</span>}
+          </>
+        )}
+      </div>
+
+      {month && <MonthGrid events={doc.events} ym={month} nationalHolidays={holidayMap} />}
 
       {/* Confirmation dialog */}
       <ConfirmationDialog

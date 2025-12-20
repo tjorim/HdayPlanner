@@ -1,0 +1,87 @@
+import { useState, useEffect } from 'react'
+
+export interface NationalHoliday {
+  date: string // YYYY-MM-DD format
+  localName: string
+  name: string
+  countryCode: string
+  fixed: boolean
+  global: boolean
+  counties: string[] | null
+  launchYear: number | null
+  types: string[]
+}
+
+/**
+ * Hook to fetch national holidays from Nager.Date API
+ * @param countryCode ISO 3166-1 alpha-2 country code (e.g., 'US', 'NL', 'DE')
+ * @param year Year to fetch holidays for
+ * @param enabled Whether to fetch holidays (for conditional loading)
+ * @returns Object with holidays array, loading state, and error
+ */
+export function useNationalHolidays(countryCode: string, year: number, enabled: boolean = true) {
+  const [holidays, setHolidays] = useState<NationalHoliday[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!enabled || !countryCode || !year) {
+      setHolidays([])
+      return
+    }
+
+    let cancelled = false
+
+    const fetchHolidays = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetch(
+          `https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`
+        )
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch holidays: ${response.status} ${response.statusText}`)
+        }
+
+        const data: NationalHoliday[] = await response.json()
+        
+        if (!cancelled) {
+          setHolidays(data)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch holidays')
+          setHolidays([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchHolidays()
+
+    return () => {
+      cancelled = true
+    }
+  }, [countryCode, year, enabled])
+
+  return { holidays, loading, error }
+}
+
+/**
+ * Convert Nager.Date format (YYYY-MM-DD) to .hday format (YYYY/MM/DD)
+ */
+export function convertDateFormat(nagerDate: string): string {
+  return nagerDate.replace(/-/g, '/')
+}
+
+/**
+ * Helper to get a Set of holiday dates in YYYY/MM/DD format for quick lookup
+ */
+export function getHolidayDates(holidays: NationalHoliday[]): Set<string> {
+  return new Set(holidays.map(h => convertDateFormat(h.date)))
+}
