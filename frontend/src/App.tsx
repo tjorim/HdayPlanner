@@ -159,16 +159,18 @@ export default function App(){
             formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
             // Focus the first input in the form after scrolling
             setTimeout(() => {
-              const firstInput = formRef.current?.querySelector('input, select') as HTMLElement
-              firstInput?.focus()
+              const firstInput = formRef.current?.querySelector('input, select')
+              if (firstInput instanceof HTMLElement) {
+                firstInput.focus()
+              }
             }, SCROLL_FOCUS_DELAY)
           }
         }
       }
 
-      // Escape - Cancel edit mode
+      // Escape - Cancel edit mode (works in both standalone and backend modes)
       if (e.key === 'Escape') {
-        if (!USE_BACKEND && editIndex >= 0) {
+        if (editIndex >= 0) {
           handleResetForm()
         }
       }
