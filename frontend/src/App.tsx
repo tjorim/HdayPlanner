@@ -213,15 +213,18 @@ export default function App(){
 
   // Bulk operations - defined before keyboard shortcuts to avoid hoisting issues
   const handleSelectAll = useCallback(() => {
-    setSelectedIndices(prev => {
-      // Toggle selection based on current state  
-      if (prev.size === doc.events.length) {
-        return new Set()
-      } else {
-        return new Set(doc.events.map((_, idx) => idx))
-      }
+    setDoc(currentDoc => {
+      setSelectedIndices(prev => {
+        // Toggle selection based on current state
+        if (prev.size === currentDoc.events.length) {
+          return new Set()
+        } else {
+          return new Set(currentDoc.events.map((_, idx) => idx))
+        }
+      })
+      return currentDoc
     })
-  }, [doc.events.length])
+  }, [])
 
   const handleToggleSelect = useCallback((index: number) => {
     setSelectedIndices(prev => {
@@ -236,19 +239,24 @@ export default function App(){
   }, [])
 
   const handleBulkDelete = useCallback(() => {
-    if (selectedIndices.size === 0) {
-      showToast('No events selected', 'warning')
-      return
-    }
-    
-    const count = selectedIndices.size
-    setDoc(prevDoc => ({
-      ...prevDoc,
-      events: prevDoc.events.filter((_, idx) => !selectedIndices.has(idx))
-    }))
-    setSelectedIndices(new Set())
-    showToast(`Deleted ${count} event(s)`, 'success')
-  }, [selectedIndices, showToast])
+    setSelectedIndices(prevSelected => {
+      if (prevSelected.size === 0) {
+        showToast('No events selected', 'warning')
+        return prevSelected
+      }
+
+      const indicesToDelete = new Set(prevSelected)
+      const count = indicesToDelete.size
+
+      setDoc(prevDoc => ({
+        ...prevDoc,
+        events: prevDoc.events.filter((_, idx) => !indicesToDelete.has(idx))
+      }))
+
+      showToast(`Deleted ${count} event(s)`, 'success')
+      return new Set()
+    })
+  }, [showToast])
 
   const handleDuplicate = useCallback((index: number) => {
     setDoc(prevDoc => {
@@ -270,30 +278,34 @@ export default function App(){
   }, [showToast])
 
   const handleBulkDuplicate = useCallback(() => {
-    if (selectedIndices.size === 0) {
-      showToast('No events selected', 'warning')
-      return
-    }
+    setSelectedIndices(prevSelected => {
+      if (prevSelected.size === 0) {
+        showToast('No events selected', 'warning')
+        return prevSelected
+      }
 
-    const count = selectedIndices.size
-    // Sort indices in descending order to maintain correct positions when inserting
-    const sortedIndices = Array.from(selectedIndices).sort((a, b) => b - a)
-    
-    setDoc(prevDoc => {
-      let newEvents = [...prevDoc.events]
-      
-      sortedIndices.forEach(index => {
-        const ev = newEvents[index]
-        const duplicatedEvent = { ...ev }
-        // Insert right after the original
-        newEvents.splice(index + 1, 0, duplicatedEvent)
+      const count = prevSelected.size
+      // Sort indices in descending order to maintain correct positions when inserting
+      const sortedIndices = Array.from(prevSelected).sort((a, b) => b - a)
+
+      setDoc(prevDoc => {
+        let newEvents = [...prevDoc.events]
+
+        sortedIndices.forEach(index => {
+          const ev = newEvents[index]
+          const duplicatedEvent = { ...ev }
+          // Insert right after the original
+          newEvents.splice(index + 1, 0, duplicatedEvent)
+        })
+
+        return { ...prevDoc, events: newEvents }
       })
-      
-      return { ...prevDoc, events: newEvents }
+
+      showToast(`Duplicated ${count} event(s)`, 'success')
+      // Clear selection after duplication
+      return new Set()
     })
-    setSelectedIndices(new Set())
-    showToast(`Duplicated ${count} event(s)`, 'success')
-  }, [selectedIndices, showToast])
+  }, [showToast])
 
   const handleImportFile = useCallback(() => {
     importFileInputRef.current?.click()
@@ -314,6 +326,8 @@ export default function App(){
             ...prevDoc,
             events: [...prevDoc.events, ...importedEvents]
           }))
+          // Clear selection after import for better UX
+          setSelectedIndices(new Set())
           showToast(`Imported ${importedEvents.length} event(s)`, 'success')
         } catch (error) {
           console.error('Failed to parse import file:', error)
@@ -327,7 +341,7 @@ export default function App(){
       showToast(`Failed to read import file${errorMsg}. Please ensure the file is valid and try again.`, 'error')
     }
     reader.readAsText(file)
-    
+
     // Reset input so same file can be imported again
     e.target.value = ''
   }, [showToast])
@@ -432,7 +446,7 @@ export default function App(){
         clearTimeout(focusTimeoutId)
       }
     }
-  }, [editIndex, handleDownload, handleResetForm, doc.events.length, selectedIndices.size])
+  }, [editIndex, handleDownload, handleResetForm, doc.events.length, selectedIndices.size, handleSelectAll, handleBulkDelete, handleBulkDuplicate])
 
   function handleAddOrUpdate() {
     // Validate range event dates
