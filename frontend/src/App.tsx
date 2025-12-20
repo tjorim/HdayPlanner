@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
-import { toLine, parseHday, normalizeEventFlags, type HdayEvent, type EventFlag } from './lib/hday'
+import { toLine, parseHday, normalizeEventFlags, sortEvents, type HdayEvent, type EventFlag } from './lib/hday'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
@@ -46,6 +46,16 @@ export default function App(){
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
+
+  // Sort events by date for display (range events by start date, weekly by weekday, unknown last)
+  const sortedEvents = useMemo(() => sortEvents(doc.events), [doc.events])
+
+  // Create a mapping from sorted indices to original indices for edit/delete operations
+  const sortedToOriginalIndex = useMemo(() => {
+    // Create a Map for O(1) lookup instead of O(n) indexOf
+    const indexMap = new Map(doc.events.map((event, idx) => [event, idx]))
+    return sortedEvents.map((event) => indexMap.get(event) ?? -1)
+  }, [sortedEvents, doc.events])
 
   // Backend mode functions
   const load = useCallback(async () => {
@@ -330,9 +340,12 @@ export default function App(){
           </tr>
         </thead>
         <tbody>
-        {doc.events.map((ev,i)=>
-          <tr key={i}>
-            <td>{i+1}</td>
+        {sortedEvents.map((ev,sortedIdx)=>{
+          // Get the original index from the array for edit/delete operations
+          const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1
+          return (
+          <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
+            <td>{sortedIdx+1}</td>
             <td>{ev.type}</td>
             <td>{ev.start||''}</td>
             <td>
@@ -345,17 +358,22 @@ export default function App(){
             {!USE_BACKEND && (
               <td>
                 <button 
-                  onClick={() => handleEdit(i)}
-                  disabled={ev.type === 'unknown'}
+                  onClick={() => handleEdit(originalIdx)}
+                  disabled={ev.type === 'unknown' || originalIdx === -1}
                   title={ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'}
                 >
                   Edit
                 </button>
-                <button onClick={() => handleDelete(i)}>Delete</button>
+                <button 
+                  onClick={() => handleDelete(originalIdx)}
+                  disabled={originalIdx === -1}
+                >
+                  Delete
+                </button>
               </td>
             )}
           </tr>
-        )}
+        )})}
         </tbody>
       </table>
 
