@@ -137,6 +137,46 @@ export default function App(){
     }
   }, [editIndex])
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Ctrl+S / Cmd+S - Download .hday file (standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (!USE_BACKEND) {
+          handleDownload()
+        }
+      }
+
+      // Ctrl+N / Cmd+N - Add new event (focus form, standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        if (!USE_BACKEND) {
+          // Reset form and scroll to it
+          handleResetForm()
+          if (formRef.current) {
+            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            // Focus the first input in the form after scrolling
+            setTimeout(() => {
+              const firstInput = formRef.current?.querySelector('input, select') as HTMLElement
+              firstInput?.focus()
+            }, 300)
+          }
+        }
+      }
+
+      // Escape - Cancel edit mode
+      if (e.key === 'Escape') {
+        if (!USE_BACKEND && editIndex >= 0) {
+          handleResetForm()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [editIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleAddOrUpdate() {
     // Validate range event dates
     if (eventType === 'range') {
