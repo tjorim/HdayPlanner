@@ -212,15 +212,58 @@ export default function App(){
   }, [validateEndDate])
 
   // Bulk operations - defined before keyboard shortcuts to avoid hoisting issues
+  // Helper function to generate accessible aria-labels for event checkboxes
+  const getEventAriaLabel = (ev: HdayEvent): string => {
+    if (ev.title) {
+      return `Select ${ev.title}`
+    }
+    
+    if (ev.type === 'weekly') {
+      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      return `Select weekly event on ${weekdays[ev.weekday || 0]}`
+    }
+    
+    if (ev.end && ev.end !== ev.start) {
+      return `Select event from ${ev.start || ''} to ${ev.end}`
+    }
+    
+    if (ev.flags && ev.flags.length > 0) {
+      const readableFlags = ev.flags.map(flag => {
+        switch (flag) {
+          case 'half_am':
+            return 'morning half-day'
+          case 'half_pm':
+            return 'afternoon half-day'
+          case 'holiday':
+            return 'vacation'
+          case 'business':
+            return 'business trip'
+          case 'course':
+            return 'training'
+          case 'in_office':
+            return 'in office'
+          default:
+            return flag
+        }
+      }).join(', ')
+      return `Select event on ${ev.start || ''} with ${readableFlags}`
+    }
+    
+    return `Select event on ${ev.start || ''}`
+  }
+
   const handleSelectAll = useCallback(() => {
-    setSelectedIndices(prev => {
-      // Toggle selection based on current state
-      if (prev.size === doc.events.length) {
-        return new Set()
-      }
-      return new Set(doc.events.map((_, idx) => idx))
+    setDoc(prevDoc => {
+      setSelectedIndices(prev => {
+        // Toggle selection based on current state
+        if (prev.size === prevDoc.events.length) {
+          return new Set()
+        }
+        return new Set(prevDoc.events.map((_, idx) => idx))
+      })
+      return prevDoc
     })
-  }, [doc])
+  }, [])
 
   const handleToggleSelect = useCallback((index: number) => {
     setSelectedIndices(prev => {
@@ -258,14 +301,11 @@ export default function App(){
   }, [selectedIndices, showToast])
 
   const handleDuplicate = useCallback((index: number) => {
-    // Validate index bounds before calling setDoc for clearer logic
-    if (index < 0 || index >= doc.events.length) {
-      return
-    }
+    let duplicated = false
     
     setDoc(prevDoc => {
-      // Double-check bounds with current state
-      if (index >= prevDoc.events.length) {
+      // Validate bounds with current state
+      if (index < 0 || index >= prevDoc.events.length) {
         return prevDoc
       }
       
@@ -281,11 +321,14 @@ export default function App(){
         ...prevDoc.events.slice(index + 1)
       ]
       
+      duplicated = true
       return { ...prevDoc, events: newEvents }
     })
     
-    // Show toast after successful duplication
-    showToast('Event duplicated', 'success')
+    // Show toast only if duplication actually occurred
+    if (duplicated) {
+      showToast('Event duplicated', 'success')
+    }
     
     // Adjust selected indices so they continue to point to the same logical events
     // after inserting a new event at index + 1.
@@ -303,7 +346,7 @@ export default function App(){
       })
       return updated
     })
-  }, [doc, showToast])
+  }, [showToast])
 
   const handleBulkDuplicate = useCallback(() => {
     // Use current selectedIndices state for validation and duplication logic.
@@ -317,41 +360,38 @@ export default function App(){
       .filter(i => i >= 0)
       .sort((a, b) => b - a)
 
-    // Validate indices against the current document before calling setDoc
-    const currentEventsLength = doc.events.length
-    const validIndices = sortedIndices.filter(i => i < currentEventsLength)
-
-    // If all indices were filtered out, don't modify document
-    if (validIndices.length === 0) {
-      return
-    }
-
-    const duplicatedCount = validIndices.length
+    let duplicatedCount = 0
 
     setDoc(prevDoc => {
       let newEvents = [...prevDoc.events]
 
-      // Re-validate indices against the latest events array to be safe
-      const safeIndices = validIndices.filter(i => i < newEvents.length)
+      // Validate indices against the current events array
+      const validIndices = sortedIndices.filter(i => i < newEvents.length)
 
-      safeIndices.forEach(index => {
+      // If all indices were filtered out, don't modify document
+      if (validIndices.length === 0) {
+        return prevDoc
+      }
+
+      validIndices.forEach(index => {
         const ev = newEvents[index]
         const duplicatedEvent = { ...ev }
         // Insert right after the original
         newEvents.splice(index + 1, 0, duplicatedEvent)
       })
 
+      duplicatedCount = validIndices.length
       return { ...prevDoc, events: newEvents }
     })
 
-    // Show toast with accurate count of duplicated events (computed before state update)
+    // Show toast with accurate count of duplicated events
     if (duplicatedCount > 0) {
       showToast(`Duplicated ${duplicatedCount} event(s)`, 'success')
     }
 
     // Clear selection after duplication
     setSelectedIndices(new Set())
-  }, [doc, selectedIndices, showToast])
+  }, [selectedIndices, showToast])
 
   const handleImportFile = useCallback(() => {
     importFileInputRef.current?.click()
@@ -461,7 +501,7 @@ export default function App(){
 
       // Ctrl+A / Cmd+A - Select all events (standalone mode only)
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        if (!USE_BACKEND && doc.events.length > 0) {
+        if (!USE_BACKEND) {
           e.preventDefault()
           handleSelectAll()
         }
@@ -764,37 +804,7 @@ export default function App(){
                   checked={selectedIndices.has(originalIdx)}
                   onChange={() => handleToggleSelect(originalIdx)}
                   disabled={originalIdx === -1}
-                  aria-label={
-                    ev.title
-                      ? `Select ${ev.title}`
-                      : ev.type === 'weekly'
-                        ? `Select weekly event on ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][ev.weekday || 0]}`
-                        : ev.end && ev.end !== ev.start
-                          ? `Select event from ${ev.start || ''} to ${ev.end}`
-                          : ev.flags && ev.flags.length
-                            ? (() => {
-                                const readableFlags = (ev.flags ?? []).map(flag => {
-                                  switch (flag) {
-                                    case 'half_am':
-                                      return 'morning half-day'
-                                    case 'half_pm':
-                                      return 'afternoon half-day'
-                                    case 'holiday':
-                                      return 'vacation'
-                                    case 'business':
-                                      return 'business trip'
-                                    case 'course':
-                                      return 'training'
-                                    case 'in_office':
-                                      return 'in office'
-                                    default:
-                                      return flag
-                                  }
-                                }).join(', ')
-                                return `Select event on ${ev.start || ''} with ${readableFlags}`
-                              })()
-                            : `Select event on ${ev.start || ''}`
-                  }
+                  aria-label={getEventAriaLabel(ev)}
                 />
               </td>
             )}
