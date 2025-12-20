@@ -147,6 +147,17 @@ export function MonthGrid({
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
       const holidayInfo = nationalHolidays.get(dateStr)
       
+      // Build CSS classes
+      const classes = ['day']
+      if (isToday) classes.push('day--today')
+      if (isWeekend) classes.push('day--weekend')
+      if (holidayInfo) classes.push('day--holiday')
+      
+      // Build aria-label
+      let ariaLabel = dateStr
+      if (isToday) ariaLabel += ' (Today)'
+      if (holidayInfo) ariaLabel += ` - ${holidayInfo.name}`
+      
       // Filter all events that apply to this date in a single pass
       const todays = events.filter((ev) => {
         // Range events that include this date
@@ -161,9 +172,9 @@ export function MonthGrid({
       })
       rowCells.push(
         <div
-          className={`day${isToday ? ' day--today' : ''}${isWeekend ? ' day--weekend' : ''}${holidayInfo ? ' day--holiday' : ''}`}
+          className={classes.join(' ')}
           tabIndex={i === focusedIndex ? 0 : -1}
-          aria-label={`${dateStr}${isToday ? ' (Today)' : ''}${holidayInfo ? ` - ${holidayInfo.name}` : ''}`}
+          aria-label={ariaLabel}
           aria-current={isToday ? 'date' : undefined}
           key={`day-${i}`}
           ref={(el) => (cellRefs.current[i] = el)}

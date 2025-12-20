@@ -38,7 +38,14 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
 
       try {
         const response = await fetch(
-          `https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`
+          `https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`,
+          {
+            headers: {
+              'Accept': 'application/json'
+            },
+            // Timeout after 10 seconds
+            signal: AbortSignal.timeout(10000)
+          }
         )
 
         if (!response.ok) {
@@ -52,7 +59,18 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to fetch holidays')
+          if (err instanceof Error) {
+            // Check for specific error types
+            if (err.name === 'AbortError' || err.name === 'TimeoutError') {
+              setError('Request timeout: Unable to reach holiday API')
+            } else if (err.message.includes('Failed to fetch')) {
+              setError('Network error: Unable to connect to holiday API')
+            } else {
+              setError(err.message)
+            }
+          } else {
+            setError('Failed to fetch holidays')
+          }
           setHolidays([])
         }
       } finally {
@@ -74,8 +92,15 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
 
 /**
  * Convert Nager.Date format (YYYY-MM-DD) to .hday format (YYYY/MM/DD)
+ * @param nagerDate Date string in YYYY-MM-DD format
+ * @returns Date string in YYYY/MM/DD format
  */
 export function convertDateFormat(nagerDate: string): string {
+  // Basic validation: ensure format is YYYY-MM-DD
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nagerDate)) {
+    console.warn(`Invalid date format: ${nagerDate}. Expected YYYY-MM-DD format.`)
+    return nagerDate
+  }
   return nagerDate.replace(/-/g, '/')
 }
 
