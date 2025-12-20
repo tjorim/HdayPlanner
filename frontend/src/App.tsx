@@ -123,6 +123,16 @@ export default function App(){
     URL.revokeObjectURL(a.href)
   }, [doc.events])
 
+  const handleResetForm = useCallback(() => {
+    setEditIndex(-1)
+    setEventType('range')
+    setEventTitle('')
+    setEventStart('')
+    setEventEnd('')
+    setEventWeekday(1)
+    setEventFlags([])
+  }, [])
+
   // Auto-sync events to text in standalone mode
   useEffect(() => {
     if (!USE_BACKEND) {
@@ -143,9 +153,9 @@ export default function App(){
     let focusTimeoutId: ReturnType<typeof setTimeout> | null = null
 
     function handleKeyDown(e: KeyboardEvent) {
-      // Skip keyboard shortcuts when user is typing in an input or textarea
+      // Skip keyboard shortcuts when user is typing in an input, textarea, or select
       const target = e.target
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
         // Allow Escape to work even in input fields (to cancel edit)
         if (e.key !== 'Escape') {
           return
@@ -164,6 +174,10 @@ export default function App(){
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault()
         if (!USE_BACKEND) {
+          // Clear any existing timeout before creating a new one
+          if (focusTimeoutId) {
+            clearTimeout(focusTimeoutId)
+          }
           // Reset form and scroll to it
           handleResetForm()
           if (formRef.current) {
@@ -304,16 +318,6 @@ export default function App(){
     const newEvents = doc.events.filter((_, i) => i !== index)
     setDoc({ ...doc, events: newEvents })
   }
-
-  const handleResetForm = useCallback(() => {
-    setEditIndex(-1)
-    setEventType('range')
-    setEventTitle('')
-    setEventStart('')
-    setEventEnd('')
-    setEventWeekday(1)
-    setEventFlags([])
-  }, [])
 
   function handleClearAll() {
     setShowConfirmDialog(true)
