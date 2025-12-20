@@ -164,16 +164,16 @@ export default function App(){
 
       // Ctrl+S / Cmd+S - Download .hday file (standalone mode only)
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault()
         if (!USE_BACKEND) {
+          e.preventDefault()
           handleDownload()
         }
       }
 
       // Ctrl+N / Cmd+N - Add new event (focus form, standalone mode only)
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-        e.preventDefault()
         if (!USE_BACKEND) {
+          e.preventDefault()
           // Clear any existing timeout before creating a new one
           if (focusTimeoutId) {
             clearTimeout(focusTimeoutId)
