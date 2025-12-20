@@ -240,7 +240,7 @@ export default function App(){
             return 'business trip'
           case 'course':
             return 'training'
-          case 'in_office':
+          case 'in':
             return 'in office'
           default:
             return flag
@@ -253,17 +253,15 @@ export default function App(){
   }
 
   const handleSelectAll = useCallback(() => {
-    setDoc(prevDoc => {
-      setSelectedIndices(prev => {
-        // Toggle selection based on current state
-        if (prev.size === prevDoc.events.length) {
-          return new Set()
-        }
-        return new Set(prevDoc.events.map((_, idx) => idx))
-      })
-      return prevDoc
+    setSelectedIndices(prev => {
+      const totalEvents = doc.events.length
+      // Toggle selection based on current state
+      if (prev.size === totalEvents) {
+        return new Set()
+      }
+      return new Set(doc.events.map((_, idx) => idx))
     })
-  }, [])
+  }, [doc])
 
   const handleToggleSelect = useCallback((index: number) => {
     setSelectedIndices(prev => {
