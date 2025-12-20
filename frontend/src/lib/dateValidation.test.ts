@@ -1,18 +1,5 @@
 import { describe, it, expect } from 'vitest'
-
-// Test the date validation logic that will be used in the app
-function isValidDate(dateString: string): boolean {
-  const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
-  
-  if (!DATE_FORMAT_REGEX.test(dateString)) {
-    return false
-  }
-  const [year, month, day] = dateString.split('/').map(Number)
-  const date = new Date(year, month - 1, day)
-  return date.getFullYear() === year && 
-         date.getMonth() === month - 1 && 
-         date.getDate() === day
-}
+import { isValidDate, parseHdayDate } from './dateValidation'
 
 describe('isValidDate', () => {
   describe('valid dates', () => {
@@ -127,8 +114,8 @@ describe('date range validation', () => {
     const start = '2025/12/20'
     const end = '2025/12/18'
     
-    const startDate = new Date(start.replace(/\//g, '-'))
-    const endDate = new Date(end.replace(/\//g, '-'))
+    const startDate = parseHdayDate(start)
+    const endDate = parseHdayDate(end)
     
     expect(endDate < startDate).toBe(true)
   })
@@ -137,8 +124,8 @@ describe('date range validation', () => {
     const start = '2025/12/20'
     const end = '2025/12/20'
     
-    const startDate = new Date(start.replace(/\//g, '-'))
-    const endDate = new Date(end.replace(/\//g, '-'))
+    const startDate = parseHdayDate(start)
+    const endDate = parseHdayDate(end)
     
     expect(endDate >= startDate).toBe(true)
   })
@@ -147,9 +134,29 @@ describe('date range validation', () => {
     const start = '2025/12/20'
     const end = '2025/12/25'
     
-    const startDate = new Date(start.replace(/\//g, '-'))
-    const endDate = new Date(end.replace(/\//g, '-'))
+    const startDate = parseHdayDate(start)
+    const endDate = parseHdayDate(end)
     
     expect(endDate >= startDate).toBe(true)
+  })
+})
+
+describe('parseHdayDate', () => {
+  it('parses valid date string to Date object', () => {
+    const dateString = '2025/12/25'
+    const date = parseHdayDate(dateString)
+    
+    expect(date.getFullYear()).toBe(2025)
+    expect(date.getMonth()).toBe(11) // December is month 11 (0-indexed)
+    expect(date.getDate()).toBe(25)
+  })
+
+  it('handles leap year date correctly', () => {
+    const dateString = '2024/02/29'
+    const date = parseHdayDate(dateString)
+    
+    expect(date.getFullYear()).toBe(2024)
+    expect(date.getMonth()).toBe(1) // February is month 1
+    expect(date.getDate()).toBe(29)
   })
 })

@@ -2,12 +2,12 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, sortEvents, type HdayEvent, type EventFlag } from './lib/hday'
+import { isValidDate, parseHdayDate } from './lib/dateValidation'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
-const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
 const SCROLL_FOCUS_DELAY = 300 // Delay in ms for focusing after smooth scroll
 
 function getCurrentMonth(): string {
@@ -15,17 +15,6 @@ function getCurrentMonth(): string {
   const year = now.getFullYear()
   const month = String(now.getMonth() + 1).padStart(2, '0')
   return `${year}-${month}`
-}
-
-function isValidDate(dateString: string): boolean {
-  if (!DATE_FORMAT_REGEX.test(dateString)) {
-    return false
-  }
-  const [year, month, day] = dateString.split('/').map(Number)
-  const date = new Date(year, month - 1, day)
-  return date.getFullYear() === year && 
-         date.getMonth() === month - 1 && 
-         date.getDate() === day
 }
 
 export default function App(){
@@ -165,8 +154,8 @@ export default function App(){
     }
     // Check if end is before start
     if (startValue && isValidDate(startValue)) {
-      const startDate = new Date(startValue.replace(/\//g, '-'))
-      const endDate = new Date(value.replace(/\//g, '-'))
+      const startDate = parseHdayDate(startValue)
+      const endDate = parseHdayDate(value)
       if (endDate < startDate) {
         setEndDateError('End date must be the same or after start date')
         return false
@@ -294,8 +283,8 @@ export default function App(){
       
       // Validate that end date is not before start date
       if (eventEnd && isValidDate(eventStart) && isValidDate(eventEnd)) {
-        const startDate = new Date(eventStart.replace(/\//g, '-'))
-        const endDate = new Date(eventEnd.replace(/\//g, '-'))
+        const startDate = parseHdayDate(eventStart)
+        const endDate = parseHdayDate(eventEnd)
         if (endDate < startDate) {
           setEndDateError('End date must be the same or after start date')
           showToast('End date must be the same or after start date.', 'warning')
