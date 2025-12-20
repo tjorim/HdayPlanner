@@ -460,7 +460,7 @@ export default function App(){
     }
   }, [selectedIndices.size, doc.events.length])
 
-  function handleToggleSelect(index: number) {
+  const handleToggleSelect = useCallback((index: number) => {
     setSelectedIndices(prev => {
       const newSet = new Set(prev)
       if (newSet.has(index)) {
@@ -470,7 +470,7 @@ export default function App(){
       }
       return newSet
     })
-  }
+  }, [])
 
   const handleBulkDelete = useCallback(() => {
     if (selectedIndices.size === 0) {
@@ -484,7 +484,7 @@ export default function App(){
     showToast(`Deleted ${selectedIndices.size} event(s)`, 'success')
   }, [selectedIndices, doc, showToast])
 
-  function handleDuplicate(index: number) {
+  const handleDuplicate = useCallback((index: number) => {
     const ev = doc.events[index]
     
     // Create a duplicate event
@@ -499,7 +499,7 @@ export default function App(){
     
     setDoc({ ...doc, events: newEvents })
     showToast('Event duplicated', 'success')
-  }
+  }, [doc, showToast])
 
   const handleBulkDuplicate = useCallback(() => {
     if (selectedIndices.size === 0) {
@@ -523,11 +523,11 @@ export default function App(){
     showToast(`Duplicated ${selectedIndices.size} event(s)`, 'success')
   }, [selectedIndices, doc, showToast])
 
-  function handleImportFile() {
+  const handleImportFile = useCallback(() => {
     importFileInputRef.current?.click()
-  }
+  }, [])
 
-  function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleImportFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -548,7 +548,7 @@ export default function App(){
     
     // Reset input so same file can be imported again
     e.target.value = ''
-  }
+  }, [doc, showToast])
 
   return (
     <div>
