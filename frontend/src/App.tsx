@@ -235,24 +235,27 @@ export default function App(){
   }, [])
 
   const handleBulkDelete = useCallback(() => {
-    setSelectedIndices(prevSelected => {
-      if (prevSelected.size === 0) {
-        showToast('No events selected', 'warning')
-        return prevSelected
-      }
+    // Use the current selectedIndices state to decide behavior,
+    // and keep side effects (showToast) outside of state setter callbacks.
+    if (selectedIndices.size === 0) {
+      showToast('No events selected', 'warning')
+      return
+    }
 
-      const indicesToDelete = new Set(prevSelected)
-      const count = indicesToDelete.size
+    const indicesToDelete = new Set(selectedIndices)
+    const count = indicesToDelete.size
 
-      setDoc(prevDoc => ({
-        ...prevDoc,
-        events: prevDoc.events.filter((_, idx) => !indicesToDelete.has(idx))
-      }))
+    setDoc(prevDoc => ({
+      ...prevDoc,
+      events: prevDoc.events.filter((_, idx) => !indicesToDelete.has(idx))
+    }))
 
-      showToast(`Deleted ${count} event(s)`, 'success')
-      return new Set()
-    })
-  }, [showToast])
+    // Clear selection after deleting the selected events
+    setSelectedIndices(new Set())
+
+    // Show success toast after scheduling state updates
+    showToast(`Deleted ${count} event(s)`, 'success')
+  }, [selectedIndices, showToast])
 
   const handleDuplicate = useCallback((index: number) => {
     let duplicated = false
@@ -302,50 +305,49 @@ export default function App(){
   }, [showToast])
 
   const handleBulkDuplicate = useCallback(() => {
-    setSelectedIndices(prevSelected => {
-      if (prevSelected.size === 0) {
-        showToast('No events selected', 'warning')
-        return prevSelected
+    // Use current selectedIndices state for validation and duplication logic.
+    if (selectedIndices.size === 0) {
+      showToast('No events selected', 'warning')
+      return
+    }
+
+    // Sort indices in descending order to maintain correct positions when inserting
+    // Filter to ensure all indices are within bounds
+    const sortedIndices = Array.from(selectedIndices)
+      .filter(i => i >= 0)
+      .sort((a, b) => b - a)
+
+    let duplicatedCount = 0
+    setDoc(prevDoc => {
+      let newEvents = [...prevDoc.events]
+
+      // Filter again at execution time to ensure indices are valid
+      const validIndices = sortedIndices.filter(i => i < newEvents.length)
+
+      // If all indices were filtered out, don't modify document
+      if (validIndices.length === 0) {
+        return prevDoc
       }
 
-      // Sort indices in descending order to maintain correct positions when inserting
-      // Filter to ensure all indices are within bounds
-      const sortedIndices = Array.from(prevSelected)
-        .filter(i => i >= 0)
-        .sort((a, b) => b - a)
-
-      let duplicatedCount = 0
-      setDoc(prevDoc => {
-        let newEvents = [...prevDoc.events]
-
-        // Filter again at execution time to ensure indices are valid
-        const validIndices = sortedIndices.filter(i => i < newEvents.length)
-
-        // If all indices were filtered out, don't modify document
-        if (validIndices.length === 0) {
-          return prevDoc
-        }
-
-        validIndices.forEach(index => {
-          const ev = newEvents[index]
-          const duplicatedEvent = { ...ev }
-          // Insert right after the original
-          newEvents.splice(index + 1, 0, duplicatedEvent)
-        })
-
-        duplicatedCount = validIndices.length
-        return { ...prevDoc, events: newEvents }
+      validIndices.forEach(index => {
+        const ev = newEvents[index]
+        const duplicatedEvent = { ...ev }
+        // Insert right after the original
+        newEvents.splice(index + 1, 0, duplicatedEvent)
       })
 
-      // Show toast with accurate count of duplicated events (outside state setter)
-      if (duplicatedCount > 0) {
-        showToast(`Duplicated ${duplicatedCount} event(s)`, 'success')
-      }
-
-      // Clear selection after duplication
-      return new Set()
+      duplicatedCount = validIndices.length
+      return { ...prevDoc, events: newEvents }
     })
-  }, [showToast])
+
+    // Show toast with accurate count of duplicated events (outside state setter)
+    if (duplicatedCount > 0) {
+      showToast(`Duplicated ${duplicatedCount} event(s)`, 'success')
+    }
+
+    // Clear selection after duplication
+    setSelectedIndices(new Set())
+  }, [selectedIndices, showToast])
 
   const handleImportFile = useCallback(() => {
     importFileInputRef.current?.click()
@@ -763,7 +765,11 @@ export default function App(){
                       ? `Select ${ev.title}`
                       : ev.type === 'weekly'
                         ? `Select weekly event on ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][ev.weekday || 0]}`
-                        : `Select event on ${ev.start || ''}`
+                        : ev.end && ev.end !== ev.start
+                          ? `Select event from ${ev.start || ''} to ${ev.end}`
+                          : ev.flags && ev.flags.length
+                            ? `Select event on ${ev.start || ''} with flags ${ev.flags.join(', ')}`
+                            : `Select event on ${ev.start || ''}`
                   }
                 />
               </td>
