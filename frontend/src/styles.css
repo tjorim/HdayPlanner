@@ -16,6 +16,7 @@ button.primary{background:var(--p);color:#fff;border-color:var(--p)}
 .day{border:1px solid var(--b);min-height:90px;padding:6px;border-radius:6px}
 .day--weekend{background-color:#f0f0f0}
 .day--holiday{background-color:#fff4e6}
+.day--weekend.day--holiday{background-color:#fff4e6}
 .day--today{border:3px solid var(--p);box-shadow:0 0 8px var(--p-shadow)}
 .day--today .date{color:var(--p);font-weight:700}
 .date{font-weight:600;font-size:12px;color:#555}

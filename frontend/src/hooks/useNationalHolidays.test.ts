@@ -167,8 +167,29 @@ describe('useNationalHolidays', () => {
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('should handle HTTP error responses', async () => {
+  it('should handle network errors', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'))
+
+    const { result } = renderHook(() => useNationalHolidays('NL', 2025, true))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.holidays).toEqual([])
+    expect(result.current.error).toBe('Network error: Unable to connect to holiday API')
+  })
+
+  it('should handle non-OK HTTP responses', async () => {
+    // Mock a response that will cause the error to be thrown
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: async () => {
+        throw new Error('Should not reach here')
+      }
+    })
 
     const { result } = renderHook(() => useNationalHolidays('XX', 2025, true))
 
@@ -177,7 +198,7 @@ describe('useNationalHolidays', () => {
     })
 
     expect(result.current.holidays).toEqual([])
-    expect(result.current.error).toBe('Network error: Unable to connect to holiday API')
+    expect(result.current.error).toBe('Failed to fetch holidays: 404 Not Found')
   })
 
   it('should handle timeout errors', async () => {

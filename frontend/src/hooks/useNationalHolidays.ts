@@ -48,7 +48,7 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
           }
         )
 
-        if (!response.ok) {
+        if (!cancelled && !response.ok) {
           throw new Error(`Failed to fetch holidays: ${response.status} ${response.statusText}`)
         }
 
@@ -67,7 +67,11 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
             // Check for specific error types
             if (err.name === 'AbortError' || err.name === 'TimeoutError') {
               setError('Request timeout: Unable to reach holiday API')
+            } else if (err.message.startsWith('Failed to fetch holidays:')) {
+              // HTTP error from response.ok check
+              setError(err.message)
             } else if (err.message.includes('Failed to fetch')) {
+              // Network error
               setError('Network error: Unable to connect to holiday API')
             } else {
               setError(err.message)
