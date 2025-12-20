@@ -50,14 +50,12 @@ export default function App(){
   // Sort events by date for display (range events by start date, weekly by weekday, unknown last)
   const sortedEvents = useMemo(() => sortEvents(doc.events), [doc.events])
 
-  // Create a mapping from sorted events to their original indices for edit/delete operations
+  // Create a mapping from sorted indices to original indices for edit/delete operations
   const sortedToOriginalIndex = useMemo(() => {
-    const map = new Map<HdayEvent, number>()
-    doc.events.forEach((event, index) => {
-      map.set(event, index)
-    })
-    return map
-  }, [doc.events])
+    // For each event in the sorted list, find its index in the original doc.events array.
+    // This avoids relying on object identity via Map keys, which can break after edits.
+    return sortedEvents.map((event) => doc.events.indexOf(event))
+  }, [sortedEvents, doc.events])
 
   // Backend mode functions
   const load = useCallback(async () => {
@@ -343,12 +341,10 @@ export default function App(){
         </thead>
         <tbody>
         {sortedEvents.map((ev,sortedIdx)=>{
-          // Get the original index from the map for edit/delete operations
-          const originalIdx = sortedToOriginalIndex.get(ev) ?? -1
-          // Use original index as key when available, otherwise fall back to sorted index
-          const key = originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`
+          // Get the original index from the array for edit/delete operations
+          const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1
           return (
-          <tr key={key}>
+          <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
             <td>{sortedIdx+1}</td>
             <td>{ev.type}</td>
             <td>{ev.start||''}</td>
