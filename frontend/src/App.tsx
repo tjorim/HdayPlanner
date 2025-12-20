@@ -8,6 +8,7 @@ import { ConfirmationDialog } from './components/ConfirmationDialog'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/
+const SCROLL_FOCUS_DELAY = 300 // Delay in ms for focusing after smooth scroll
 
 function getCurrentMonth(): string {
   const now = new Date()
@@ -109,7 +110,7 @@ export default function App(){
     setDoc({ raw: rawText, events })
   }
 
-  function handleDownload() {
+  const handleDownload = useCallback(() => {
     const text = doc.events.map(toLine).join('\n')
     const blob = new Blob([text], { type: 'text/plain' })
     const a = document.createElement('a')
@@ -120,7 +121,7 @@ export default function App(){
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(a.href)
-  }
+  }, [doc.events])
 
   // Auto-sync events to text in standalone mode
   useEffect(() => {
@@ -160,7 +161,7 @@ export default function App(){
             setTimeout(() => {
               const firstInput = formRef.current?.querySelector('input, select') as HTMLElement
               firstInput?.focus()
-            }, 300)
+            }, SCROLL_FOCUS_DELAY)
           }
         }
       }
@@ -175,7 +176,7 @@ export default function App(){
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [editIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editIndex, handleDownload, handleResetForm])
 
   function handleAddOrUpdate() {
     // Validate range event dates
@@ -285,7 +286,7 @@ export default function App(){
     setDoc({ ...doc, events: newEvents })
   }
 
-  function handleResetForm() {
+  const handleResetForm = useCallback(() => {
     setEditIndex(-1)
     setEventType('range')
     setEventTitle('')
@@ -293,7 +294,7 @@ export default function App(){
     setEventEnd('')
     setEventWeekday(1)
     setEventFlags([])
-  }
+  }, [])
 
   function handleClearAll() {
     setShowConfirmDialog(true)
