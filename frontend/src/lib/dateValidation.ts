@@ -36,11 +36,12 @@ export function isValidDate(dateString: string): boolean {
  * Use isValidDate() first to ensure the date is valid.
  * 
  * @param dateString Date in YYYY/MM/DD format
- * @returns Date object
+ * @returns Date object in local timezone
  * 
  * @example
- * parseHdayDate('2025/12/25') // Date object for Dec 25, 2025
+ * parseHdayDate('2025/12/25') // Date object for Dec 25, 2025 in local time
  */
 export function parseHdayDate(dateString: string): Date {
-  return new Date(dateString.replace(/\//g, '-'))
+  const [year, month, day] = dateString.split('/').map(Number)
+  return new Date(year, month - 1, day)
 }
