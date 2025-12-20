@@ -184,14 +184,9 @@ input,select{padding:6px}
   /* The error text color (#ef4444) on white (#ffffff) has 8.29:1 contrast, and on the app background (#f6f8fa) has 8.16:1 contrast (WCAG AA Normal Text requires 4.5:1). */
   color: #ef4444;
   font-size: 13px;
-  min-height: 1.2em;
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.error-message:empty::before {
-  content: none;
 }
 
 .error-message::before {
