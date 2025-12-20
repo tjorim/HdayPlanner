@@ -63,21 +63,17 @@ export default function App(){
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
 
-  // National holidays configuration
-  const [showNationalHolidays, setShowNationalHolidays] = useState(false)
-  const [holidayCountryCode, setHolidayCountryCode] = useState('NL') // Default to Netherlands
-
   // Extract year from current month for holidays API
   const currentYear = useMemo(() => {
     const [year] = month.split('-').map(Number)
     return year
   }, [month])
 
-  // Fetch national holidays
-  const { holidays, loading: holidaysLoading, error: holidaysError } = useNationalHolidays(
-    holidayCountryCode,
+  // Fetch national holidays (always enabled for NL)
+  const { holidays, error: holidaysError } = useNationalHolidays(
+    'NL',
     currentYear,
-    showNationalHolidays
+    true
   )
 
   // Convert holidays to a Map for quick lookup by date
@@ -990,49 +986,6 @@ export default function App(){
           aria-describedby="month-view-help"
         />
         <span id="month-view-help" className="muted">Format: YYYY-MM</span>
-      </div>
-
-      <div className="row" style={{ marginTop: '10px', marginBottom: '10px' }}>
-        <label htmlFor="show-holidays-checkbox">
-          <input
-            id="show-holidays-checkbox"
-            type="checkbox"
-            checked={showNationalHolidays}
-            onChange={e => setShowNationalHolidays(e.target.checked)}
-          />
-          {' '}Show national holidays
-        </label>
-        
-        {showNationalHolidays && (
-          <>
-            <label htmlFor="holiday-country-select">
-              Country:{' '}
-              <select
-                id="holiday-country-select"
-                value={holidayCountryCode}
-                onChange={e => setHolidayCountryCode(e.target.value)}
-              >
-                <option value="US">United States</option>
-                <option value="GB">United Kingdom</option>
-                <option value="NL">Netherlands</option>
-                <option value="DE">Germany</option>
-                <option value="FR">France</option>
-                <option value="ES">Spain</option>
-                <option value="IT">Italy</option>
-                <option value="CA">Canada</option>
-                <option value="AU">Australia</option>
-                <option value="JP">Japan</option>
-                <option value="CN">China</option>
-                <option value="IN">India</option>
-                <option value="BR">Brazil</option>
-                <option value="MX">Mexico</option>
-                <option value="ZA">South Africa</option>
-              </select>
-            </label>
-            
-            {holidaysLoading && <span className="muted">Loading holidays...</span>}
-          </>
-        )}
       </div>
 
       {month && <MonthGrid events={doc.events} ym={month} nationalHolidays={holidayMap} />}
