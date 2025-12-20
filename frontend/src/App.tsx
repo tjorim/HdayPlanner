@@ -140,7 +140,18 @@ export default function App(){
 
   // Keyboard shortcuts
   useEffect(() => {
+    let focusTimeoutId: ReturnType<typeof setTimeout> | null = null
+
     function handleKeyDown(e: KeyboardEvent) {
+      // Skip keyboard shortcuts when user is typing in an input or textarea
+      const target = e.target
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        // Allow Escape to work even in input fields (to cancel edit)
+        if (e.key !== 'Escape') {
+          return
+        }
+      }
+
       // Ctrl+S / Cmd+S - Download .hday file (standalone mode only)
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
@@ -158,7 +169,7 @@ export default function App(){
           if (formRef.current) {
             formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
             // Focus the first input in the form after scrolling
-            setTimeout(() => {
+            focusTimeoutId = setTimeout(() => {
               const firstInput = formRef.current?.querySelector('input, select')
               if (firstInput instanceof HTMLElement) {
                 firstInput.focus()
@@ -177,7 +188,13 @@ export default function App(){
     }
 
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      // Clean up pending timeout on unmount
+      if (focusTimeoutId) {
+        clearTimeout(focusTimeoutId)
+      }
+    }
   }, [editIndex, handleDownload, handleResetForm])
 
   function handleAddOrUpdate() {
