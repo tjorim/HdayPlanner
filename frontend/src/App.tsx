@@ -213,18 +213,14 @@ export default function App(){
 
   // Bulk operations - defined before keyboard shortcuts to avoid hoisting issues
   const handleSelectAll = useCallback(() => {
-    setDoc(currentDoc => {
-      setSelectedIndices(prev => {
-        // Toggle selection based on current state
-        if (prev.size === currentDoc.events.length) {
-          return new Set()
-        } else {
-          return new Set(currentDoc.events.map((_, idx) => idx))
-        }
-      })
-      return currentDoc
+    setSelectedIndices(prev => {
+      // Toggle selection based on current state
+      if (prev.size === doc.events.length) {
+        return new Set()
+      }
+      return new Set(doc.events.map((_, idx) => idx))
     })
-  }, [])
+  }, [doc])
 
   const handleToggleSelect = useCallback((index: number) => {
     setSelectedIndices(prev => {
@@ -260,6 +256,11 @@ export default function App(){
 
   const handleDuplicate = useCallback((index: number) => {
     setDoc(prevDoc => {
+      // Validate index bounds
+      if (index < 0 || index >= prevDoc.events.length) {
+        return prevDoc
+      }
+      
       const ev = prevDoc.events[index]
       
       // Create a duplicate event
@@ -286,12 +287,18 @@ export default function App(){
 
       const count = prevSelected.size
       // Sort indices in descending order to maintain correct positions when inserting
-      const sortedIndices = Array.from(prevSelected).sort((a, b) => b - a)
+      // Filter to ensure all indices are within bounds
+      const sortedIndices = Array.from(prevSelected)
+        .filter(i => i >= 0)
+        .sort((a, b) => b - a)
 
       setDoc(prevDoc => {
         let newEvents = [...prevDoc.events]
 
-        sortedIndices.forEach(index => {
+        // Filter again at execution time to ensure indices are valid
+        const validIndices = sortedIndices.filter(i => i < newEvents.length)
+
+        validIndices.forEach(index => {
           const ev = newEvents[index]
           const duplicatedEvent = { ...ev }
           // Insert right after the original
