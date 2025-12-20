@@ -55,7 +55,11 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
         const data: NationalHoliday[] = await response.json()
         
         if (!cancelled) {
-          setHolidays(data)
+          // For Netherlands (NL), only show holidays with type "Public"
+          const filteredData = countryCode === 'NL' 
+            ? data.filter(holiday => holiday.types && holiday.types.includes('Public'))
+            : data
+          setHolidays(filteredData)
         }
       } catch (err) {
         if (!cancelled) {
