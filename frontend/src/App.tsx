@@ -314,13 +314,14 @@ export default function App(){
         .filter(i => i >= 0)
         .sort((a, b) => b - a)
 
+      let duplicatedCount = 0
       setDoc(prevDoc => {
         let newEvents = [...prevDoc.events]
 
         // Filter again at execution time to ensure indices are valid
         const validIndices = sortedIndices.filter(i => i < newEvents.length)
 
-        // If all indices were filtered out, don't show success toast
+        // If all indices were filtered out, don't modify document
         if (validIndices.length === 0) {
           return prevDoc
         }
@@ -332,11 +333,14 @@ export default function App(){
           newEvents.splice(index + 1, 0, duplicatedEvent)
         })
 
-        // Show toast with accurate count of duplicated events
-        showToast(`Duplicated ${validIndices.length} event(s)`, 'success')
-
+        duplicatedCount = validIndices.length
         return { ...prevDoc, events: newEvents }
       })
+
+      // Show toast with accurate count of duplicated events (outside state setter)
+      if (duplicatedCount > 0) {
+        showToast(`Duplicated ${duplicatedCount} event(s)`, 'success')
+      }
 
       // Clear selection after duplication
       return new Set()
