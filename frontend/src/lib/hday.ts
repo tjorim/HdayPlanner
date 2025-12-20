@@ -311,8 +311,15 @@ export function sortEvents(events: HdayEvent[]): HdayEvent[] {
   return [...events].sort((a, b) => {
     // Range events come first, sorted by start date
     if (a.type === 'range' && b.type === 'range') {
-      const aStart = a.start || ''
-      const bStart = b.start || ''
+      const aStart = a.start
+      const bStart = b.start
+
+      // If both are missing a start date, keep relative order (stable sort)
+      if (!aStart && !bStart) return 0
+      // Events missing a start date are sorted after those with a valid start
+      if (!aStart) return 1
+      if (!bStart) return -1
+
       return aStart.localeCompare(bStart)
     }
     
@@ -335,7 +342,7 @@ export function sortEvents(events: HdayEvent[]): HdayEvent[] {
     if (a.type === 'range' && b.type === 'unknown') return -1
     if (a.type === 'unknown' && b.type === 'range') return 1
     
-    // Unknown events maintain original order (stable sort)
+    // For unknown vs unknown, we rely on Array.sort being stable (ES2019+) to preserve original order
     return 0
   })
 }

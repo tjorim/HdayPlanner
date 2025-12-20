@@ -355,4 +355,33 @@ describe('sortEvents', () => {
     
     expect(sorted).toEqual(events)
   })
+
+  it('sorts events with missing start dates to the end of range events', () => {
+    const events: HdayEvent[] = [
+      { type: 'range', start: undefined, end: '2025/12/25', flags: ['holiday'], title: 'No start' } as HdayEvent,
+      { type: 'range', start: '2025/01/10', end: '2025/01/15', flags: ['holiday'], title: 'January' },
+      { type: 'range', start: '2025/03/15', end: '2025/03/20', flags: ['holiday'], title: 'March' }
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted[0].title).toBe('January')
+    expect(sorted[1].title).toBe('March')
+    expect(sorted[2].title).toBe('No start')
+  })
+
+  it('handles multiple events with missing start dates', () => {
+    const events: HdayEvent[] = [
+      { type: 'range', start: undefined, end: '2025/12/25', flags: ['holiday'], title: 'No start A' } as HdayEvent,
+      { type: 'range', start: '2025/01/10', end: '2025/01/15', flags: ['holiday'], title: 'January' },
+      { type: 'range', start: undefined, end: '2025/12/30', flags: ['holiday'], title: 'No start B' } as HdayEvent
+    ]
+    
+    const sorted = sortEvents(events)
+    
+    expect(sorted[0].title).toBe('January')
+    // Events without start dates maintain their relative order (stable sort)
+    expect(sorted[1].title).toBe('No start A')
+    expect(sorted[2].title).toBe('No start B')
+  })
 })
