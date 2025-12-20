@@ -187,7 +187,7 @@ export default function App(){
   const handleStartDateChange = useCallback((value: string) => {
     setEventStart(value)
     validateStartDate(value)
-    // Re-validate end date in case the range is now valid
+    // Re-validate end date since the range validity may have changed with the new start date
     if (eventEndRef.current) {
       validateEndDate(eventEndRef.current, value)
     }
@@ -553,7 +553,7 @@ export default function App(){
                   aria-required="true"
                   aria-describedby={startDateError ? 'eventStart-error' : undefined}
                 />
-                {/* Error message wrapper reserves space to prevent layout shifts when error appears */}
+                {/* Wrapper always occupies space (min-height) to prevent layout shifts */}
                 <div className="error-message-wrapper">
                   {startDateError && (
                     <div id="eventStart-error" className="error-message" role="alert">
@@ -572,7 +572,7 @@ export default function App(){
                   aria-invalid={!!endDateError}
                   aria-describedby={endDateError ? 'eventEnd-error' : undefined}
                 />
-                {/* Error message wrapper reserves space to prevent layout shifts when error appears */}
+                {/* Wrapper always occupies space (min-height) to prevent layout shifts */}
                 <div className="error-message-wrapper">
                   {endDateError && (
                     <div id="eventEnd-error" className="error-message" role="alert">
