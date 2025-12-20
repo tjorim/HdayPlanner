@@ -40,6 +40,7 @@ export default function App(){
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
   const formRef = React.useRef<HTMLDivElement>(null)
   const importFileInputRef = React.useRef<HTMLInputElement>(null)
+  const selectAllCheckboxRef = React.useRef<HTMLInputElement>(null)
   
   // Refs for date values to avoid callback dependencies
   const eventStartRef = React.useRef(eventStart)
@@ -60,6 +61,15 @@ export default function App(){
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
+
+  // Set indeterminate state for select-all checkbox
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      const hasSelection = selectedIndices.size > 0
+      const allSelected = selectedIndices.size === doc.events.length
+      selectAllCheckboxRef.current.indeterminate = hasSelection && !allSelected
+    }
+  }, [selectedIndices.size, doc.events.length])
 
   // Sort events by date for display (range events by start date, weekly by weekday, unknown last)
   const sortedEvents = useMemo(() => sortEvents(doc.events), [doc.events])
@@ -535,14 +545,20 @@ export default function App(){
     reader.onload = (event) => {
       const result = event.target?.result
       if (typeof result === 'string') {
-        const importedEvents = parseHday(result)
-        setDoc({ ...doc, events: [...doc.events, ...importedEvents] })
-        showToast(`Imported ${importedEvents.length} event(s)`, 'success')
+        try {
+          const importedEvents = parseHday(result)
+          setDoc({ ...doc, events: [...doc.events, ...importedEvents] })
+          showToast(`Imported ${importedEvents.length} event(s)`, 'success')
+        } catch (error) {
+          console.error('Failed to parse import file:', error)
+          showToast('Failed to parse import file. Please make sure the file contains valid .hday format.', 'error')
+        }
       }
     }
     reader.onerror = () => {
+      const errorMsg = reader.error ? `: ${reader.error.message}` : ''
       console.error('Failed to read import file:', reader.error)
-      showToast('Failed to read import file. Please make sure the file is accessible and try again.', 'error')
+      showToast(`Failed to read import file${errorMsg}. Please ensure the file is valid and try again.`, 'error')
     }
     reader.readAsText(file)
     
@@ -635,6 +651,7 @@ export default function App(){
             {!USE_BACKEND && (
               <th>
                 <input
+                  ref={selectAllCheckboxRef}
                   type="checkbox"
                   checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
                   onChange={handleSelectAll}
