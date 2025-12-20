@@ -211,6 +211,127 @@ export default function App(){
     validateEndDate(value, eventStartRef.current)
   }, [validateEndDate])
 
+  // Bulk operations - defined before keyboard shortcuts to avoid hoisting issues
+  const handleSelectAll = useCallback(() => {
+    setSelectedIndices(prev => {
+      // Toggle selection based on current state  
+      if (prev.size === doc.events.length) {
+        return new Set()
+      } else {
+        return new Set(doc.events.map((_, idx) => idx))
+      }
+    })
+  }, [doc.events.length])
+
+  const handleToggleSelect = useCallback((index: number) => {
+    setSelectedIndices(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(index)) {
+        newSet.delete(index)
+      } else {
+        newSet.add(index)
+      }
+      return newSet
+    })
+  }, [])
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedIndices.size === 0) {
+      showToast('No events selected', 'warning')
+      return
+    }
+    
+    const count = selectedIndices.size
+    setDoc(prevDoc => ({
+      ...prevDoc,
+      events: prevDoc.events.filter((_, idx) => !selectedIndices.has(idx))
+    }))
+    setSelectedIndices(new Set())
+    showToast(`Deleted ${count} event(s)`, 'success')
+  }, [selectedIndices, showToast])
+
+  const handleDuplicate = useCallback((index: number) => {
+    setDoc(prevDoc => {
+      const ev = prevDoc.events[index]
+      
+      // Create a duplicate event
+      const duplicatedEvent = { ...ev }
+      
+      // Insert the duplicated event right after the original
+      const newEvents = [
+        ...prevDoc.events.slice(0, index + 1),
+        duplicatedEvent,
+        ...prevDoc.events.slice(index + 1)
+      ]
+      
+      return { ...prevDoc, events: newEvents }
+    })
+    showToast('Event duplicated', 'success')
+  }, [showToast])
+
+  const handleBulkDuplicate = useCallback(() => {
+    if (selectedIndices.size === 0) {
+      showToast('No events selected', 'warning')
+      return
+    }
+
+    const count = selectedIndices.size
+    // Sort indices in descending order to maintain correct positions when inserting
+    const sortedIndices = Array.from(selectedIndices).sort((a, b) => b - a)
+    
+    setDoc(prevDoc => {
+      let newEvents = [...prevDoc.events]
+      
+      sortedIndices.forEach(index => {
+        const ev = newEvents[index]
+        const duplicatedEvent = { ...ev }
+        // Insert right after the original
+        newEvents.splice(index + 1, 0, duplicatedEvent)
+      })
+      
+      return { ...prevDoc, events: newEvents }
+    })
+    setSelectedIndices(new Set())
+    showToast(`Duplicated ${count} event(s)`, 'success')
+  }, [selectedIndices, showToast])
+
+  const handleImportFile = useCallback(() => {
+    importFileInputRef.current?.click()
+  }, [])
+
+  const handleImportFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const result = event.target?.result
+      if (typeof result === 'string') {
+        try {
+          const importedEvents = parseHday(result)
+          // Use functional update to avoid stale closure
+          setDoc(prevDoc => ({
+            ...prevDoc,
+            events: [...prevDoc.events, ...importedEvents]
+          }))
+          showToast(`Imported ${importedEvents.length} event(s)`, 'success')
+        } catch (error) {
+          console.error('Failed to parse import file:', error)
+          showToast('Failed to parse import file. Please make sure the file contains valid .hday format.', 'error')
+        }
+      }
+    }
+    reader.onerror = () => {
+      const errorMsg = reader.error ? `: ${reader.error.message}` : ''
+      console.error('Failed to read import file:', reader.error)
+      showToast(`Failed to read import file${errorMsg}. Please ensure the file is valid and try again.`, 'error')
+    }
+    reader.readAsText(file)
+    
+    // Reset input so same file can be imported again
+    e.target.value = ''
+  }, [showToast])
+
   // Auto-sync events to text in standalone mode
   useEffect(() => {
     if (!USE_BACKEND) {
@@ -311,7 +432,7 @@ export default function App(){
         clearTimeout(focusTimeoutId)
       }
     }
-  }, [editIndex, handleDownload, handleResetForm, doc.events.length, selectedIndices.size, handleSelectAll, handleBulkDelete, handleBulkDuplicate])
+  }, [editIndex, handleDownload, handleResetForm, doc.events.length, selectedIndices.size])
 
   function handleAddOrUpdate() {
     // Validate range event dates
@@ -459,113 +580,6 @@ export default function App(){
     )
   }
 
-  // Bulk operations
-  const handleSelectAll = useCallback(() => {
-    if (selectedIndices.size === doc.events.length) {
-      // If all selected, deselect all
-      setSelectedIndices(new Set())
-    } else {
-      // Select all
-      setSelectedIndices(new Set(doc.events.map((_, idx) => idx)))
-    }
-  }, [selectedIndices.size, doc.events.length])
-
-  const handleToggleSelect = useCallback((index: number) => {
-    setSelectedIndices(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(index)) {
-        newSet.delete(index)
-      } else {
-        newSet.add(index)
-      }
-      return newSet
-    })
-  }, [])
-
-  const handleBulkDelete = useCallback(() => {
-    if (selectedIndices.size === 0) {
-      showToast('No events selected', 'warning')
-      return
-    }
-    
-    const newEvents = doc.events.filter((_, idx) => !selectedIndices.has(idx))
-    setDoc({ ...doc, events: newEvents })
-    setSelectedIndices(new Set())
-    showToast(`Deleted ${selectedIndices.size} event(s)`, 'success')
-  }, [selectedIndices, doc, showToast])
-
-  const handleDuplicate = useCallback((index: number) => {
-    const ev = doc.events[index]
-    
-    // Create a duplicate event
-    const duplicatedEvent = { ...ev }
-    
-    // Insert the duplicated event right after the original
-    const newEvents = [
-      ...doc.events.slice(0, index + 1),
-      duplicatedEvent,
-      ...doc.events.slice(index + 1)
-    ]
-    
-    setDoc({ ...doc, events: newEvents })
-    showToast('Event duplicated', 'success')
-  }, [doc, showToast])
-
-  const handleBulkDuplicate = useCallback(() => {
-    if (selectedIndices.size === 0) {
-      showToast('No events selected', 'warning')
-      return
-    }
-
-    // Sort indices in descending order to maintain correct positions when inserting
-    const sortedIndices = Array.from(selectedIndices).sort((a, b) => b - a)
-    let newEvents = [...doc.events]
-    
-    sortedIndices.forEach(index => {
-      const ev = newEvents[index]
-      const duplicatedEvent = { ...ev }
-      // Insert right after the original
-      newEvents.splice(index + 1, 0, duplicatedEvent)
-    })
-    
-    setDoc({ ...doc, events: newEvents })
-    setSelectedIndices(new Set())
-    showToast(`Duplicated ${selectedIndices.size} event(s)`, 'success')
-  }, [selectedIndices, doc, showToast])
-
-  const handleImportFile = useCallback(() => {
-    importFileInputRef.current?.click()
-  }, [])
-
-  const handleImportFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const result = event.target?.result
-      if (typeof result === 'string') {
-        try {
-          const importedEvents = parseHday(result)
-          setDoc({ ...doc, events: [...doc.events, ...importedEvents] })
-          showToast(`Imported ${importedEvents.length} event(s)`, 'success')
-        } catch (error) {
-          console.error('Failed to parse import file:', error)
-          showToast('Failed to parse import file. Please make sure the file contains valid .hday format.', 'error')
-        }
-      }
-    }
-    reader.onerror = () => {
-      const errorMsg = reader.error ? `: ${reader.error.message}` : ''
-      console.error('Failed to read import file:', reader.error)
-      showToast(`Failed to read import file${errorMsg}. Please ensure the file is valid and try again.`, 'error')
-    }
-    reader.readAsText(file)
-    
-    // Reset input so same file can be imported again
-    e.target.value = ''
-  }, [doc, showToast])
-
   return (
     <div>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
@@ -622,14 +636,22 @@ export default function App(){
             disabled={selectedIndices.size === 0}
             title="Delete selected events"
           >
-            Delete Selected ({selectedIndices.size})
+            {selectedIndices.size === 0
+              ? 'Delete Selected'
+              : selectedIndices.size === 1
+              ? 'Delete 1 event'
+              : `Delete ${selectedIndices.size} events`}
           </button>
           <button 
             onClick={handleBulkDuplicate}
             disabled={selectedIndices.size === 0}
             title="Duplicate selected events"
           >
-            Duplicate Selected ({selectedIndices.size})
+            {selectedIndices.size === 0
+              ? 'Duplicate Selected'
+              : selectedIndices.size === 1
+              ? 'Duplicate 1 event'
+              : `Duplicate ${selectedIndices.size} events`}
           </button>
           <button onClick={handleImportFile} title="Import events from another .hday file">
             Import from .hday
@@ -655,7 +677,7 @@ export default function App(){
                   type="checkbox"
                   checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
                   onChange={handleSelectAll}
-                  aria-label="Select all events"
+                  aria-label="Select or deselect all events in the table"
                   title="Select/deselect all events"
                 />
               </th>
@@ -682,7 +704,7 @@ export default function App(){
                   checked={selectedIndices.has(originalIdx)}
                   onChange={() => handleToggleSelect(originalIdx)}
                   disabled={originalIdx === -1}
-                  aria-label={`Select event ${sortedIdx + 1}`}
+                  aria-label={ev.title ? `Select ${ev.title}` : `Select event on ${ev.start || ''}`}
                 />
               </td>
             )}
