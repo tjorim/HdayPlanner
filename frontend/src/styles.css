@@ -198,3 +198,8 @@ input,select{padding:6px}
 .required-indicator {
   color: #ef4444;
 }
+
+/* Error message wrapper - reserves space to prevent layout shifts */
+.error-message-wrapper {
+  min-height: 1.2em;
+}

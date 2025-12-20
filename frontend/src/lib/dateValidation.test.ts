@@ -109,8 +109,8 @@ describe('isValidDate', () => {
   })
 })
 
-describe('date range validation', () => {
-  it('validates that end date is not before start date', () => {
+describe('date range comparison', () => {
+  it('correctly identifies when end date is before start date', () => {
     const start = '2025/12/20'
     const end = '2025/12/18'
     
@@ -120,7 +120,7 @@ describe('date range validation', () => {
     expect(endDate < startDate).toBe(true)
   })
 
-  it('allows end date to be same as start date', () => {
+  it('correctly identifies when end date is same as start date', () => {
     const start = '2025/12/20'
     const end = '2025/12/20'
     
@@ -130,7 +130,7 @@ describe('date range validation', () => {
     expect(endDate >= startDate).toBe(true)
   })
 
-  it('allows end date to be after start date', () => {
+  it('correctly identifies when end date is after start date', () => {
     const start = '2025/12/20'
     const end = '2025/12/25'
     
