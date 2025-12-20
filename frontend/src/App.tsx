@@ -37,7 +37,10 @@ export default function App(){
   const [eventWeekday, setEventWeekday] = useState(1)
   const [eventFlags, setEventFlags] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
+  const [showImportDialog, setShowImportDialog] = useState(false)
   const formRef = React.useRef<HTMLDivElement>(null)
+  const importFileInputRef = React.useRef<HTMLInputElement>(null)
   
   // Refs for date values to avoid callback dependencies
   const eventStartRef = React.useRef(eventStart)
@@ -265,6 +268,30 @@ export default function App(){
           handleResetForm()
         }
       }
+
+      // Ctrl+A / Cmd+A - Select all events (standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        if (!USE_BACKEND && doc.events.length > 0) {
+          e.preventDefault()
+          handleSelectAll()
+        }
+      }
+
+      // Delete - Delete selected events (standalone mode only)
+      if (e.key === 'Delete') {
+        if (!USE_BACKEND && selectedIndices.size > 0) {
+          e.preventDefault()
+          handleBulkDelete()
+        }
+      }
+
+      // Ctrl+D / Cmd+D - Duplicate selected events (standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        if (!USE_BACKEND && selectedIndices.size > 0) {
+          e.preventDefault()
+          handleBulkDuplicate()
+        }
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)
@@ -275,7 +302,7 @@ export default function App(){
         clearTimeout(focusTimeoutId)
       }
     }
-  }, [editIndex, handleDownload, handleResetForm])
+  }, [editIndex, handleDownload, handleResetForm, doc.events.length, selectedIndices.size])
 
   function handleAddOrUpdate() {
     // Validate range event dates
@@ -423,6 +450,107 @@ export default function App(){
     )
   }
 
+  // Bulk operations
+  function handleSelectAll() {
+    if (selectedIndices.size === doc.events.length) {
+      // If all selected, deselect all
+      setSelectedIndices(new Set())
+    } else {
+      // Select all
+      setSelectedIndices(new Set(doc.events.map((_, idx) => idx)))
+    }
+  }
+
+  function handleToggleSelect(index: number) {
+    setSelectedIndices(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(index)) {
+        newSet.delete(index)
+      } else {
+        newSet.add(index)
+      }
+      return newSet
+    })
+  }
+
+  function handleBulkDelete() {
+    if (selectedIndices.size === 0) {
+      showToast('No events selected', 'warning')
+      return
+    }
+    
+    const newEvents = doc.events.filter((_, idx) => !selectedIndices.has(idx))
+    setDoc({ ...doc, events: newEvents })
+    setSelectedIndices(new Set())
+    showToast(`Deleted ${selectedIndices.size} event(s)`, 'success')
+  }
+
+  function handleDuplicate(index: number) {
+    const ev = doc.events[index]
+    
+    // Create a duplicate event
+    const duplicatedEvent = { ...ev }
+    
+    // Insert the duplicated event right after the original
+    const newEvents = [
+      ...doc.events.slice(0, index + 1),
+      duplicatedEvent,
+      ...doc.events.slice(index + 1)
+    ]
+    
+    setDoc({ ...doc, events: newEvents })
+    showToast('Event duplicated', 'success')
+  }
+
+  function handleBulkDuplicate() {
+    if (selectedIndices.size === 0) {
+      showToast('No events selected', 'warning')
+      return
+    }
+
+    // Sort indices in descending order to maintain correct positions when inserting
+    const sortedIndices = Array.from(selectedIndices).sort((a, b) => b - a)
+    let newEvents = [...doc.events]
+    
+    sortedIndices.forEach(index => {
+      const ev = newEvents[index]
+      const duplicatedEvent = { ...ev }
+      // Insert right after the original
+      newEvents.splice(index + 1, 0, duplicatedEvent)
+    })
+    
+    setDoc({ ...doc, events: newEvents })
+    setSelectedIndices(new Set())
+    showToast(`Duplicated ${selectedIndices.size} event(s)`, 'success')
+  }
+
+  function handleImportFile() {
+    importFileInputRef.current?.click()
+  }
+
+  function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const result = event.target?.result
+      if (typeof result === 'string') {
+        const importedEvents = parseHday(result)
+        setDoc({ ...doc, events: [...doc.events, ...importedEvents] })
+        showToast(`Imported ${importedEvents.length} event(s)`, 'success')
+      }
+    }
+    reader.onerror = () => {
+      console.error('Failed to read import file:', reader.error)
+      showToast('Failed to read import file. Please make sure the file is accessible and try again.', 'error')
+    }
+    reader.readAsText(file)
+    
+    // Reset input so same file can be imported again
+    e.target.value = ''
+  }
+
   return (
     <div>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
@@ -471,11 +599,51 @@ export default function App(){
       )}
 
       <h2>Events</h2>
-      {!USE_BACKEND && <button onClick={handleClearAll}>Clear table</button>}
+      {!USE_BACKEND && (
+        <div className="row" style={{ gap: '0.5rem', marginBottom: '1rem' }}>
+          <button onClick={handleClearAll}>Clear table</button>
+          <button 
+            onClick={handleBulkDelete}
+            disabled={selectedIndices.size === 0}
+            title="Delete selected events"
+          >
+            Delete Selected ({selectedIndices.size})
+          </button>
+          <button 
+            onClick={handleBulkDuplicate}
+            disabled={selectedIndices.size === 0}
+            title="Duplicate selected events"
+          >
+            Duplicate Selected ({selectedIndices.size})
+          </button>
+          <button onClick={handleImportFile} title="Import events from another .hday file">
+            Import from .hday
+          </button>
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".hday,.txt"
+            onChange={handleImportFileChange}
+            style={{ display: 'none' }}
+            aria-label="Import .hday file"
+          />
+        </div>
+      )}
 
       <table className="table">
         <thead>
           <tr>
+            {!USE_BACKEND && (
+              <th>
+                <input
+                  type="checkbox"
+                  checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
+                  onChange={handleSelectAll}
+                  aria-label="Select all events"
+                  title="Select/deselect all events"
+                />
+              </th>
+            )}
             <th>#</th>
             <th>Type</th>
             <th>Start</th>
@@ -491,6 +659,17 @@ export default function App(){
           const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1
           return (
           <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
+            {!USE_BACKEND && (
+              <td>
+                <input
+                  type="checkbox"
+                  checked={selectedIndices.has(originalIdx)}
+                  onChange={() => handleToggleSelect(originalIdx)}
+                  disabled={originalIdx === -1}
+                  aria-label={`Select event ${sortedIdx + 1}`}
+                />
+              </td>
+            )}
             <td>{sortedIdx+1}</td>
             <td>{ev.type}</td>
             <td>{ev.start||''}</td>
@@ -509,6 +688,13 @@ export default function App(){
                   title={ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'}
                 >
                   Edit
+                </button>
+                <button 
+                  onClick={() => handleDuplicate(originalIdx)}
+                  disabled={originalIdx === -1}
+                  title="Duplicate this event"
+                >
+                  Duplicate
                 </button>
                 <button 
                   onClick={() => handleDelete(originalIdx)}
