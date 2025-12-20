@@ -255,6 +255,7 @@ export default function App(){
   }, [showToast])
 
   const handleDuplicate = useCallback((index: number) => {
+    let duplicated = false
     setDoc(prevDoc => {
       // Validate index bounds
       if (index < 0 || index >= prevDoc.events.length) {
@@ -273,9 +274,31 @@ export default function App(){
         ...prevDoc.events.slice(index + 1)
       ]
       
+      duplicated = true
       return { ...prevDoc, events: newEvents }
     })
-    showToast('Event duplicated', 'success')
+    
+    // Only show toast if duplication actually succeeded
+    if (duplicated) {
+      showToast('Event duplicated', 'success')
+    }
+    
+    // Adjust selected indices so they continue to point to the same logical events
+    // after inserting a new event at index + 1.
+    setSelectedIndices(prevSelected => {
+      if (prevSelected.size === 0) {
+        return prevSelected
+      }
+      const updated = new Set<number>()
+      prevSelected.forEach(i => {
+        if (i > index) {
+          updated.add(i + 1)
+        } else {
+          updated.add(i)
+        }
+      })
+      return updated
+    })
   }, [showToast])
 
   const handleBulkDuplicate = useCallback(() => {
@@ -285,7 +308,6 @@ export default function App(){
         return prevSelected
       }
 
-      const count = prevSelected.size
       // Sort indices in descending order to maintain correct positions when inserting
       // Filter to ensure all indices are within bounds
       const sortedIndices = Array.from(prevSelected)
@@ -298,6 +320,11 @@ export default function App(){
         // Filter again at execution time to ensure indices are valid
         const validIndices = sortedIndices.filter(i => i < newEvents.length)
 
+        // If all indices were filtered out, don't show success toast
+        if (validIndices.length === 0) {
+          return prevDoc
+        }
+
         validIndices.forEach(index => {
           const ev = newEvents[index]
           const duplicatedEvent = { ...ev }
@@ -305,10 +332,12 @@ export default function App(){
           newEvents.splice(index + 1, 0, duplicatedEvent)
         })
 
+        // Show toast with accurate count of duplicated events
+        showToast(`Duplicated ${validIndices.length} event(s)`, 'success')
+
         return { ...prevDoc, events: newEvents }
       })
 
-      showToast(`Duplicated ${count} event(s)`, 'success')
       // Clear selection after duplication
       return new Set()
     })
@@ -725,7 +754,13 @@ export default function App(){
                   checked={selectedIndices.has(originalIdx)}
                   onChange={() => handleToggleSelect(originalIdx)}
                   disabled={originalIdx === -1}
-                  aria-label={ev.title ? `Select ${ev.title}` : `Select event on ${ev.start || ''}`}
+                  aria-label={
+                    ev.title
+                      ? `Select ${ev.title}`
+                      : ev.type === 'weekly'
+                        ? `Select weekly event on ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][ev.weekday || 0]}`
+                        : `Select event on ${ev.start || ''}`
+                  }
                 />
               </td>
             )}
