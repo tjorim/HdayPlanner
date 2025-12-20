@@ -39,6 +39,19 @@ export default function App(){
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const formRef = React.useRef<HTMLDivElement>(null)
   
+  // Refs for date values to avoid callback dependencies
+  const eventStartRef = React.useRef(eventStart)
+  const eventEndRef = React.useRef(eventEnd)
+  
+  // Keep refs in sync with state
+  React.useEffect(() => {
+    eventStartRef.current = eventStart
+  }, [eventStart])
+  
+  React.useEffect(() => {
+    eventEndRef.current = eventEnd
+  }, [eventEnd])
+  
   // Validation error states
   const [startDateError, setStartDateError] = useState('')
   const [endDateError, setEndDateError] = useState('')
@@ -175,16 +188,16 @@ export default function App(){
     setEventStart(value)
     validateStartDate(value)
     // Re-validate end date in case the range is now valid
-    if (eventEnd) {
-      validateEndDate(eventEnd, value)
+    if (eventEndRef.current) {
+      validateEndDate(eventEndRef.current, value)
     }
-  }, [eventEnd, validateStartDate, validateEndDate])
+  }, [validateStartDate, validateEndDate])
 
   // Handle end date change with validation
   const handleEndDateChange = useCallback((value: string) => {
     setEventEnd(value)
-    validateEndDate(value, eventStart)
-  }, [eventStart, validateEndDate])
+    validateEndDate(value, eventStartRef.current)
+  }, [validateEndDate])
 
   // Auto-sync events to text in standalone mode
   useEffect(() => {
@@ -287,7 +300,7 @@ export default function App(){
       }
       
       // Validate that end date is not before start date
-      if (eventEnd && isValidDate(eventStart) && isValidDate(eventEnd)) {
+      if (eventEnd && isValidDate(eventEnd)) {
         const startDate = parseHdayDate(eventStart)
         const endDate = parseHdayDate(eventEnd)
         if (endDate < startDate) {
@@ -540,11 +553,9 @@ export default function App(){
                   aria-required="true"
                   aria-describedby={startDateError ? 'eventStart-error' : undefined}
                 />
-                {startDateError && (
-                  <div id="eventStart-error" className="error-message" role="alert">
-                    {startDateError}
-                  </div>
-                )}
+                <div id="eventStart-error" className="error-message" role="alert">
+                  {startDateError || '\u00A0'}
+                </div>
                 <br/>
                 <label htmlFor="eventEnd">End (YYYY/MM/DD)</label><br/>
                 <input 
@@ -556,11 +567,9 @@ export default function App(){
                   aria-invalid={!!endDateError}
                   aria-describedby={endDateError ? 'eventEnd-error' : undefined}
                 />
-                {endDateError && (
-                  <div id="eventEnd-error" className="error-message" role="alert">
-                    {endDateError}
-                  </div>
-                )}
+                <div id="eventEnd-error" className="error-message" role="alert">
+                  {endDateError || '\u00A0'}
+                </div>
               </div>
             ) : (
               <div>
