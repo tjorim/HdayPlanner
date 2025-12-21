@@ -1,25 +1,173 @@
-:root{--b:#ddd;--bg:#f6f8fa;--p:#1976d2;--p-shadow:rgba(25, 118, 210, 0.3)}
-body{font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:20px;}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-button{padding:8px 12px;border:1px solid var(--b);border-radius:6px;background:#fff;cursor:pointer}
-button.primary{background:var(--p);color:#fff;border-color:var(--p)}
-.table{border-collapse:collapse;width:100%}
-.table th,.table td{border:1px solid var(--b);padding:6px}
+/* Light theme (default) */
+:root {
+  --bg: #f6f8fa;
+  --text: #24292e;
+  --text-muted: #666;
+  --border: #ddd;
+  --surface: #fff;
+  --surface-alt: #f0f0f0;
+  --surface-holiday: #fff4e6;
+  --primary: #1976d2;
+  --primary-shadow: rgba(25, 118, 210, 0.3);
+  --input-bg: #fff;
+  --table-bg: #fff;
+  --day-bg: transparent;
+  --date-color: #555;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --bg: #0d1117;
+  --text: #c9d1d9;
+  --text-muted: #8b949e;
+  --border: #30363d;
+  --surface: #161b22;
+  --surface-alt: #21262d;
+  --surface-holiday: #4a3800;
+  --primary: #58a6ff;
+  --primary-shadow: rgba(88, 166, 255, 0.3);
+  --input-bg: #0d1117;
+  --table-bg: #161b22;
+  --day-bg: #161b22;
+  --date-color: #8b949e;
+}
+
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  margin: 20px;
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--surface-alt);
+}
+
+button.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+button.primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  padding: 8px 12px;
+  font-size: 20px;
+  line-height: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--surface-alt);
+  transform: scale(1.05);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  background: var(--table-bg);
+}
+
+.table th,
+.table td {
+  border: 1px solid var(--border);
+  padding: 6px;
+  color: var(--text);
+}
+
+.table th {
+  background: var(--surface-alt);
+  font-weight: 600;
+}
 .badge{display:inline-block;padding:2px 6px;border-radius:4px;margin-right:4px;font-size:12px;background:#eceff1;color:#37474f}
 .badge.holiday{background:#e8f5e9;color:#1b5e20}
 .badge.business{background:#e3f2fd;color:#0d47a1}
 .badge.course{background:#fff3e0;color:#e65100}
 .badge.half_am{background:#ede7f6;color:#4527a0}
 .badge.half_pm{background:#fce4ec;color:#ad1457}
-.calendar{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-.calendar-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.day{border:1px solid var(--b);min-height:90px;padding:6px;border-radius:6px}
-.day--weekend{background-color:#f0f0f0}
-.day--holiday{background-color:#fff4e6}
-.day--weekend.day--holiday{background-color:#fff4e6}
-.day--today{border:3px solid var(--p);box-shadow:0 0 8px var(--p-shadow)}
-.day--today .date{color:var(--p);font-weight:700}
-.date{font-weight:600;font-size:12px;color:#555}
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.calendar-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.day {
+  border: 1px solid var(--border);
+  min-height: 90px;
+  padding: 6px;
+  border-radius: 6px;
+  background: var(--day-bg);
+}
+
+.day--weekend {
+  background-color: var(--surface-alt);
+}
+
+.day--holiday {
+  background-color: var(--surface-holiday);
+}
+
+.day--weekend.day--holiday {
+  background-color: var(--surface-holiday);
+}
+
+.day--today {
+  border: 3px solid var(--primary);
+  box-shadow: 0 0 8px var(--primary-shadow);
+}
+
+.day--today .date {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.date {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--date-color);
+}
 .holiday-indicator{margin-left:4px;font-size:14px}
 .item{font-size:12px;margin-top:4px}
 .event-item{font-size:12px;margin-top:4px;padding:4px 6px;border-radius:4px;color:#000;font-weight:500}
@@ -32,11 +180,33 @@ button.primary{background:var(--p);color:#fff;border-color:var(--p)}
 .event--in-office-full{background-color:#008899}
 .event--in-office-half{background-color:#00B8CC}
 .half-day-symbol{font-weight:bold;margin-right:4px}
-label{font-weight:600}
-input,select{padding:6px}
+label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+input,
+select,
+textarea {
+  padding: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .controls{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:12px;margin-top:10px}
-.muted{color:#666;font-size:13px}
+.muted {
+  color: var(--text-muted);
+  font-size: 13px;
+}
 
 /* Utility: monospace textarea full width */
 .textarea-mono {
@@ -50,7 +220,7 @@ input,select{padding:6px}
 
 /* Keyboard focus ring for calendar day cells */
 .day:focus-visible {
-  outline: 2px solid var(--p);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
@@ -81,9 +251,10 @@ input,select{padding:6px}
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: white;
+  background-color: var(--surface);
+  color: var(--text);
   padding: 20px;
-  border: 2px solid #333;
+  border: 2px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
@@ -93,6 +264,7 @@ input,select{padding:6px}
 
 .dialog h3 {
   margin-top: 0;
+  color: var(--text);
 }
 
 .dialog-actions {
