@@ -725,7 +725,7 @@ export default function App(){
       <header>
         <h1>Holiday Planner</h1>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="row">
           <button
             className="theme-toggle"
             onClick={toggleTheme}
