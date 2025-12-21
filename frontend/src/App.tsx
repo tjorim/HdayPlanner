@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, sortEvents, type HdayEvent, type EventFlag } from './lib/hday'
@@ -65,8 +65,9 @@ export default function App(){
 
   // Extract year from current month for holidays API
   const currentYear = useMemo(() => {
-    const [year] = month.split('-').map(Number)
-    return year
+    const [yearString] = month.split('-')
+    const year = Number(yearString)
+    return Number.isInteger(year) ? year : new Date().getFullYear()
   }, [month])
 
   // Fetch national holidays (always enabled for NL)
@@ -79,7 +80,7 @@ export default function App(){
   // Convert holidays to a Map for quick lookup by date
   const holidayMap = useMemo(() => {
     const map = new Map<string, { name: string; localName: string }>()
-    holidays.forEach((holiday: NationalHoliday) => {
+    holidays.forEach((holiday) => {
       const dateKey = convertDateFormat(holiday.date)
       map.set(dateKey, {
         name: holiday.name,
@@ -89,13 +90,14 @@ export default function App(){
     return map
   }, [holidays])
 
-  // Show toast if holidays fail to load
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Show toast if holidays fail to load (only on error transition)
+  const prevErrorRef = useRef<string | null>(null)
   useEffect(() => {
-    if (holidaysError) {
+    if (holidaysError && holidaysError !== prevErrorRef.current) {
       showToast(`Failed to load national holidays: ${holidaysError}`, 'error')
     }
-  }, [holidaysError])
+    prevErrorRef.current = holidaysError
+  }, [holidaysError, showToast])
 
   // Set indeterminate state for select-all checkbox
   useEffect(() => {
