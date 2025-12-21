@@ -8,6 +8,7 @@ const THEME_ATTRIBUTE = 'data-theme'
 /**
  * Custom hook for managing application theme (light/dark mode).
  * Persists theme preference to localStorage and applies it to document root.
+ * Respects system preference (prefers-color-scheme) when no stored preference exists.
  * 
  * @returns Object containing current theme and toggle function
  * 
@@ -21,10 +22,19 @@ const THEME_ATTRIBUTE = 'data-theme'
  * ```
  */
 export function useTheme() {
-  // Initialize theme from localStorage or default to 'light'
+  // Initialize theme from localStorage or system preference
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(THEME_KEY)
-    return (stored === 'dark' || stored === 'light') ? stored : 'light'
+    if (stored === 'dark' || stored === 'light') {
+      return stored
+    }
+    
+    // Fallback to system preference if available
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark'
+    }
+    
+    return 'light'
   })
 
   // Apply theme to document root whenever it changes

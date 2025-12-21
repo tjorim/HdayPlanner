@@ -98,4 +98,30 @@ describe('useTheme', () => {
     expect(result.current.theme).toBe('light')
     expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light')
   })
+
+  it('should respect system preference when no stored preference exists', () => {
+    // Mock window.matchMedia to simulate dark mode system preference
+    const mockMatchMedia = vi.fn().mockImplementation((query) => ({
+      matches: query === '(prefers-color-scheme: dark)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+    
+    // Save original matchMedia
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = mockMatchMedia as any
+    
+    const { result } = renderHook(() => useTheme())
+    
+    expect(result.current.theme).toBe('dark')
+    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('dark')
+    
+    // Restore original matchMedia
+    window.matchMedia = originalMatchMedia
+  })
 })
