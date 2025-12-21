@@ -42,26 +42,22 @@ jobs:
           cd dist
           python -m http.server 8080 &
 
-          # Wait for server to start
-          sleep 3
-
-          # Verify server is running
-          curl -f http://localhost:8080 > /dev/null && echo "✅ Server is running" || { echo "❌ Server failed to start"; exit 1; }
+          # Wait for server to start with polling (max 30 seconds)
+          echo "Waiting for server to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8080 > /dev/null 2>&1; then
+              echo "✅ Server is running (ready after ${i}s)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "❌ Server failed to start within 30 seconds"
+          exit 1
 
       - name: Run Lighthouse CI
         run: |
-          set +e
           lhci autorun --upload.target=temporary-public-storage --collect.url=http://localhost:8080
-          LHCI_EXIT_CODE=$?
-          set -e
-          
-          if [ $LHCI_EXIT_CODE -eq 0 ] || [ $LHCI_EXIT_CODE -eq 1 ]; then
-            echo "✅ Lighthouse CI completed (exit code: $LHCI_EXIT_CODE)"
-            exit 0
-          else
-            echo "❌ Lighthouse CI failed with exit code: $LHCI_EXIT_CODE"
-            exit $LHCI_EXIT_CODE
-          fi
+          echo "✅ Lighthouse CI completed"
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 

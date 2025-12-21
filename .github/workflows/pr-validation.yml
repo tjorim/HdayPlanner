@@ -120,12 +120,6 @@ jobs:
           npm run build
           echo "✅ Build successful"
 
-      - name: Validate backend changes
-        if: env.BACKEND_CHANGES == 'true'
-        working-directory: backend
-        run: |
-          echo "🔧 Validating backend changes..."
-
       - name: Setup Python
         if: env.BACKEND_CHANGES == 'true'
         uses: actions/setup-python@v6

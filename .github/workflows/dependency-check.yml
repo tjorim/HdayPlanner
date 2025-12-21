@@ -62,11 +62,20 @@ jobs:
             console.log(Object.keys(data).length);
           ")
 
-          # Check security vulnerabilities
+          # Check security vulnerabilities (count total vulns, not just affected packages)
           VULN_COUNT=$(node -e "
             const data = JSON.parse(require('fs').readFileSync('audit.json', 'utf8'));
-            const vulns = data.vulnerabilities || {};
-            console.log(Object.keys(vulns).length);
+            const metadata = data.vulnerabilities || {};
+            // Count total vulnerabilities across all packages
+            let total = 0;
+            for (const pkg in metadata) {
+              const vulnInfo = metadata[pkg];
+              // Count via array length (each via entry is a vulnerability)
+              if (vulnInfo.via && Array.isArray(vulnInfo.via)) {
+                total += vulnInfo.via.filter(v => typeof v === 'object').length;
+              }
+            }
+            console.log(total);
           ")
 
           echo "├── Outdated packages: $OUTDATED_COUNT"
