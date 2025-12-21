@@ -39,11 +39,11 @@ export const EVENT_COLORS = {
 } as const;
 
 /**
- * Convert a compact prefix of single-character tokens into normalized event flags.
+ * Parse a prefix string of single-character flags into normalized event flags.
  *
  * Unknown characters in the prefix are ignored (a console warning is emitted).
  *
- * @param prefix - A string of single-character tokens (e.g., "ap" for `half_am` + `half_pm`)
+ * @param prefix - A string of single-character flags (e.g., "ap" for `half_am` + `half_pm`)
  * @returns The list of normalized `EventFlag` values; if no type flag (`business`, `course`, `in`) is present, the result will include `holiday`
  */
 function parsePrefixFlags(prefix: string): EventFlag[] {
@@ -70,10 +70,10 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
 }
 
 /**
- * Ensure an event flags array includes a type flag by appending `'holiday'` when none of `'business'`, `'course'`, or `'in'` is present.
+ * Ensure an array of event flags includes a type flag by appending `'holiday'` when none of `'business'`, `'course'`, or `'in'` is present.
  *
  * @param flags - The event flags to normalize
- * @returns The normalized flags; `'holiday'` is appended if no type flag is present
+ * @returns A new array with `'holiday'` appended if no type flag is present; the input array is never modified
  */
 export function normalizeEventFlags(flags: EventFlag[]): EventFlag[] {
   // Default to 'holiday' if no type flags
@@ -157,7 +157,7 @@ export function parseHday(text: string): HdayEvent[] {
  *
  * @param ev - The event to serialize; for `unknown` events the `raw` field must be present.
  * @returns The corresponding single-line representation suitable for a .hday file.
- * @throws Error if an `unknown` event is missing its `raw` field or if the event `type` is unsupported.
+ * @throws Error if an `unknown` event is missing its `raw` field or if the event `type` is unrecognized.
  */
 export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
   const flagMap: Record<string, string> = {
@@ -200,8 +200,11 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
 /**
  * Get the hex background color for an event based on its flags.
  *
- * Chooses a color from EVENT_COLORS according to event type priority (business > course > in > holiday)
- * and half-day status (exactly one of `half_am` or `half_pm` -> half-day; both or neither -> full day).
+ * Determines the color from EVENT_COLORS based on the event type flag
+ * (`business`, `course`, `in`, or `holiday`). When multiple type flags are
+ * present (edge case), the priority is: business > course > in > holiday.
+ * Half-day status is derived from the half-day flags: exactly one of
+ * `half_am` or `half_pm` means a half-day; both or neither means a full day.
  *
  * @param flags - Optional list of event flags (type and/or half-day indicators).
  * @returns The hex color string to use as the event background.
@@ -254,7 +257,7 @@ export function getHalfDaySymbol(flags?: EventFlag[]): string {
  * Compute the CSS class name for an event from its flags.
  *
  * @param flags - Array of event flags; type flags are 'business', 'course', 'in', and half-day flags are 'half_am' and 'half_pm'.
- * @returns A class of the form `event--{business|course|in-office|holiday}-{full|half}` where the type is chosen by priority (business > course > in) and the suffix is `half` when exactly one of `half_am` or `half_pm` is present, otherwise `full`.
+ * @returns A class of the form `event--{business|course|in-office|holiday}-{full|half}` where the type is chosen by priority (business > course > in) and the suffix is `half` when exactly one of `half_am` or `half_pm` is present (otherwise `full` for both or neither).
  */
 export function getEventClass(flags?: EventFlag[]): string {
   if (!flags || flags.length === 0) return 'event--holiday-full';

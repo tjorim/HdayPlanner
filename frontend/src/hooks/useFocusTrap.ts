@@ -3,7 +3,7 @@ import { type RefObject, useEffect } from 'react';
 /**
  * Trap keyboard focus within a container element while active.
  *
- * When active, focuses the first focusable child or the container (adding `tabindex="-1"` if needed) and keeps Tab/Shift+Tab navigation contained inside the container.
+ * When activated, immediately focuses the first focusable child or the container (adding `tabindex="-1"` if needed), then keeps Tab/Shift+Tab navigation contained inside the container.
  *
  * @param ref - React ref to the container element that should trap focus
  * @param isActive - Whether the focus trap is active
