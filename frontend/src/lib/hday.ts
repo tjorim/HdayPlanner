@@ -44,7 +44,7 @@ export const EVENT_COLORS = {
  * Unknown characters in the prefix are ignored (a console warning is emitted).
  *
  * @param prefix - A string of single-character flags (e.g., "ap" for `half_am` + `half_pm`)
- * @returns The list of normalized `EventFlag` values; if no type flag (`business`, `course`, `in`) is present, the result will include `holiday`
+ * @returns The list of normalized `EventFlag` values; if no type flag (`business`, `course`, `in`) is present, the result will include `holiday`.
  */
 function parsePrefixFlags(prefix: string): EventFlag[] {
   const flagMap: Record<string, EventFlag> = {
@@ -73,7 +73,7 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
  * Ensure an array of event flags includes a type flag by appending `'holiday'` when none of `'business'`, `'course'`, or `'in'` is present.
  *
  * @param flags - The event flags to normalize
- * @returns A new array with `'holiday'` appended if no type flag is present; the input array is never modified
+ * @returns A new array with `'holiday'` appended if no type flag is present; the input array is never modified.
  */
 export function normalizeEventFlags(flags: EventFlag[]): EventFlag[] {
   // Default to 'holiday' if no type flags
