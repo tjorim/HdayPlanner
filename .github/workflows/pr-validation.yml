@@ -126,8 +126,23 @@ jobs:
         run: |
           echo "🔧 Validating backend changes..."
 
-          pip install -r requirements.txt
+      - name: Setup Python
+        if: env.BACKEND_CHANGES == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
 
+      - name: Install backend dependencies
+        if: env.BACKEND_CHANGES == 'true'
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Validate Python syntax
+        if: env.BACKEND_CHANGES == 'true'
+        working-directory: backend
+        run: |
           # Validate Python syntax
           if python -m py_compile $(find . -name "*.py"); then
             echo "✅ Python syntax validation passed"

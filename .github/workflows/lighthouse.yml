@@ -50,7 +50,18 @@ jobs:
 
       - name: Run Lighthouse CI
         run: |
-          lhci autorun --upload.target=temporary-public-storage --collect.url=http://localhost:8080 || echo "Lighthouse completed with warnings"
+          set +e
+          lhci autorun --upload.target=temporary-public-storage --collect.url=http://localhost:8080
+          LHCI_EXIT_CODE=$?
+          set -e
+          
+          if [ $LHCI_EXIT_CODE -eq 0 ] || [ $LHCI_EXIT_CODE -eq 1 ]; then
+            echo "✅ Lighthouse CI completed (exit code: $LHCI_EXIT_CODE)"
+            exit 0
+          else
+            echo "❌ Lighthouse CI failed with exit code: $LHCI_EXIT_CODE"
+            exit $LHCI_EXIT_CODE
+          fi
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
