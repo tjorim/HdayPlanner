@@ -4,6 +4,7 @@ import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, sortEvents, type HdayEvent, type EventFlag } from './lib/hday'
 import { isValidDate, parseHdayDate } from './lib/dateValidation'
 import { useToast } from './hooks/useToast'
+import { useTheme } from './hooks/useTheme'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
 import { useNationalHolidays, convertDateFormat } from './hooks/useNationalHolidays'
@@ -62,6 +63,9 @@ export default function App(){
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
+
+  // Use theme management
+  const { theme, toggleTheme } = useTheme()
 
   // Extract year from current month for holidays API
   const currentYear = useMemo(() => {
@@ -721,26 +725,37 @@ export default function App(){
       <header>
         <h1>Holiday Planner</h1>
 
-        {USE_BACKEND ? (
-          // Backend mode UI
-          <div className="row">
-            <input value={user} onChange={e=>setUser(e.target.value)} placeholder="Username" />
-            <button className="primary" onClick={load}>Load from API</button>
-            <button className="primary" onClick={save}>Save to API</button>
-          </div>
-        ) : (
-          // Standalone mode UI
-          <div className="row">
-            <input
-              type="file"
-              accept=".hday,.txt"
-              onChange={handleFileUpload}
-              aria-label="Upload .hday or .txt file"
-            />
-            <button className="primary" onClick={handleParse}>Parse</button>
-            <button className="primary" onClick={handleDownload}>Download .hday</button>
-          </div>
-        )}
+        <div className="row">
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+
+          {USE_BACKEND ? (
+            // Backend mode UI
+            <>
+              <input value={user} onChange={e=>setUser(e.target.value)} placeholder="Username" />
+              <button className="primary" onClick={load}>Load from API</button>
+              <button className="primary" onClick={save}>Save to API</button>
+            </>
+          ) : (
+            // Standalone mode UI
+            <>
+              <input
+                type="file"
+                accept=".hday,.txt"
+                onChange={handleFileUpload}
+                aria-label="Upload .hday or .txt file"
+              />
+              <button className="primary" onClick={handleParse}>Parse</button>
+              <button className="primary" onClick={handleDownload}>Download .hday</button>
+            </>
+          )}
+        </div>
       </header>
 
       {!USE_BACKEND && (
