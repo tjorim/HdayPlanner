@@ -84,6 +84,50 @@ export function normalizeEventFlags(flags: EventFlag[]): EventFlag[] {
 }
 
 /**
+ * Resolve type flag conflicts when multiple type flags are present.
+ *
+ * When multiple type flags (business, course, in) are selected, apply priority:
+ * business > course > in
+ *
+ * @param flags - The event flags to resolve
+ * @returns Object with resolvedFlags array, hasConflict boolean, and selectedFlag if conflict occurred
+ */
+export function resolveTypeFlagConflicts(flags: EventFlag[]): {
+  resolvedFlags: EventFlag[];
+  hasConflict: boolean;
+  selectedFlag?: TypeFlag;
+} {
+  const typeFlags = flags.filter(
+    (f): f is TypeFlag => f === 'business' || f === 'course' || f === 'in'
+  );
+
+  // No conflict if 0 or 1 type flags
+  if (typeFlags.length <= 1) {
+    return { resolvedFlags: [...flags], hasConflict: false };
+  }
+
+  // Multiple type flags - apply priority order (business > course > in)
+  let priorityFlag: TypeFlag = 'in';
+  if (typeFlags.includes('business')) {
+    priorityFlag = 'business';
+  } else if (typeFlags.includes('course')) {
+    priorityFlag = 'course';
+  }
+
+  // Remove all type flags and add only the priority one
+  const resolvedFlags = flags.filter(
+    (f) => f !== 'business' && f !== 'course' && f !== 'in'
+  );
+  resolvedFlags.push(priorityFlag);
+
+  return {
+    resolvedFlags,
+    hasConflict: true,
+    selectedFlag: priorityFlag,
+  };
+}
+
+/**
  * Parse .hday text format into an array of HdayEvent objects.
  *
  * Format:

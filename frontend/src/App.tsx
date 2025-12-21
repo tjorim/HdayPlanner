@@ -21,6 +21,7 @@ import {
   type HdayEvent,
   normalizeEventFlags,
   parseHday,
+  resolveTypeFlagConflicts,
   sortEvents,
   toLine,
 } from './lib/hday';
@@ -703,35 +704,18 @@ export default function App() {
 
     const flags = eventFlags.filter((f) => f !== 'holiday');
 
-    // Enforce single type flag (business/course/in) - priority: business > course > in
-    const typeFlags = flags.filter(
-      (f) => f === 'business' || f === 'course' || f === 'in',
-    );
-    let resolvedFlags = [...flags];
+    // Resolve type flag conflicts using priority order
+    const { resolvedFlags, hasConflict, selectedFlag } =
+      resolveTypeFlagConflicts(flags as EventFlag[]);
 
-    if (typeFlags.length > 1) {
-      // Multiple type flags detected - apply priority order (business > course > in)
-      let priorityFlag: 'business' | 'course' | 'in' = 'in';
-      if (typeFlags.includes('business')) {
-        priorityFlag = 'business';
-      } else if (typeFlags.includes('course')) {
-        priorityFlag = 'course';
-      }
-
-      // Remove all type flags and add only the priority one
-      resolvedFlags = flags.filter(
-        (f) => f !== 'business' && f !== 'course' && f !== 'in',
-      );
-      resolvedFlags.push(priorityFlag);
-
-      // Show user feedback
+    if (hasConflict && selectedFlag) {
       showToast(
-        `Multiple event types selected. Using '${priorityFlag}' (priority: business > course > in).`,
+        `Multiple event types selected. Using '${selectedFlag}' (priority: business > course > in).`,
         'info',
       );
     }
 
-    const finalFlags = normalizeEventFlags(resolvedFlags as EventFlag[]);
+    const finalFlags = normalizeEventFlags(resolvedFlags);
 
     // Build base event object without raw field
     const baseEvent: Omit<HdayEvent, 'raw'> =
