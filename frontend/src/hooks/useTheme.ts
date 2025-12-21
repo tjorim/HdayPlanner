@@ -24,6 +24,11 @@ const THEME_ATTRIBUTE = 'data-theme'
 export function useTheme() {
   // Initialize theme from localStorage or system preference
   const [theme, setTheme] = useState<Theme>(() => {
+    // Guard for SSR environments
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return 'light'
+    }
+    
     const stored = localStorage.getItem(THEME_KEY)
     if (stored === 'dark' || stored === 'light') {
       return stored
@@ -39,8 +44,11 @@ export function useTheme() {
 
   // Apply theme to document root whenever it changes
   useEffect(() => {
-    document.documentElement.setAttribute(THEME_ATTRIBUTE, theme)
-    localStorage.setItem(THEME_KEY, theme)
+    // Guard for SSR environments
+    if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
+      document.documentElement.setAttribute(THEME_ATTRIBUTE, theme)
+      localStorage.setItem(THEME_KEY, theme)
+    }
   }, [theme])
 
   // Toggle between light and dark themes
