@@ -28,6 +28,8 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
     const isValidYear = Number.isInteger(year) && year >= 1000 && year <= 9999
     if (!enabled || !countryCode || !isValidYear) {
       setHolidays([])
+      setError(null)
+      setLoading(false)
       return
     }
 

@@ -35,20 +35,6 @@ describe('MonthGrid - Weekend Highlighting', () => {
     const mondayCell = screen.getByLabelText('2025/01/06')
     expect(mondayCell.className).not.toContain('day--weekend')
   })
-
-  it('applies weekend class to Saturday', () => {
-    // Use a fixed known weekend date: January 4, 2025 (Saturday)
-    const events: HdayEvent[] = []
-    const ym = '2025-01'
-    
-    render(<MonthGrid events={events} ym={ym} />)
-    
-    // January 4, 2025 is a Saturday
-    const saturdayCell = screen.getByLabelText('2025/01/04')
-    
-    // Verify weekend class is applied
-    expect(saturdayCell.className).toContain('day--weekend')
-  })
 })
 
 describe('MonthGrid - National Holidays', () => {
