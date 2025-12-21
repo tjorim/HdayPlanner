@@ -79,6 +79,8 @@ jobs:
 
       - name: Calculate bundle size
         working-directory: frontend
+        env:
+          MAX_BUNDLE_SIZE_KB: ${{ vars.MAX_BUNDLE_SIZE_KB || '500' }}
         run: |
           echo "Calculating bundle size..."
 
@@ -94,11 +96,11 @@ jobs:
           echo "📁 Built files:"
           find dist -type f -exec ls -lh {} \; | awk '{print "├── " $9 ": " $5}'
 
-          # Bundle size check (warn if over 500KB)
-          if [ $TOTAL_KB -gt 500 ]; then
-            echo "⚠️  Bundle size is large (${TOTAL_KB}KB > 500KB)"
+          # Bundle size check (warn if over threshold)
+          if [ $TOTAL_KB -gt $MAX_BUNDLE_SIZE_KB ]; then
+            echo "⚠️  Bundle size is large (${TOTAL_KB}KB > ${MAX_BUNDLE_SIZE_KB}KB)"
           else
-            echo "✅ Bundle size is optimal (${TOTAL_KB}KB)"
+            echo "✅ Bundle size is optimal (${TOTAL_KB}KB <= ${MAX_BUNDLE_SIZE_KB}KB)"
           fi
 
           # Save for PR comment
