@@ -13,12 +13,6 @@ describe('useTheme', () => {
     document.documentElement.removeAttribute(THEME_ATTRIBUTE);
   });
 
-  afterEach(() => {
-    // Clean up after each test
-    localStorage.clear();
-    document.documentElement.removeAttribute(THEME_ATTRIBUTE);
-  });
-
   it('should default to light theme when no stored preference exists', () => {
     // Mock window.matchMedia to ensure system preference doesn't interfere
     const originalMatchMedia = window.matchMedia;

@@ -710,12 +710,13 @@ export default function App() {
     let resolvedFlags = [...flags];
 
     if (typeFlags.length > 1) {
-      // Multiple type flags detected - apply priority order
-      const priorityFlag = typeFlags.includes('business')
-        ? 'business'
-        : typeFlags.includes('course')
-          ? 'course'
-          : 'in';
+      // Multiple type flags detected - apply priority order (business > course > in)
+      let priorityFlag: 'business' | 'course' | 'in' = 'in';
+      if (typeFlags.includes('business')) {
+        priorityFlag = 'business';
+      } else if (typeFlags.includes('course')) {
+        priorityFlag = 'course';
+      }
 
       // Remove all type flags and add only the priority one
       resolvedFlags = flags.filter(

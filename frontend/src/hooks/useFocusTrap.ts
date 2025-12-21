@@ -39,8 +39,16 @@ export function useFocusTrap(
         const ariaHidden = el.getAttribute('aria-hidden') === 'true';
         const tabIndex = (el as HTMLElement).tabIndex;
 
-        const isDisabled = 'disabled' in el && (el as any).disabled === true;
-        const isHiddenAttr = 'hidden' in el && (el as any).hidden === true;
+        // Type-safe checks for disabled and hidden properties
+        const isDisabled =
+          (el instanceof HTMLButtonElement ||
+            el instanceof HTMLInputElement ||
+            el instanceof HTMLSelectElement ||
+            el instanceof HTMLTextAreaElement) &&
+          el.disabled === true;
+
+        const isHiddenAttr =
+          el instanceof HTMLElement && el.hidden === true;
 
         return (
           !isDisabled &&

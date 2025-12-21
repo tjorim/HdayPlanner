@@ -141,7 +141,7 @@ function useFocusTrap(ref: RefObject<HTMLElement>) {
 - **CORS properly configured**: Different for dev/prod
 
 **Directory Structure:**
-```
+```text
 backend/app/
 ├── main.py           # FastAPI entry point
 ├── config.py         # Environment-based configuration
@@ -216,7 +216,7 @@ NextShift uses Bootstrap 5 and React-Bootstrap, which is a valid tradeoff for ra
 - 126 tests all passing, focused on domain logic
 
 **Structure:**
-```
+```text
 frontend/
 ├── src/
 │   ├── lib/
@@ -418,12 +418,12 @@ Based on impact vs. effort:
 ### Deployment Strategy
 
 **NextShift**:
-```
+```text
 Single Repo → GitHub Actions CI/CD → GitHub Pages
 ```
 
 **HdayPlanner**:
-```
+```text
 Frontend → GitHub Actions → GitHub Pages (standalone mode)
 Backend → Manual deployment → Corporate server (optional)
 Scripts → Local execution → Analysis
