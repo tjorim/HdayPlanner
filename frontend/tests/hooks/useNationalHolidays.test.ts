@@ -4,7 +4,7 @@ import {
   convertDateFormat,
   type NationalHoliday,
   useNationalHolidays,
-} from './useNationalHolidays';
+} from '../../src/hooks/useNationalHolidays';
 
 // Mock fetch globally
 const mockFetch = vi.fn();

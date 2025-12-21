@@ -6,7 +6,7 @@ import {
   type HdayEvent,
   normalizeEventFlags,
   sortEvents,
-} from './hday';
+} from '../../src/lib/hday';
 
 describe('getEventColor', () => {
   describe('default vacation/holiday colors', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidDate, parseHdayDate } from './dateValidation';
+import { isValidDate, parseHdayDate } from '../../src/lib/dateValidation';
 
 describe('isValidDate', () => {
   describe('valid dates', () => {
