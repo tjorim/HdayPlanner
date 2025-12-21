@@ -212,8 +212,8 @@ export function MonthGrid({
               </span>
             )}
           </div>
-          {todays.map((ev, k) => (
-            <EventItem key={k} event={ev} />
+          {todays.map((ev) => (
+            <EventItem key={ev.raw || `${ev.type}-${ev.start || ev.weekday}`} event={ev} />
           ))}
         </div>,
       );
