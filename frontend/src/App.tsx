@@ -6,7 +6,7 @@ import { isValidDate, parseHdayDate } from './lib/dateValidation'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
-import { useNationalHolidays, convertDateFormat, type NationalHoliday } from './hooks/useNationalHolidays'
+import { useNationalHolidays, convertDateFormat } from './hooks/useNationalHolidays'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const SCROLL_FOCUS_DELAY = 300 // Delay in ms for focusing after smooth scroll

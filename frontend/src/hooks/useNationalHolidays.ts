@@ -118,10 +118,3 @@ export function convertDateFormat(nagerDate: string): string {
   }
   return nagerDate.replace(/-/g, '/')
 }
-
-/**
- * Helper to get a Set of holiday dates in YYYY/MM/DD format for quick lookup
- */
-export function getHolidayDates(holidays: NationalHoliday[]): Set<string> {
-  return new Set(holidays.map(h => convertDateFormat(h.date)))
-}

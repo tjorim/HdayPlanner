@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useNationalHolidays, convertDateFormat, getHolidayDates, type NationalHoliday } from './useNationalHolidays'
+import { useNationalHolidays, convertDateFormat, type NationalHoliday } from './useNationalHolidays'
 
 // Mock fetch globally
 const mockFetch = vi.fn()
@@ -438,81 +438,5 @@ describe('convertDateFormat', () => {
 
     expect(warnSpy).toHaveBeenCalledTimes(3)
     warnSpy.mockRestore()
-  })
-})
-
-describe('getHolidayDates', () => {
-  it('should convert holidays to a Set of dates', () => {
-    const holidays: NationalHoliday[] = [
-      {
-        date: '2025-01-01',
-        localName: 'Nieuwjaarsdag',
-        name: "New Year's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public']
-      },
-      {
-        date: '2025-12-25',
-        localName: 'Kerstmis',
-        name: 'Christmas',
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public']
-      }
-    ]
-
-    const dateSet = getHolidayDates(holidays)
-
-    expect(dateSet).toBeInstanceOf(Set)
-    expect(dateSet.size).toBe(2)
-    expect(dateSet.has('2025/01/01')).toBe(true)
-    expect(dateSet.has('2025/12/25')).toBe(true)
-    expect(dateSet.has('2025/12/26')).toBe(false)
-  })
-
-  it('should return empty Set for empty array', () => {
-    const dateSet = getHolidayDates([])
-
-    expect(dateSet).toBeInstanceOf(Set)
-    expect(dateSet.size).toBe(0)
-  })
-
-  it('should handle duplicate dates', () => {
-    const holidays: NationalHoliday[] = [
-      {
-        date: '2025-01-01',
-        localName: 'Nieuwjaarsdag',
-        name: "New Year's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public']
-      },
-      {
-        date: '2025-01-01',
-        localName: 'Nieuwjaarsdag',
-        name: "New Year's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public', 'Bank']
-      }
-    ]
-
-    const dateSet = getHolidayDates(holidays)
-
-    expect(dateSet.size).toBe(1)
-    expect(dateSet.has('2025/01/01')).toBe(true)
   })
 })
