@@ -157,7 +157,7 @@ export function parseHday(text: string): HdayEvent[] {
  *
  * @param ev - The event to serialize; for `unknown` events the `raw` field must be present.
  * @returns The corresponding single-line representation suitable for a .hday file.
- * @throws Error if an `unknown` event is missing its `raw` field or if the event `type` is unrecognized.
+ * @throws Error if an `unknown` event is missing its `raw` field or if the event `type` is unsupported.
  */
 export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
   const flagMap: Record<string, string> = {
