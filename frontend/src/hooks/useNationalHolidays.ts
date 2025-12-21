@@ -113,9 +113,10 @@ export function useNationalHolidays(
 }
 
 /**
- * Convert Nager.Date format (YYYY-MM-DD) to .hday format (YYYY/MM/DD)
- * @param nagerDate Date string in YYYY-MM-DD format
- * @returns Date string in YYYY/MM/DD format
+ * Convert a date string from Nager.Date format to .hday format.
+ *
+ * @param nagerDate - Date string in `YYYY-MM-DD` format
+ * @returns The date string converted to `YYYY/MM/DD` format; returns the original string unchanged if the input does not match `YYYY-MM-DD` format.
  */
 export function convertDateFormat(nagerDate: string): string {
   // Basic validation: ensure format is YYYY-MM-DD

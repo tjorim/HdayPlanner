@@ -1,31 +1,12 @@
 import { type RefObject, useEffect } from 'react';
 
 /**
- * Custom hook to trap focus within a container element.
- * Useful for modal dialogs to ensure keyboard navigation stays within the modal.
+ * Trap keyboard focus within a container element while active.
  *
- * When activated, the hook will:
- * 1. Try to focus the first focusable child element (button, input, link, etc.)
- * 2. If no focusable children exist, add tabindex="-1" to the container and focus it
- *
- * Note: The container element does not need a tabindex attribute. The hook will
- * automatically handle focus management for both containers with focusable children
- * and empty containers.
+ * When activated, immediately focuses the first focusable child or the container (adding `tabindex="-1"` if needed), then keeps Tab/Shift+Tab navigation contained inside the container.
  *
  * @param ref - React ref to the container element that should trap focus
- * @param isActive - Whether the focus trap should be active
- *
- * @example
- * ```tsx
- * const dialogRef = useRef<HTMLDivElement>(null)
- * useFocusTrap(dialogRef, showDialog)
- *
- * return (
- *   <div ref={dialogRef} role="dialog">
- *     <button>Close</button>
- *   </div>
- * )
- * ```
+ * @param isActive - Whether the focus trap is active
  */
 export function useFocusTrap(
   ref: RefObject<HTMLElement>,
