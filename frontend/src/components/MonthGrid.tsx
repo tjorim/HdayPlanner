@@ -81,20 +81,19 @@ export function MonthGrid({
 
   const leadingPad = first.getDay(); // 0..6 (Sun..Sat)
   const totalDays = last.getDate();
-  const firstDayIndex = leadingPad;
 
   // Roving tabindex: track which day-cell has focus
-  const [focusedIndex, setFocusedIndex] = useState<number>(firstDayIndex);
+  const [focusedIndex, setFocusedIndex] = useState<number>(leadingPad);
   const cellRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   useEffect(() => {
     // Reset focus to first real day when month changes
+    const firstDayIndex = leadingPad;
     setFocusedIndex(firstDayIndex);
     // Focus the first real day
     const el = cellRefs.current[firstDayIndex];
     el?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstDayIndex]);
+  }, [ym, leadingPad]);
 
   const clampToRealDay = (idx: number) => {
     const min = leadingPad;
