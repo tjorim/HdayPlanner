@@ -113,7 +113,7 @@ jobs:
           # The parser tests are already run in the test suite
           # This is just a verification step
           [ -f "src/lib/hday.ts" ] && echo "✅ Parser module found" || { echo "❌ Parser missing"; exit 1; }
-          [ -f "src/lib/hday.test.ts" ] && echo "✅ Parser tests found" || { echo "❌ Parser tests missing"; exit 1; }
+          [ -f "tests/lib/hday.test.ts" ] && echo "✅ Parser tests found" || { echo "❌ Parser tests missing"; exit 1; }
           echo "✅ .hday parser validated"
 
       - name: Build comment body
