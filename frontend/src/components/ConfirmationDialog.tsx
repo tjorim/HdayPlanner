@@ -14,7 +14,8 @@ interface ConfirmationDialogProps {
 /**
  * Displays an accessible confirmation dialog when open.
  *
- * When open, the dialog traps keyboard focus, exposes ARIA attributes for title and description, cancels when the backdrop is clicked or the Escape key is pressed, and provides confirm and cancel actions.
+ * The dialog traps keyboard focus and exposes ARIA attributes for the title and description.
+ * It can be dismissed by clicking the backdrop or pressing the Escape key, and provides confirm and cancel action buttons.
  *
  * @returns The dialog's JSX element when `isOpen` is true, otherwise `null`.
  */

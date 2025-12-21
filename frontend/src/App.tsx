@@ -50,7 +50,15 @@ function getCurrentMonth(): string {
 /**
  * Main application component for the Holiday Planner UI.
  *
- * Renders the root interface that manages holiday documents and events, supporting both backend-backed and standalone (.hday) editing workflows, import/export, event editing (add/update/delete/duplicate/bulk actions), month view with national holidays, toasts, theming, and keyboard shortcuts.
+ * Provides the root interface for managing holiday documents and events, supporting both backend-backed and standalone `.hday` workflows.
+ *
+ * Features include:
+ * - Event editing (add, update, delete, duplicate, and bulk actions)
+ * - Month view with national holidays
+ * - Import and export of `.hday` documents
+ * - Toast notifications for user feedback
+ * - Theme selection and theming support
+ * - Keyboard shortcuts for common actions
  *
  * @returns The root React element for the Holiday Planner application
  */

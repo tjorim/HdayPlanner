@@ -13,7 +13,7 @@ interface EventItemProps {
 }
 
 /**
- * Renders a single day's calendar event with an optional half-day symbol.
+ * Renders a single event item within a calendar day cell, with an optional half-day symbol.
  *
  * The component displays the event's title (falls back to "Event" if missing)
  * and, when present, a half-day symbol with an accessible label:
@@ -52,7 +52,9 @@ function EventItem({ event }: EventItemProps) {
 /**
  * Render a month calendar grid with events and optional national holiday annotations.
  *
- * Renders each day of the month for the given year-month (`ym`) as a focusable cell, displays events that occur on that date, marks today/weekends/holidays, and supports keyboard navigation (Arrow keys, Home, End) with a roving tabindex.
+ * It renders each day of the month for the given year-month (`ym`) as a focusable cell.
+ * Each cell displays events that occur on that date and marks today, weekends, and holidays.
+ * The grid also supports keyboard navigation (Arrow keys, Home, End) with a roving tabindex.
  *
  * @param events - Array of events (HdayEvent) to be shown; events may be range or weekly types and are shown on any date they apply to.
  * @param ym - Year-month string in the format "YYYY-MM" identifying which month to render.

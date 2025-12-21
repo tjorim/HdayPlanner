@@ -8,8 +8,9 @@ interface ToastContainerProps {
 /**
  * Render a fixed-position list of toast notifications.
  *
- * Each toast displays its message and a close button. Error toasts are rendered with
- * role `"alert"` while non-error toasts use role `"status"`.
+ * Each toast displays its message and a close button with appropriate ARIA labels. Error toasts
+ * are rendered with role `"alert"` for immediate announcement, while non-error toasts use role
+ * `"status"`.
  *
  * @param toasts - Array of toast objects to display.
  * @param onRemove - Callback invoked with the toast `id` when a toast's close button is clicked.

@@ -32,7 +32,7 @@ export function isValidDate(dateString: string): boolean {
 }
 
 /**
- * Parse a date string in YYYY/MM/DD into a Date in the local timezone.
+ * Parse a date string in YYYY/MM/DD format into a Date object in the local timezone.
  *
  * @param dateString - A date string formatted as `YYYY/MM/DD`. Must represent a valid calendar date.
  * @returns A Date representing the given date in the local timezone.

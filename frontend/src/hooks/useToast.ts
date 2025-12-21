@@ -12,7 +12,7 @@ export interface Toast {
  * Manage a list of transient toast notifications and provide controls to show or remove them.
  *
  * @param duration - Time in milliseconds before a newly shown toast is automatically removed (default: 4000)
- * @returns An object with `toasts` (the current active toasts), `showToast(message, type)` to display a new toast, and `removeToast(id)` to dismiss a toast manually
+ * @returns An object containing: `toasts` - array of active Toast objects; `showToast(message, type)` - function to display a new toast; `removeToast(id)` - function to dismiss a toast manually.
  */
 export function useToast(duration: number = 4000) {
   const [toasts, setToasts] = useState<Toast[]>([]);
