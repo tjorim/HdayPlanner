@@ -22,26 +22,28 @@ describe('useTheme', () => {
   it('should default to light theme when no stored preference exists', () => {
     // Mock window.matchMedia to ensure system preference doesn't interfere
     const originalMatchMedia = window.matchMedia
-    const mockMatchMedia = vi.fn().mockImplementation((query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
-    window.matchMedia = mockMatchMedia as any
+    try {
+      const mockMatchMedia = vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+      window.matchMedia = mockMatchMedia as any
 
-    const { result } = renderHook(() => useTheme())
-    
-    expect(result.current.theme).toBe('light')
-    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light')
-    expect(localStorage.getItem(THEME_KEY)).toBe('light')
-
-    // Restore original matchMedia
-    window.matchMedia = originalMatchMedia
+      const { result } = renderHook(() => useTheme())
+      
+      expect(result.current.theme).toBe('light')
+      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light')
+      expect(localStorage.getItem(THEME_KEY)).toBe('light')
+    } finally {
+      // Restore original matchMedia
+      window.matchMedia = originalMatchMedia
+    }
   })
 
   it('should load theme from localStorage if available', () => {
@@ -118,27 +120,27 @@ describe('useTheme', () => {
 
   it('should respect system preference when no stored preference exists', () => {
     // Mock window.matchMedia to simulate dark mode system preference
-    const mockMatchMedia = vi.fn().mockImplementation((query) => ({
-      matches: query === '(prefers-color-scheme: dark)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
-    
-    // Save original matchMedia
     const originalMatchMedia = window.matchMedia
-    window.matchMedia = mockMatchMedia as any
-    
-    const { result } = renderHook(() => useTheme())
-    
-    expect(result.current.theme).toBe('dark')
-    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('dark')
-    
-    // Restore original matchMedia
-    window.matchMedia = originalMatchMedia
+    try {
+      const mockMatchMedia = vi.fn().mockImplementation((query) => ({
+        matches: query === '(prefers-color-scheme: dark)',
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+      window.matchMedia = mockMatchMedia as any
+      
+      const { result } = renderHook(() => useTheme())
+      
+      expect(result.current.theme).toBe('dark')
+      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('dark')
+    } finally {
+      // Restore original matchMedia
+      window.matchMedia = originalMatchMedia
+    }
   })
 })
