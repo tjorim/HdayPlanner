@@ -187,8 +187,8 @@ export function MonthGrid({
               <span 
                 className="holiday-indicator" 
                 title={holidayInfo.localName}
-                aria-label={holidayInfo.localName}
                 role="img"
+                aria-hidden="true"
               >
                 🎉
               </span>

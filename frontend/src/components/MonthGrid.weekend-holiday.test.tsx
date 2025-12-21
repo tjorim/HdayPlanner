@@ -36,7 +36,7 @@ describe('MonthGrid - Weekend Highlighting', () => {
     expect(mondayCell.className).not.toContain('day--weekend')
   })
 
-  it('applies both today and weekend classes when today is a weekend day', () => {
+  it('applies weekend class to Saturday', () => {
     // Use a fixed known weekend date: January 4, 2025 (Saturday)
     const events: HdayEvent[] = []
     const ym = '2025-01'

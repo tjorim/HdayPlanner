@@ -25,7 +25,8 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!enabled || !countryCode || !year) {
+    const isValidYear = Number.isInteger(year) && year >= 1000 && year <= 9999
+    if (!enabled || !countryCode || !isValidYear) {
       setHolidays([])
       return
     }
@@ -50,6 +51,10 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
 
         if (!cancelled && !response.ok) {
           throw new Error(`Failed to fetch holidays: ${response.status} ${response.statusText}`)
+        }
+
+        if (cancelled) {
+          return
         }
 
         const data: NationalHoliday[] = await response.json()

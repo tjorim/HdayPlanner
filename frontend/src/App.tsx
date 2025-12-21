@@ -90,11 +90,12 @@ export default function App(){
   }, [holidays])
 
   // Show toast if holidays fail to load
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (holidaysError) {
       showToast(`Failed to load national holidays: ${holidaysError}`, 'error')
     }
-  }, [holidaysError, showToast])
+  }, [holidaysError])
 
   // Set indeterminate state for select-all checkbox
   useEffect(() => {
