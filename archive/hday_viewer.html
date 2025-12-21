@@ -144,25 +144,63 @@ a2025/03/25-2025/03/25
     return out;
   }
 
-  function flagsToBadges(flags){ return (flags||[]).map(f=>`<span class="badge ${f}">${f}</span>`).join(''); }
+  function flagsToBadges(flags, container){
+    (flags || []).forEach(f=>{
+      const span = document.createElement('span');
+      span.className = `badge ${f}`;
+      span.textContent = f;
+      container.appendChild(span);
+    });
+  }
 
   function renderTable(){
     const tbody = document.querySelector('#eventsTable tbody');
     tbody.innerHTML='';
     events.forEach((ev,i)=>{
       const tr = document.createElement('tr');
-      const endOrDay = ev.type==='weekly' ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][ev.weekday] : (ev.end||'');
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td>${ev.type}</td>
-        <td>${ev.start||''}</td>
-        <td>${endOrDay}</td>
-        <td>${flagsToBadges(ev.flags)}</td>
-        <td>${ev.title||''}</td>
-        <td>
-          <button data-i="${i}" class="edit">Edit</button>
-          <button data-i="${i}" class="del">Delete</button>
-        </td>`;
+      const endOrDay = ev.type==='weekly'
+        ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][ev.weekday]
+        : (ev.end||'');
+
+      const tdIdx = document.createElement('td');
+      tdIdx.textContent = String(i+1);
+      tr.appendChild(tdIdx);
+
+      const tdType = document.createElement('td');
+      tdType.textContent = ev.type;
+      tr.appendChild(tdType);
+
+      const tdStart = document.createElement('td');
+      tdStart.textContent = ev.start || '';
+      tr.appendChild(tdStart);
+
+      const tdEnd = document.createElement('td');
+      tdEnd.textContent = endOrDay;
+      tr.appendChild(tdEnd);
+
+      const tdFlags = document.createElement('td');
+      flagsToBadges(ev.flags, tdFlags);
+      tr.appendChild(tdFlags);
+
+      const tdTitle = document.createElement('td');
+      tdTitle.textContent = ev.title || '';
+      tr.appendChild(tdTitle);
+
+      const tdActions = document.createElement('td');
+      const btnEdit = document.createElement('button');
+      btnEdit.className = 'edit';
+      btnEdit.dataset.i = String(i);
+      btnEdit.textContent = 'Edit';
+      tdActions.appendChild(btnEdit);
+
+      const btnDel = document.createElement('button');
+      btnDel.className = 'del';
+      btnDel.dataset.i = String(i);
+      btnDel.textContent = 'Delete';
+      tdActions.appendChild(btnDel);
+
+      tr.appendChild(tdActions);
+
       tbody.appendChild(tr);
     });
     tbody.querySelectorAll('button.edit').forEach(b=>b.onclick=()=>loadToForm(parseInt(b.dataset.i,10)));
