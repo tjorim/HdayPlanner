@@ -5,12 +5,6 @@
 # Global owner for all files
 * @tjorim @copilot
 
-# Frontend specific
-/frontend/ @tjorim @copilot
-
-# Backend specific
-/backend/ @tjorim @copilot
-
 # Documentation
 /docs/ @tjorim
 *.md @tjorim
