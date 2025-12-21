@@ -9,10 +9,12 @@
   --surface-holiday: #fff4e6;
   --primary: #1976d2;
   --primary-shadow: rgba(25, 118, 210, 0.3);
+  --primary-text: #fff;
   --input-bg: #fff;
   --table-bg: #fff;
   --day-bg: transparent;
   --date-color: #555;
+  --event-text: #000;
 }
 
 /* Dark theme */
@@ -26,10 +28,12 @@
   --surface-holiday: #4a3800;
   --primary: #58a6ff;
   --primary-shadow: rgba(88, 166, 255, 0.3);
+  --primary-text: #0d1117;
   --input-bg: #0d1117;
   --table-bg: #161b22;
   --day-bg: #161b22;
   --date-color: #8b949e;
+  --event-text: #000;
 }
 
 body {
@@ -63,7 +67,7 @@ button:hover:not(:disabled) {
 
 button.primary {
   background: var(--primary);
-  color: #fff;
+  color: var(--primary-text);
   border-color: var(--primary);
 }
 
@@ -170,7 +174,7 @@ button:disabled {
 }
 .holiday-indicator{margin-left:4px;font-size:14px}
 .item{font-size:12px;margin-top:4px}
-.event-item{font-size:12px;margin-top:4px;padding:4px 6px;border-radius:4px;color:#000;font-weight:500}
+.event-item{font-size:12px;margin-top:4px;padding:4px 6px;border-radius:4px;color:var(--event-text);font-weight:500}
 .event--holiday-full{background-color:#EC0000}
 .event--holiday-half{background-color:#FF8A8A}
 .event--business-full{background-color:#FF9500}
