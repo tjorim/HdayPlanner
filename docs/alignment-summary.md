@@ -1,7 +1,5 @@
 # HdayPlanner - NextShift Alignment Summary
 
-## Completed: December 21, 2024
-
 This document summarizes the alignment work completed to bring HdayPlanner's DevOps and code quality practices in line with NextShift.
 
 ## What Was Added
