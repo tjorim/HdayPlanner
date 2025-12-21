@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { HdayEvent } from '../../src/lib/hday';
 import { MonthGrid } from '../../src/components/MonthGrid';
+import type { HdayEvent } from '../../src/lib/hday';
 
 describe('MonthGrid - Today Highlighting', () => {
   // Helper to get today's date in YYYY-MM format for the component prop

@@ -98,7 +98,7 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
   selectedFlag?: TypeFlag;
 } {
   const typeFlags = flags.filter(
-    (f): f is TypeFlag => f === 'business' || f === 'course' || f === 'in'
+    (f): f is TypeFlag => f === 'business' || f === 'course' || f === 'in',
   );
 
   // No conflict if 0 or 1 type flags
@@ -116,7 +116,7 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
 
   // Remove all type flags and add only the priority one
   const resolvedFlags = flags.filter(
-    (f) => f !== 'business' && f !== 'course' && f !== 'in'
+    (f) => f !== 'business' && f !== 'course' && f !== 'in',
   );
   resolvedFlags.push(priorityFlag);
 

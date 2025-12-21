@@ -47,8 +47,7 @@ export function useFocusTrap(
             el instanceof HTMLTextAreaElement) &&
           el.disabled === true;
 
-        const isHiddenAttr =
-          el instanceof HTMLElement && el.hidden === true;
+        const isHiddenAttr = el instanceof HTMLElement && el.hidden === true;
 
         return (
           !isDisabled &&

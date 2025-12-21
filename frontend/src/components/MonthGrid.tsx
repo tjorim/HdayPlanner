@@ -70,7 +70,9 @@ export function MonthGrid({
   ym: string;
   nationalHolidays?: Map<string, NationalHolidayInfo>;
 }) {
-  const [year, month] = ym.split('-').map(Number);
+  const parts = ym.split('-').map(Number);
+  const year = parts[0] ?? 0;
+  const month = parts[1] ?? 0;
   const first = new Date(year, month - 1, 1);
   const last = new Date(year, month, 0);
   const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -93,7 +95,7 @@ export function MonthGrid({
     // Focus the first real day
     const el = cellRefs.current[firstDayIndex];
     el?.focus();
-  }, [ym, leadingPad]);
+  }, [leadingPad]);
 
   const clampToRealDay = (idx: number) => {
     const min = leadingPad;
@@ -213,7 +215,10 @@ export function MonthGrid({
             )}
           </div>
           {todays.map((ev) => (
-            <EventItem key={ev.raw || `${ev.type}-${ev.start || ev.weekday}`} event={ev} />
+            <EventItem
+              key={ev.raw || `${ev.type}-${ev.start || ev.weekday}`}
+              event={ev}
+            />
           ))}
         </div>,
       );
