@@ -1,25 +1,25 @@
-import React from 'react'
-import { useFocusTrap } from '../hooks/useFocusTrap'
+import React from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface ConfirmationDialogProps {
-  isOpen: boolean
-  title: string
-  message: string
-  confirmLabel?: string
-  cancelLabel?: string
-  onConfirm: () => void
-  onCancel: () => void
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
 /**
  * Reusable confirmation dialog component with accessibility features.
- * 
+ *
  * Features:
  * - Modal overlay with backdrop
  * - Focus trap for keyboard navigation
  * - Escape key to cancel
  * - ARIA attributes for screen readers
- * 
+ *
  * @example
  * ```tsx
  * <ConfirmationDialog
@@ -38,26 +38,22 @@ export function ConfirmationDialog({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   onConfirm,
-  onCancel
+  onCancel,
 }: ConfirmationDialogProps) {
-  const dialogRef = React.useRef<HTMLDivElement>(null)
-  const titleId = React.useId()
-  const descId = React.useId()
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+  const descId = React.useId();
 
   // Use focus trap hook
-  useFocusTrap(dialogRef, isOpen)
+  useFocusTrap(dialogRef, isOpen);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="dialog-backdrop"
-        aria-hidden="true"
-        onClick={onCancel}
-      />
-      
+      <div className="dialog-backdrop" aria-hidden="true" onClick={onCancel} />
+
       {/* Dialog */}
       <div
         className="dialog"
@@ -67,18 +63,20 @@ export function ConfirmationDialog({
         aria-describedby={descId}
         ref={dialogRef}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') onCancel()
+          if (e.key === 'Escape') onCancel();
         }}
       >
         <h3 id={titleId}>{title}</h3>
         <p id={descId}>{message}</p>
         <div className="dialog-actions">
-          <button type="button" onClick={onCancel}>{cancelLabel}</button>
+          <button type="button" onClick={onCancel}>
+            {cancelLabel}
+          </button>
           <button type="button" className="primary" onClick={onConfirm}>
             {confirmLabel}
           </button>
         </div>
       </div>
     </>
-  )
+  );
 }

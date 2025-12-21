@@ -1,20 +1,19 @@
-import React from 'react'
-import type { Toast } from '../hooks/useToast'
+import type { Toast } from '../hooks/useToast';
 
 interface ToastContainerProps {
-  toasts: Toast[]
-  onRemove: (id: number) => void
+  toasts: Toast[];
+  onRemove: (id: number) => void;
 }
 
 /**
  * Component to display toast notifications in a fixed position on the screen.
  */
 export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
-  if (toasts.length === 0) return null
+  if (toasts.length === 0) return null;
 
   return (
     <div className="toast-container">
-      {toasts.map(toast => (
+      {toasts.map((toast) =>
         toast.type === 'error' ? (
           <div
             key={toast.id}
@@ -45,8 +44,8 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
               ×
             </button>
           </div>
-        )
-      ))}
+        ),
+      )}
     </div>
-  )
+  );
 }

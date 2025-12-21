@@ -1,66 +1,71 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type ToastType = 'info' | 'success' | 'error' | 'warning'
+export type ToastType = 'info' | 'success' | 'error' | 'warning';
 
 export interface Toast {
-  id: number
-  message: string
-  type: ToastType
+  id: number;
+  message: string;
+  type: ToastType;
 }
 
 /**
  * Custom hook for managing toast notifications.
  * Provides a non-blocking way to show user feedback messages.
- * 
+ *
  * @param duration - How long toasts should be visible in milliseconds (default: 4000)
- * 
+ *
  * @example
  * ```tsx
  * const { toasts, showToast } = useToast()
- * 
+ *
  * showToast('Successfully saved!', 'success')
  * showToast('An error occurred', 'error')
  * ```
  */
 export function useToast(duration: number = 4000) {
-  const [toasts, setToasts] = useState<Toast[]>([])
-  const timeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
 
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    // Generate a local, non-persistent ID to avoid SSR/HMR/test leakage
-    // Uses timestamp + random component (numeric) to keep type stable
-    const id = Date.now() + Math.floor(Math.random() * 1_000_000)
-    const newToast: Toast = { id, message, type }
-    
-    setToasts(prev => [...prev, newToast])
+  const showToast = useCallback(
+    (message: string, type: ToastType = 'info') => {
+      // Generate a local, non-persistent ID to avoid SSR/HMR/test leakage
+      // Uses timestamp + random component (numeric) to keep type stable
+      const id = Date.now() + Math.floor(Math.random() * 1_000_000);
+      const newToast: Toast = { id, message, type };
 
-    // Auto-remove toast after duration
-    const timeoutId = setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-      timeoutsRef.current.delete(id)
-    }, duration)
+      setToasts((prev) => [...prev, newToast]);
 
-    // Store timeout ID for cleanup
-    timeoutsRef.current.set(id, timeoutId)
-  }, [duration])
+      // Auto-remove toast after duration
+      const timeoutId = setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+        timeoutsRef.current.delete(id);
+      }, duration);
+
+      // Store timeout ID for cleanup
+      timeoutsRef.current.set(id, timeoutId);
+    },
+    [duration],
+  );
 
   const removeToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
+    setToasts((prev) => prev.filter((t) => t.id !== id));
     // Clear associated timeout if exists
-    const timeoutId = timeoutsRef.current.get(id)
+    const timeoutId = timeoutsRef.current.get(id);
     if (timeoutId) {
-      clearTimeout(timeoutId)
-      timeoutsRef.current.delete(id)
+      clearTimeout(timeoutId);
+      timeoutsRef.current.delete(id);
     }
-  }, [])
+  }, []);
 
   // Cleanup all timeouts on unmount
   useEffect(() => {
     return () => {
-      timeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId))
-      timeoutsRef.current.clear()
-    }
-  }, [])
+      timeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      timeoutsRef.current.clear();
+    };
+  }, []);
 
-  return { toasts, showToast, removeToast }
+  return { toasts, showToast, removeToast };
 }
