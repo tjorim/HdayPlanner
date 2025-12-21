@@ -37,7 +37,7 @@ export function useTheme() {
     }
 
     // Fallback to system preference if available
-    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
 
