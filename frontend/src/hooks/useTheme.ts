@@ -10,7 +10,9 @@ const THEME_ATTRIBUTE = 'data-theme'
  * Persists theme preference to localStorage and applies it to document root.
  * Respects system preference (prefers-color-scheme) when no stored preference exists.
  * 
- * @returns Object containing current theme and toggle function
+ * @returns Object containing the current theme and a toggle function. The theme is
+ * initialized in this order: (1) stored localStorage value, (2) system
+ * `prefers-color-scheme` setting, (3) default `'light'`.
  * 
  * @example
  * ```tsx

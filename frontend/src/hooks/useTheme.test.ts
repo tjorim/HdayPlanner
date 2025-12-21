@@ -20,11 +20,28 @@ describe('useTheme', () => {
   })
 
   it('should default to light theme when no stored preference exists', () => {
+    // Mock window.matchMedia to ensure system preference doesn't interfere
+    const originalMatchMedia = window.matchMedia
+    const mockMatchMedia = vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+    window.matchMedia = mockMatchMedia as any
+
     const { result } = renderHook(() => useTheme())
     
     expect(result.current.theme).toBe('light')
     expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light')
     expect(localStorage.getItem(THEME_KEY)).toBe('light')
+
+    // Restore original matchMedia
+    window.matchMedia = originalMatchMedia
   })
 
   it('should load theme from localStorage if available', () => {
