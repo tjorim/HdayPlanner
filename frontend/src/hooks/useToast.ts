@@ -9,18 +9,10 @@ export interface Toast {
 }
 
 /**
- * Custom hook for managing toast notifications.
- * Provides a non-blocking way to show user feedback messages.
+ * Manage a list of transient toast notifications and provide controls to show or remove them.
  *
- * @param duration - How long toasts should be visible in milliseconds (default: 4000)
- *
- * @example
- * ```tsx
- * const { toasts, showToast } = useToast()
- *
- * showToast('Successfully saved!', 'success')
- * showToast('An error occurred', 'error')
- * ```
+ * @param duration - Time in milliseconds before a newly shown toast is automatically removed (default: 4000)
+ * @returns An object with `toasts` (the current active toasts), `showToast(message, type)` to display a new toast, and `removeToast(id)` to dismiss a toast manually
  */
 export function useToast(duration: number = 4000) {
   const [toasts, setToasts] = useState<Toast[]>([]);

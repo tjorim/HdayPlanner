@@ -12,24 +12,11 @@ interface ConfirmationDialogProps {
 }
 
 /**
- * Reusable confirmation dialog component with accessibility features.
+ * Displays an accessible confirmation dialog when open.
  *
- * Features:
- * - Modal overlay with backdrop
- * - Focus trap for keyboard navigation
- * - Escape key to cancel
- * - ARIA attributes for screen readers
+ * When open, the dialog traps keyboard focus, exposes ARIA attributes for title and description, cancels when the backdrop is clicked or the Escape key is pressed, and provides confirm and cancel actions.
  *
- * @example
- * ```tsx
- * <ConfirmationDialog
- *   isOpen={showDialog}
- *   title="Confirm Delete"
- *   message="Are you sure you want to delete this item?"
- *   onConfirm={handleConfirm}
- *   onCancel={handleCancel}
- * />
- * ```
+ * @returns The dialog's JSX element when `isOpen` is true, otherwise `null`.
  */
 export function ConfirmationDialog({
   isOpen,

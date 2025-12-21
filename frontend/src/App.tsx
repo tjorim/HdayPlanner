@@ -35,6 +35,11 @@ const ERROR_END_DATE_BEFORE_START =
   'End date must be the same or after start date';
 const ERROR_START_DATE_REQUIRED = 'Start date is required';
 
+/**
+ * Get the current local year and month formatted as `YYYY-MM`.
+ *
+ * @returns The current local year and month in `YYYY-MM` format.
+ */
 function getCurrentMonth(): string {
   const now = new Date();
   const year = now.getFullYear();
@@ -42,6 +47,13 @@ function getCurrentMonth(): string {
   return `${year}-${month}`;
 }
 
+/**
+ * Main application component for the Holiday Planner UI.
+ *
+ * Renders the root interface that manages holiday documents and events, supporting both backend-backed and standalone (.hday) editing workflows, import/export, event editing (add/update/delete/duplicate/bulk actions), month view with national holidays, toasts, theming, and keyboard shortcuts.
+ *
+ * @returns The root React element for the Holiday Planner application
+ */
 export default function App() {
   const [user, setUser] = useState('testuser');
   const [doc, setDoc] = useState<HdayDocument>({ raw: '', events: [] });

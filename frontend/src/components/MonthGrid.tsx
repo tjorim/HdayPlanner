@@ -12,6 +12,16 @@ interface EventItemProps {
   event: HdayEvent;
 }
 
+/**
+ * Renders a single day's calendar event with an optional half-day symbol.
+ *
+ * The component displays the event's title (falls back to "Event" if missing)
+ * and, when present, a half-day symbol with an accessible label:
+ * '◐' -> "Morning half-day event", '◑' -> "Afternoon half-day event".
+ *
+ * @param event - The HdayEvent to render; its `flags` determine CSS class and half-day symbol.
+ * @returns A JSX element representing the event item.
+ */
 function EventItem({ event }: EventItemProps) {
   const eventClass = getEventClass(event.flags);
   const symbol = getHalfDaySymbol(event.flags);
@@ -39,6 +49,16 @@ function EventItem({ event }: EventItemProps) {
   );
 }
 
+/**
+ * Render a month calendar grid with events and optional national holiday annotations.
+ *
+ * Renders each day of the month for the given year-month (`ym`) as a focusable cell, displays events that occur on that date, marks today/weekends/holidays, and supports keyboard navigation (Arrow keys, Home, End) with a roving tabindex.
+ *
+ * @param events - Array of events (HdayEvent) to be shown; events may be range or weekly types and are shown on any date they apply to.
+ * @param ym - Year-month string in the format "YYYY-MM" identifying which month to render.
+ * @param nationalHolidays - Optional map keyed by "YYYY/MM/DD" to holiday metadata used to mark and label holiday dates; defaults to an empty Map.
+ * @returns The calendar grid as a JSX element containing week rows and day cells.
+ */
 export function MonthGrid({
   events,
   ym,

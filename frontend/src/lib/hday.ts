@@ -39,11 +39,12 @@ export const EVENT_COLORS = {
 } as const;
 
 /**
- * Parse prefix flags from .hday format into normalized flag names.
- * Adds 'holiday' as default if no type flags (business/course/in) are present.
+ * Convert a compact prefix of single-character tokens into normalized event flags.
  *
- * @param prefix String of single-character flags (e.g., 'ap' for half_am + half_pm)
- * @returns Array of normalized flag names
+ * Unknown characters in the prefix are ignored (a console warning is emitted).
+ *
+ * @param prefix - A string of single-character tokens (e.g., "ap" for `half_am` + `half_pm`)
+ * @returns The list of normalized `EventFlag` values; if no type flag (`business`, `course`, `in`) is present, the result will include `holiday`
  */
 function parsePrefixFlags(prefix: string): EventFlag[] {
   const flagMap: Record<string, EventFlag> = {
@@ -69,15 +70,10 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
 }
 
 /**
- * Normalize event flags by adding 'holiday' as default if no type flags are present.
+ * Ensure an event flags array includes a type flag by appending `'holiday'` when none of `'business'`, `'course'`, or `'in'` is present.
  *
- * Type flags that override the default 'holiday' are:
- * - 'business' - Business trip or work-related event
- * - 'course' - Training or educational course
- * - 'in' - In-office day
- *
- * @param flags Array of flag names
- * @returns Array with 'holiday' added if no type flags present
+ * @param flags - The event flags to normalize
+ * @returns The normalized flags; `'holiday'` is appended if no type flag is present
  */
 export function normalizeEventFlags(flags: EventFlag[]): EventFlag[] {
   // Default to 'holiday' if no type flags
@@ -156,7 +152,13 @@ export function parseHday(text: string): HdayEvent[] {
   return events;
 }
 
-// Helper to serialize event back to .hday line format
+/**
+ * Serialize an HdayEvent into a single .hday-format text line.
+ *
+ * @param ev - The event to serialize; for `unknown` events the `raw` field must be present.
+ * @returns The corresponding single-line representation suitable for a .hday file.
+ * @throws Error if an `unknown` event is missing its `raw` field or if the event `type` is unsupported.
+ */
 export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
   const flagMap: Record<string, string> = {
     half_am: 'a',
@@ -196,50 +198,13 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
 }
 
 /**
- * Returns the hex background color for an event based on its flags.
+ * Get the hex background color for an event based on its flags.
  *
- * Color mapping (using EVENT_COLORS constants):
+ * Chooses a color from EVENT_COLORS according to event type priority (business > course > in > holiday)
+ * and half-day status (exactly one of `half_am` or `half_pm` -> half-day; both or neither -> full day).
  *
- * - Default vacation/holiday (no `business`, `course` or `in` flag):
- *   - Full day (no half flag OR both `half_am` and `half_pm`): HOLIDAY_FULL (red)
- *   - Half day (exactly one of `half_am` or `half_pm`): HOLIDAY_HALF (pink)
- *
- * - Business (`'business'` flag present):
- *   - Full day: BUSINESS_FULL (orange)
- *   - Half day: BUSINESS_HALF (light orange)
- *
- * - Course (`'course'` flag present):
- *   - Full day: COURSE_FULL (dark yellow/gold)
- *   - Half day: COURSE_HALF (light yellow)
- *
- * - In-office (`'in'` flag present):
- *   - Full day: IN_OFFICE_FULL (teal)
- *   - Half day: IN_OFFICE_HALF (light teal)
- *
- * If `flags` is omitted or an empty array, returns HOLIDAY_FULL.
- *
- * Note: When multiple type flags are present (e.g., both 'business' and 'course'),
- * the function prioritizes in this order: business > course > in > holiday.
- *
- * Note: When both `half_am` and `half_pm` are present, the event is treated as a
- * full day since it spans both halves.
- *
- * @example
- * ```ts
- * getEventColor(); // EVENT_COLORS.HOLIDAY_FULL
- * getEventColor([]); // EVENT_COLORS.HOLIDAY_FULL
- * getEventColor(['half_am']); // EVENT_COLORS.HOLIDAY_HALF
- * getEventColor(['half_am', 'half_pm']); // EVENT_COLORS.HOLIDAY_FULL (both halves = full day)
- * getEventColor(['business']); // EVENT_COLORS.BUSINESS_FULL
- * getEventColor(['business', 'half_am']); // EVENT_COLORS.BUSINESS_HALF
- * getEventColor(['course']); // EVENT_COLORS.COURSE_FULL
- * getEventColor(['course', 'half_pm']); // EVENT_COLORS.COURSE_HALF
- * getEventColor(['in']); // EVENT_COLORS.IN_OFFICE_FULL
- * getEventColor(['in', 'half_am']); // EVENT_COLORS.IN_OFFICE_HALF
- * ```
- *
- * @param flags Optional list of flags describing the event type and half-day status.
- * @returns A CSS hex color string representing the event background color.
+ * @param flags - Optional list of event flags (type and/or half-day indicators).
+ * @returns The hex color string to use as the event background.
  */
 export function getEventColor(flags?: EventFlag[]): string {
   if (!flags || flags.length === 0) return EVENT_COLORS.HOLIDAY_FULL;
@@ -264,16 +229,10 @@ export function getEventColor(flags?: EventFlag[]): string {
 }
 
 /**
- * Get symbol to display for half-day events.
+ * Return a Unicode symbol representing a half-day based on event flags.
  *
- * Uses Unicode half-circle symbols for visual clarity:
- * - ◐ (U+25D0) for AM - left half filled represents morning
- * - ◑ (U+25D1) for PM - right half filled represents afternoon
- *
- * These symbols are combined with aria-labels for accessibility.
- *
- * @param flags Optional list of flags
- * @returns Half-day symbol: `◐` for AM, `◑` for PM, or empty string
+ * @param flags - Optional list of event flags; presence of `half_am` or `half_pm` determines the symbol
+ * @returns `◐` if only `half_am` is present, `◑` if only `half_pm` is present, or an empty string otherwise
  */
 export function getHalfDaySymbol(flags?: EventFlag[]): string {
   if (!flags) return '';
@@ -291,7 +250,12 @@ export function getHalfDaySymbol(flags?: EventFlag[]): string {
   return '';
 }
 
-// Helper to get an event CSS class based on flags
+/**
+ * Compute the CSS class name for an event from its flags.
+ *
+ * @param flags - Array of event flags; type flags are 'business', 'course', 'in', and half-day flags are 'half_am' and 'half_pm'.
+ * @returns A class of the form `event--{business|course|in-office|holiday}-{full|half}` where the type is chosen by priority (business > course > in) and the suffix is `half` when exactly one of `half_am` or `half_pm` is present, otherwise `full`.
+ */
 export function getEventClass(flags?: EventFlag[]): string {
   if (!flags || flags.length === 0) return 'event--holiday-full';
 

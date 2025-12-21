@@ -32,16 +32,10 @@ export function isValidDate(dateString: string): boolean {
 }
 
 /**
- * Parses a validated date string in YYYY/MM/DD format to a Date object.
+ * Parse a date string in YYYY/MM/DD into a Date in the local timezone.
  *
- * Note: This assumes the date string has already been validated.
- * Use isValidDate() first to ensure the date is valid.
- *
- * @param dateString Date in YYYY/MM/DD format
- * @returns Date object in local timezone
- *
- * @example
- * parseHdayDate('2025/12/25') // Date object for Dec 25, 2025 in local time
+ * @param dateString - A date string formatted as `YYYY/MM/DD`. Must represent a valid calendar date.
+ * @returns A Date representing the given date in the local timezone.
  */
 export function parseHdayDate(dateString: string): Date {
   const [year, month, day] = dateString.split('/').map(Number);
