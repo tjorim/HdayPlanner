@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { getHday, putHday, HdayDocument } from './api/hday'
 import { MonthGrid } from './components/MonthGrid'
 import { toLine, parseHday, normalizeEventFlags, sortEvents, type HdayEvent, type EventFlag } from './lib/hday'
@@ -6,6 +6,7 @@ import { isValidDate, parseHdayDate } from './lib/dateValidation'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ToastContainer'
 import { ConfirmationDialog } from './components/ConfirmationDialog'
+import { useNationalHolidays, convertDateFormat } from './hooks/useNationalHolidays'
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
 const SCROLL_FOCUS_DELAY = 300 // Delay in ms for focusing after smooth scroll
@@ -61,6 +62,42 @@ export default function App(){
 
   // Use toast notifications
   const { toasts, showToast, removeToast } = useToast()
+
+  // Extract year from current month for holidays API
+  const currentYear = useMemo(() => {
+    const [yearString] = month.split('-')
+    const year = Number(yearString)
+    return Number.isInteger(year) ? year : new Date().getFullYear()
+  }, [month])
+
+  // Fetch national holidays (always enabled for NL)
+  const { holidays, error: holidaysError } = useNationalHolidays(
+    'NL',
+    currentYear,
+    true
+  )
+
+  // Convert holidays to a Map for quick lookup by date
+  const holidayMap = useMemo(() => {
+    const map = new Map<string, { name: string; localName: string }>()
+    holidays.forEach((holiday) => {
+      const dateKey = convertDateFormat(holiday.date)
+      map.set(dateKey, {
+        name: holiday.name,
+        localName: holiday.localName
+      })
+    })
+    return map
+  }, [holidays])
+
+  // Show toast if holidays fail to load (only on error transition)
+  const prevErrorRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (holidaysError && holidaysError !== prevErrorRef.current) {
+      showToast(`Failed to load national holidays: ${holidaysError}`, 'error')
+    }
+    prevErrorRef.current = holidaysError
+  }, [holidaysError, showToast])
 
   // Set indeterminate state for select-all checkbox
   useEffect(() => {
@@ -953,7 +990,8 @@ export default function App(){
         />
         <span id="month-view-help" className="muted">Format: YYYY-MM</span>
       </div>
-      {month && <MonthGrid events={doc.events} ym={month} />}
+
+      {month && <MonthGrid events={doc.events} ym={month} nationalHolidays={holidayMap} />}
 
       {/* Confirmation dialog */}
       <ConfirmationDialog
