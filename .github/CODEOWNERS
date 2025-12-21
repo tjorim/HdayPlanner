@@ -1,0 +1,19 @@
+# CODEOWNERS file for HdayPlanner
+# This file defines who is responsible for code review and maintenance
+# of different parts of the repository.
+
+# Global owner for all files
+* @tjorim @copilot
+
+# Frontend specific
+/frontend/ @tjorim @copilot
+
+# Backend specific
+/backend/ @tjorim @copilot
+
+# Documentation
+/docs/ @tjorim
+*.md @tjorim
+
+# GitHub workflows and configuration
+/.github/ @tjorim

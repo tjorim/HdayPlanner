@@ -1,0 +1,76 @@
+version: 2
+updates:
+  # Monitor npm dependencies in frontend
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Etc/UTC"
+    assignees:
+      - "tjorim"
+    commit-message:
+      prefix: "deps(frontend)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "frontend"
+    versioning-strategy: "increase"
+    groups:
+      # Group React core with its types (tightly coupled)
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Group Vite with its React plugin (build tool + framework plugin)
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/plugin-react"
+      # Group testing tools together (all dev dependencies)
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "@vitest/*"
+          - "vitest"
+          - "jsdom"
+
+  # Monitor Python dependencies in backend
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Etc/UTC"
+    assignees:
+      - "tjorim"
+    commit-message:
+      prefix: "deps(backend)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+      - "backend"
+    versioning-strategy: "increase"
+
+  # Monitor GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Etc/UTC"
+    assignees:
+      - "tjorim"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"

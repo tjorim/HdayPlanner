@@ -1,0 +1,181 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate-changes:
+    name: Validate PR Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Fetch full history for comparison
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Analyze changed files
+        run: |
+          echo "🔍 Analyzing PR changes..."
+
+          # Fetch the base branch for comparison (works on forks)
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ -n "${{ github.event.pull_request.base.repo.full_name }}" ]; then
+            echo "📥 Fetching PR base: ${{ github.event.pull_request.base.repo.full_name }}/${{ github.event.pull_request.base.ref }}"
+
+            # Add the base repository as a remote and fetch from it (handles forks properly)
+            BASE_REPO_URL="https://github.com/${{ github.event.pull_request.base.repo.full_name }}.git"
+            git remote add base_repo "$BASE_REPO_URL" 2>/dev/null || true
+            git fetch --no-tags --depth=1 base_repo ${{ github.event.pull_request.base.ref }} || {
+              echo "⚠️  Failed to fetch from PR base repository, falling back to origin default branch"
+              git fetch --no-tags --depth=1 origin ${{ github.event.repository.default_branch }}
+            }
+            CHANGED_FILES=$(git diff --name-only FETCH_HEAD...HEAD)
+          else
+            echo "📥 Not a PR context, comparing with default branch"
+            git fetch --no-tags --depth=1 origin ${{ github.event.repository.default_branch }}
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.event.repository.default_branch }}...HEAD)
+          fi
+
+          echo "📝 Changed files:"
+          echo "$CHANGED_FILES" | sed 's/^/├── /'
+
+          # Categorize changes
+          FRONTEND_CHANGES=$(echo "$CHANGED_FILES" | grep -E '^frontend/.*\.(html|css|js|ts|tsx|jsx)$' || true)
+          BACKEND_CHANGES=$(echo "$CHANGED_FILES" | grep -E '^backend/.*\.py$' || true)
+          CONFIG_CHANGES=$(echo "$CHANGED_FILES" | grep -E '(vite\.config\.(js|ts)|package\.json|tsconfig\.json|requirements\.txt)$' || true)
+          WORKFLOW_CHANGES=$(echo "$CHANGED_FILES" | grep -E '\.github/workflows' || true)
+          DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -E '\.(md|txt)$' || true)
+          HDAY_FORMAT_CHANGES=$(echo "$CHANGED_FILES" | grep -E 'hday-format-spec\.md|hday\.(ts|py)' || true)
+
+          echo ""
+          echo "📊 Change Analysis:"
+
+          if [ -n "$FRONTEND_CHANGES" ]; then
+            echo "🔧 Frontend changes detected"
+            echo "FRONTEND_CHANGES=true" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$BACKEND_CHANGES" ]; then
+            echo "🔧 Backend changes detected"
+            echo "BACKEND_CHANGES=true" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$CONFIG_CHANGES" ]; then
+            echo "⚙️  Configuration changes detected"
+            echo "CONFIG_CHANGES=true" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$WORKFLOW_CHANGES" ]; then
+            echo "⚙️  Workflow changes detected"
+            echo "WORKFLOW_CHANGES=true" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$DOC_CHANGES" ]; then
+            echo "📚 Documentation changes detected"
+            echo "DOC_CHANGES=true" >> $GITHUB_ENV
+          fi
+
+          if [ -n "$HDAY_FORMAT_CHANGES" ]; then
+            echo "📄 .hday format changes detected"
+            echo "HDAY_FORMAT_CHANGES=true" >> $GITHUB_ENV
+          fi
+
+      - name: Validate frontend changes
+        if: env.FRONTEND_CHANGES == 'true'
+        working-directory: frontend
+        run: |
+          echo "🔧 Validating frontend changes..."
+
+          npm ci
+
+          # Run TypeScript validation
+          if npx tsc --noEmit; then
+            echo "✅ TypeScript validation passed"
+          else
+            echo "❌ TypeScript validation failed"
+            exit 1
+          fi
+
+          # Run tests
+          if npm run test; then
+            echo "✅ Tests passed"
+          else
+            echo "❌ Tests failed"
+            exit 1
+          fi
+
+          # Build to ensure no build errors
+          npm run build
+          echo "✅ Build successful"
+
+      - name: Validate backend changes
+        if: env.BACKEND_CHANGES == 'true'
+        working-directory: backend
+        run: |
+          echo "🔧 Validating backend changes..."
+
+          pip install -r requirements.txt
+
+          # Validate Python syntax
+          if python -m py_compile $(find . -name "*.py"); then
+            echo "✅ Python syntax validation passed"
+          else
+            echo "❌ Python syntax validation failed"
+            exit 1
+          fi
+
+      - name: Check .hday format compatibility
+        if: env.HDAY_FORMAT_CHANGES == 'true'
+        run: |
+          echo "📄 Checking .hday format compatibility..."
+          echo "⚠️  .hday format changes detected - ensure backward compatibility!"
+          echo "✅ Format documentation should be updated"
+
+      - name: Build PR summary
+        id: build-summary
+        run: |
+          {
+            echo 'COMMENT_BODY<<EOF'
+            echo "## 🔍 PR Validation Summary"
+            echo ""
+            echo "### 📝 Changes Detected:"
+            [ "$FRONTEND_CHANGES" = "true" ] && echo "- 🔧 Frontend changes"
+            [ "$BACKEND_CHANGES" = "true" ] && echo "- 🔧 Backend changes"
+            [ "$CONFIG_CHANGES" = "true" ] && echo "- ⚙️ Configuration changes"
+            [ "$WORKFLOW_CHANGES" = "true" ] && echo "- 🔄 Workflow changes"
+            [ "$DOC_CHANGES" = "true" ] && echo "- 📚 Documentation changes"
+            [ "$HDAY_FORMAT_CHANGES" = "true" ] && echo "- 📄 .hday format changes"
+            echo ""
+            echo "### ✅ Validation Results:"
+            if [ "$FRONTEND_CHANGES" = "true" ]; then
+              echo "- ✅ Frontend: TypeScript validated, tests passed, build successful"
+            fi
+            if [ "$BACKEND_CHANGES" = "true" ]; then
+              echo "- ✅ Backend: Python syntax validated"
+            fi
+            if [ "$HDAY_FORMAT_CHANGES" = "true" ]; then
+              echo "- ⚠️  .hday format: Ensure backward compatibility"
+            fi
+            echo ""
+            echo "### 🚀 Ready for Review"
+            echo "All automated checks passed! This PR is ready for manual review."
+            echo 'EOF'
+          } >> $GITHUB_ENV
+
+      - name: Comment PR with summary
+        uses: ./.github/actions/upsert-comment
+        with:
+          comment-identifier: '🔍 PR Validation Summary'
+          comment-body: ${{ env.COMMENT_BODY }}
