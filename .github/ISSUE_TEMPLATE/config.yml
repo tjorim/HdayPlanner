@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/tjorim/HdayPlanner/blob/main/README.md
+    about: Check the README for general information about HdayPlanner
+  - name: 📄 .hday Format Specification
+    url: https://github.com/tjorim/HdayPlanner/blob/main/docs/hday-format-spec.md
+    about: Learn about the .hday file format syntax and features
+  - name: 💬 GitHub Discussions
+    url: https://github.com/tjorim/HdayPlanner/discussions
+    about: Ask questions and discuss ideas with the community
