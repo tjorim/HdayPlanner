@@ -60,9 +60,7 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
     if (flagMap[ch]) {
       flags.push(flagMap[ch]);
     } else {
-      console.warn(
-        `Unknown flag character '${ch}' ignored. Known flags: a, p, b, s, i`,
-      );
+      console.warn(`Unknown flag character '${ch}' ignored. Known flags: a, p, b, s, i`);
     }
   }
 
@@ -115,9 +113,7 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
   }
 
   // Remove all type flags and add only the priority one
-  const resolvedFlags = flags.filter(
-    (f) => f !== 'business' && f !== 'course' && f !== 'in',
-  );
+  const resolvedFlags = flags.filter((f) => f !== 'business' && f !== 'course' && f !== 'in');
   resolvedFlags.push(priorityFlag);
 
   return {
@@ -142,8 +138,7 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
 export function parseHday(text: string): HdayEvent[] {
   const reRange =
     /^(?<prefix>[a-z]*)?(?<start>\d{4}\/\d{2}\/\d{2})(?:-(?<end>\d{4}\/\d{2}\/\d{2}))?(?:\s*#\s*(?<title>.*))?$/i;
-  const reWeekly =
-    /^(?<prefix>[a-z]*?)d(?<weekday>[0-6])(?:\s*#\s*(?<title>.*))?$/i;
+  const reWeekly = /^(?<prefix>[a-z]*?)d(?<weekday>[0-6])(?:\s*#\s*(?<title>.*))?$/i;
 
   const lines = text
     .split(/\r?\n/)
@@ -266,9 +261,7 @@ export function getEventColor(flags?: EventFlag[]): string {
   } else if (flags.includes('course')) {
     return hasHalfDay ? EVENT_COLORS.COURSE_HALF : EVENT_COLORS.COURSE_FULL;
   } else if (flags.includes('in')) {
-    return hasHalfDay
-      ? EVENT_COLORS.IN_OFFICE_HALF
-      : EVENT_COLORS.IN_OFFICE_FULL;
+    return hasHalfDay ? EVENT_COLORS.IN_OFFICE_HALF : EVENT_COLORS.IN_OFFICE_FULL;
   } else {
     // Holiday/vacation (default)
     return hasHalfDay ? EVENT_COLORS.HOLIDAY_HALF : EVENT_COLORS.HOLIDAY_FULL;

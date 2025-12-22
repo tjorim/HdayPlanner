@@ -4,6 +4,9 @@ import viteConfig from './vite.config';
 export default mergeConfig(
   viteConfig,
   defineConfig({
+    esbuild: {
+      jsx: 'automatic',
+    },
     test: {
       globals: true,
       environment: 'jsdom',

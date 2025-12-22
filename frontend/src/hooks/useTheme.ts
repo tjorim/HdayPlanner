@@ -47,10 +47,7 @@ export function useTheme() {
   // Apply theme to document root whenever it changes
   useEffect(() => {
     // Guard for SSR environments
-    if (
-      typeof document !== 'undefined' &&
-      typeof localStorage !== 'undefined'
-    ) {
+    if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
       document.documentElement.setAttribute(THEME_ATTRIBUTE, theme);
       localStorage.setItem(THEME_KEY, theme);
     }

@@ -76,10 +76,7 @@ describe('MonthGrid - National Holidays', () => {
     // Create a mock holiday map with multiple holidays
     const holidays = new Map([
       ['2025/01/01', { name: "New Year's Day", localName: 'Nieuwjaarsdag' }],
-      [
-        '2025/01/20',
-        { name: 'MLK Day', localName: 'Martin Luther King Jr. Day' },
-      ],
+      ['2025/01/20', { name: 'MLK Day', localName: 'Martin Luther King Jr. Day' }],
     ]);
 
     render(<MonthGrid events={events} ym={ym} nationalHolidays={holidays} />);
@@ -117,9 +114,7 @@ describe('MonthGrid - National Holidays', () => {
     const events: HdayEvent[] = [];
     const ym = '2025-12';
 
-    const holidays = new Map([
-      ['2025/12/25', { name: 'Christmas Day', localName: 'Kerstmis' }],
-    ]);
+    const holidays = new Map([['2025/12/25', { name: 'Christmas Day', localName: 'Kerstmis' }]]);
 
     render(<MonthGrid events={events} ym={ym} nationalHolidays={holidays} />);
 

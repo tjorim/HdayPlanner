@@ -32,9 +32,7 @@ describe('useTheme', () => {
       const { result } = renderHook(() => useTheme());
 
       expect(result.current.theme).toBe('light');
-      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe(
-        'light',
-      );
+      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light');
       expect(localStorage.getItem(THEME_KEY)).toBe('light');
     } finally {
       // Restore original matchMedia
@@ -76,9 +74,7 @@ describe('useTheme', () => {
     });
 
     expect(result.current.theme).toBe('light');
-    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe(
-      'light',
-    );
+    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light');
     expect(localStorage.getItem(THEME_KEY)).toBe('light');
   });
 
@@ -113,9 +109,7 @@ describe('useTheme', () => {
     const { result } = renderHook(() => useTheme());
 
     expect(result.current.theme).toBe('light');
-    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe(
-      'light',
-    );
+    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light');
   });
 
   it('should respect system preference when no stored preference exists', () => {
@@ -137,9 +131,7 @@ describe('useTheme', () => {
       const { result } = renderHook(() => useTheme());
 
       expect(result.current.theme).toBe('dark');
-      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe(
-        'dark',
-      );
+      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('dark');
     } finally {
       // Restore original matchMedia
       window.matchMedia = originalMatchMedia;

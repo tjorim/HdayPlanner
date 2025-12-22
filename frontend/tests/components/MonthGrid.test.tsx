@@ -68,15 +68,10 @@ describe('MonthGrid - Today Highlighting', () => {
     // Get all day cells
     const allCells = screen
       .getAllByRole('generic')
-      .filter(
-        (el) =>
-          el.className.includes('day') && !el.className.includes('calendar'),
-      );
+      .filter((el) => el.className.includes('day') && !el.className.includes('calendar'));
 
     // Count cells with day--today class (should be exactly 1)
-    const todayCells = allCells.filter((el) =>
-      el.className.includes('day--today'),
-    );
+    const todayCells = allCells.filter((el) => el.className.includes('day--today'));
 
     expect(todayCells.length).toBe(1);
   });
@@ -120,15 +115,10 @@ describe('MonthGrid - Today Highlighting', () => {
     // Get all day cells
     const allCells = screen
       .getAllByRole('generic')
-      .filter(
-        (el) =>
-          el.className.includes('day') && !el.className.includes('calendar'),
-      );
+      .filter((el) => el.className.includes('day') && !el.className.includes('calendar'));
 
     // No cells should have day--today class
-    const todayCells = allCells.filter((el) =>
-      el.className.includes('day--today'),
-    );
+    const todayCells = allCells.filter((el) => el.className.includes('day--today'));
 
     expect(todayCells.length).toBe(0);
   });

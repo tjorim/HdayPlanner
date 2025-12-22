@@ -19,11 +19,7 @@ export interface NationalHoliday {
  * @param enabled Whether to fetch holidays (for conditional loading)
  * @returns Object with holidays array, loading state, and error
  */
-export function useNationalHolidays(
-  countryCode: string,
-  year: number,
-  enabled: boolean = true,
-) {
+export function useNationalHolidays(countryCode: string, year: number, enabled: boolean = true) {
   const [holidays, setHolidays] = useState<NationalHoliday[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,9 +52,7 @@ export function useNationalHolidays(
         );
 
         if (!cancelled && !response.ok) {
-          throw new Error(
-            `Failed to fetch holidays: ${response.status} ${response.statusText}`,
-          );
+          throw new Error(`Failed to fetch holidays: ${response.status} ${response.statusText}`);
         }
 
         if (cancelled) {
@@ -121,9 +115,7 @@ export function useNationalHolidays(
 export function convertDateFormat(nagerDate: string): string {
   // Basic validation: ensure format is YYYY-MM-DD
   if (!/^\d{4}-\d{2}-\d{2}$/.test(nagerDate)) {
-    console.warn(
-      `Invalid date format: ${nagerDate}. Expected YYYY-MM-DD format.`,
-    );
+    console.warn(`Invalid date format: ${nagerDate}. Expected YYYY-MM-DD format.`);
     return nagerDate;
   }
   return nagerDate.replace(/-/g, '/');

@@ -8,10 +8,7 @@ import { type RefObject, useEffect } from 'react';
  * @param ref - React ref to the container element that should trap focus
  * @param isActive - Whether the focus trap is active
  */
-export function useFocusTrap(
-  ref: RefObject<HTMLElement>,
-  isActive: boolean,
-): void {
+export function useFocusTrap(ref: RefObject<HTMLElement>, isActive: boolean): void {
   useEffect(() => {
     if (!isActive || !ref.current) return;
 
@@ -83,9 +80,7 @@ export function useFocusTrap(
       if (focusableElements.length === 0) return;
 
       const firstElement = focusableElements[0] as HTMLElement;
-      const lastElement = focusableElements[
-        focusableElements.length - 1
-      ] as HTMLElement;
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
 
       if (e.shiftKey) {
         // Shift + Tab: wrap from first to last

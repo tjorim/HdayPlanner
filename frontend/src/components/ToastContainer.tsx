@@ -23,11 +23,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
     <div className="toast-container">
       {toasts.map((toast) =>
         toast.type === 'error' ? (
-          <div
-            key={toast.id}
-            role="alert"
-            className={`toast toast--${toast.type}`}
-          >
+          <div key={toast.id} role="alert" className={`toast toast--${toast.type}`}>
             <span className="toast-message">{toast.message}</span>
             <button
               onClick={() => onRemove(toast.id)}
@@ -38,11 +34,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
             </button>
           </div>
         ) : (
-          <div
-            key={toast.id}
-            role="status"
-            className={`toast toast--${toast.type}`}
-          >
+          <div key={toast.id} role="status" className={`toast toast--${toast.type}`}>
             <span className="toast-message">{toast.message}</span>
             <button
               onClick={() => onRemove(toast.id)}

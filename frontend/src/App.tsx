@@ -1,18 +1,9 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getHday, type HdayDocument, putHday } from './api/hday';
 import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { MonthGrid } from './components/MonthGrid';
 import { ToastContainer } from './components/ToastContainer';
-import {
-  convertDateFormat,
-  useNationalHolidays,
-} from './hooks/useNationalHolidays';
+import { convertDateFormat, useNationalHolidays } from './hooks/useNationalHolidays';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
 import { isValidDate, parseHdayDate } from './lib/dateValidation';
@@ -30,10 +21,8 @@ const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 const SCROLL_FOCUS_DELAY = 300; // Delay in ms for focusing after smooth scroll
 
 // Error message constants
-const ERROR_INVALID_DATE_FORMAT =
-  'Invalid date format or impossible date (use YYYY/MM/DD)';
-const ERROR_END_DATE_BEFORE_START =
-  'End date must be the same or after start date';
+const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)';
+const ERROR_END_DATE_BEFORE_START = 'End date must be the same or after start date';
 const ERROR_START_DATE_REQUIRED = 'Start date is required';
 
 /**
@@ -78,9 +67,7 @@ export default function App() {
   const [eventWeekday, setEventWeekday] = useState(1);
   const [eventFlags, setEventFlags] = useState<string[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
-    new Set(),
-  );
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const formRef = React.useRef<HTMLDivElement>(null);
   const importFileInputRef = React.useRef<HTMLInputElement>(null);
   const selectAllCheckboxRef = React.useRef<HTMLInputElement>(null);
@@ -116,11 +103,7 @@ export default function App() {
   }, [month]);
 
   // Fetch national holidays (always enabled for NL)
-  const { holidays, error: holidaysError } = useNationalHolidays(
-    'NL',
-    currentYear,
-    true,
-  );
+  const { holidays, error: holidaysError } = useNationalHolidays('NL', currentYear, true);
 
   // Convert holidays to a Map for quick lookup by date
   const holidayMap = useMemo(() => {
@@ -170,10 +153,7 @@ export default function App() {
       setDoc(d);
     } catch (error) {
       console.error('Failed to load from API:', error);
-      showToast(
-        'Failed to load from API. Make sure the backend is running.',
-        'error',
-      );
+      showToast('Failed to load from API. Make sure the backend is running.', 'error');
     }
   }, [user, showToast]);
 
@@ -190,10 +170,7 @@ export default function App() {
       showToast(res, 'success');
     } catch (error) {
       console.error('Failed to save to API:', error);
-      showToast(
-        'Failed to save to API. Make sure the backend is running.',
-        'error',
-      );
+      showToast('Failed to save to API. Make sure the backend is running.', 'error');
     }
   }
 
@@ -599,8 +576,7 @@ export default function App() {
             });
             // Focus the first input in the form after scrolling
             focusTimeoutId = setTimeout(() => {
-              const firstInput =
-                formRef.current?.querySelector('input, select');
+              const firstInput = formRef.current?.querySelector('input, select');
               if (firstInput instanceof HTMLElement) {
                 firstInput.focus();
               }
@@ -670,20 +646,14 @@ export default function App() {
       }
       if (!isValidDate(eventStart)) {
         setStartDateError(ERROR_INVALID_DATE_FORMAT);
-        showToast(
-          'Please provide a valid start date in YYYY/MM/DD format.',
-          'warning',
-        );
+        showToast('Please provide a valid start date in YYYY/MM/DD format.', 'warning');
         return;
       }
 
       // Validate end date if provided
       if (eventEnd && !isValidDate(eventEnd)) {
         setEndDateError(ERROR_INVALID_DATE_FORMAT);
-        showToast(
-          'Please provide a valid end date in YYYY/MM/DD format.',
-          'warning',
-        );
+        showToast('Please provide a valid end date in YYYY/MM/DD format.', 'warning');
         return;
       }
 
@@ -693,10 +663,7 @@ export default function App() {
         const endDate = parseHdayDate(eventEnd);
         if (endDate < startDate) {
           setEndDateError(ERROR_END_DATE_BEFORE_START);
-          showToast(
-            'End date must be the same or after start date.',
-            'warning',
-          );
+          showToast('End date must be the same or after start date.', 'warning');
           return;
         }
       }
@@ -705,8 +672,9 @@ export default function App() {
     const flags = eventFlags.filter((f) => f !== 'holiday');
 
     // Resolve type flag conflicts using priority order
-    const { resolvedFlags, hasConflict, selectedFlag } =
-      resolveTypeFlagConflicts(flags as EventFlag[]);
+    const { resolvedFlags, hasConflict, selectedFlag } = resolveTypeFlagConflicts(
+      flags as EventFlag[],
+    );
 
     if (hasConflict && selectedFlag) {
       showToast(
@@ -864,12 +832,11 @@ export default function App() {
       {!USE_BACKEND && (
         <>
           <p className="muted">
-            Paste your <code>.hday</code> content below (or load a file), click{' '}
-            <b>Parse</b>, then edit and <b>Download</b> back to{' '}
-            <code>.hday</code>. Flags: <code>a</code>=half AM, <code>p</code>
+            Paste your <code>.hday</code> content below (or load a file), click <b>Parse</b>, then
+            edit and <b>Download</b> back to <code>.hday</code>. Flags: <code>a</code>=half AM,{' '}
+            <code>p</code>
             =half PM, <code>b</code>=business,
-            <code>s</code>=course, <code>i</code>=in; weekly entries use{' '}
-            <code>d0..d6</code>.
+            <code>s</code>=course, <code>i</code>=in; weekly entries use <code>d0..d6</code>.
           </p>
           <label htmlFor="hdayText">Raw .hday content</label>
           <textarea
@@ -908,10 +875,7 @@ export default function App() {
                 ? 'Duplicate 1 event'
                 : `Duplicate ${selectedIndices.size} events`}
           </button>
-          <button
-            onClick={handleImportFile}
-            title="Import events from another .hday file"
-          >
+          <button onClick={handleImportFile} title="Import events from another .hday file">
             Import from .hday
           </button>
           <input
@@ -933,10 +897,7 @@ export default function App() {
                 <input
                   ref={selectAllCheckboxRef}
                   type="checkbox"
-                  checked={
-                    selectedIndices.size === doc.events.length &&
-                    doc.events.length > 0
-                  }
+                  checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
                   onChange={handleSelectAll}
                   aria-label="Select or deselect all events in the table"
                   title="Select/deselect all events"
@@ -957,9 +918,7 @@ export default function App() {
             // Get the original index from the array for edit/delete operations
             const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1;
             return (
-              <tr
-                key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}
-              >
+              <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
                 {!USE_BACKEND && (
                   <td>
                     <input
@@ -976,9 +935,7 @@ export default function App() {
                 <td>{ev.start || ''}</td>
                 <td>
                   {ev.type === 'weekly'
-                    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
-                        ev.weekday || 0
-                      ]
+                    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][ev.weekday || 0]
                     : ev.end || ''}
                 </td>
                 <td>{ev.flags?.join(', ')}</td>
@@ -989,9 +946,7 @@ export default function App() {
                       onClick={() => handleEdit(originalIdx)}
                       disabled={ev.type === 'unknown' || originalIdx === -1}
                       title={
-                        ev.type === 'unknown'
-                          ? 'Cannot edit unknown event types'
-                          : 'Edit event'
+                        ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'
                       }
                     >
                       Edit
@@ -1003,10 +958,7 @@ export default function App() {
                     >
                       Duplicate
                     </button>
-                    <button
-                      onClick={() => handleDelete(originalIdx)}
-                      disabled={originalIdx === -1}
-                    >
+                    <button onClick={() => handleDelete(originalIdx)} disabled={originalIdx === -1}>
                       Delete
                     </button>
                   </td>
@@ -1027,9 +979,7 @@ export default function App() {
               <select
                 id="eventType"
                 value={eventType}
-                onChange={(e) =>
-                  setEventType(e.target.value as 'range' | 'weekly')
-                }
+                onChange={(e) => setEventType(e.target.value as 'range' | 'weekly')}
               >
                 <option value="range">Range (start-end)</option>
                 <option value="weekly">Weekly (weekday)</option>
@@ -1049,8 +999,7 @@ export default function App() {
             {eventType === 'range' ? (
               <div>
                 <label htmlFor="eventStart">
-                  Start (YYYY/MM/DD){' '}
-                  <span className="required-indicator">*</span>
+                  Start (YYYY/MM/DD) <span className="required-indicator">*</span>
                 </label>
                 <br />
                 <input
@@ -1061,18 +1010,12 @@ export default function App() {
                   className={startDateError ? 'input-error' : ''}
                   aria-invalid={!!startDateError}
                   aria-required="true"
-                  aria-describedby={
-                    startDateError ? 'eventStart-error' : undefined
-                  }
+                  aria-describedby={startDateError ? 'eventStart-error' : undefined}
                 />
                 {/* Wrapper always occupies space (min-height) to prevent layout shifts */}
                 <div className="error-message-wrapper">
                   {startDateError && (
-                    <div
-                      id="eventStart-error"
-                      className="error-message"
-                      role="alert"
-                    >
+                    <div id="eventStart-error" className="error-message" role="alert">
                       {startDateError}
                     </div>
                   )}
@@ -1092,11 +1035,7 @@ export default function App() {
                 {/* Wrapper always occupies space (min-height) to prevent layout shifts */}
                 <div className="error-message-wrapper">
                   {endDateError && (
-                    <div
-                      id="eventEnd-error"
-                      className="error-message"
-                      role="alert"
-                    >
+                    <div id="eventEnd-error" className="error-message" role="alert">
                       {endDateError}
                     </div>
                   )}
@@ -1109,9 +1048,7 @@ export default function App() {
                 <select
                   id="eventWeekday"
                   value={eventWeekday}
-                  onChange={(e) =>
-                    setEventWeekday(parseInt(e.target.value, 10))
-                  }
+                  onChange={(e) => setEventWeekday(parseInt(e.target.value, 10))}
                 >
                   <option value="0">Sun</option>
                   <option value="1">Mon</option>
@@ -1208,13 +1145,7 @@ export default function App() {
         </span>
       </div>
 
-      {month && (
-        <MonthGrid
-          events={doc.events}
-          ym={month}
-          nationalHolidays={holidayMap}
-        />
-      )}
+      {month && <MonthGrid events={doc.events} ym={month} nationalHolidays={holidayMap} />}
 
       {/* Confirmation dialog */}
       <ConfirmationDialog

@@ -16,9 +16,7 @@ export interface Toast {
  */
 export function useToast(duration: number = 4000) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const timeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(
-    new Map(),
-  );
+  const timeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   const showToast = useCallback(
     (message: string, type: ToastType = 'info') => {

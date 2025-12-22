@@ -181,9 +181,7 @@ describe('useNationalHolidays', () => {
     });
 
     expect(result.current.holidays).toEqual([]);
-    expect(result.current.error).toBe(
-      'Network error: Unable to connect to holiday API',
-    );
+    expect(result.current.error).toBe('Network error: Unable to connect to holiday API');
   });
 
   it('should handle non-OK HTTP responses', async () => {
@@ -204,9 +202,7 @@ describe('useNationalHolidays', () => {
     });
 
     expect(result.current.holidays).toEqual([]);
-    expect(result.current.error).toBe(
-      'Failed to fetch holidays: 404 Not Found',
-    );
+    expect(result.current.error).toBe('Failed to fetch holidays: 404 Not Found');
   });
 
   it('should handle timeout errors', async () => {
@@ -221,9 +217,7 @@ describe('useNationalHolidays', () => {
     });
 
     expect(result.current.holidays).toEqual([]);
-    expect(result.current.error).toBe(
-      'Request timeout: Unable to reach holiday API',
-    );
+    expect(result.current.error).toBe('Request timeout: Unable to reach holiday API');
   });
 
   it('should handle abort errors', async () => {
@@ -238,9 +232,7 @@ describe('useNationalHolidays', () => {
     });
 
     expect(result.current.holidays).toEqual([]);
-    expect(result.current.error).toBe(
-      'Request timeout: Unable to reach holiday API',
-    );
+    expect(result.current.error).toBe('Request timeout: Unable to reach holiday API');
   });
 
   it('should handle generic errors', async () => {
@@ -395,10 +387,9 @@ describe('useNationalHolidays', () => {
         json: async () => holidays2026,
       });
 
-    const { result, rerender } = renderHook(
-      ({ year }) => useNationalHolidays('NL', year, true),
-      { initialProps: { year: 2025 } },
-    );
+    const { result, rerender } = renderHook(({ year }) => useNationalHolidays('NL', year, true), {
+      initialProps: { year: 2025 },
+    });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

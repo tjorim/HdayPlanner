@@ -20,9 +20,6 @@ export async function getHday(user: string): Promise<HdayDocument> {
  * @param doc - hday document containing `raw` content and parsed `events`
  * @returns The response string returned by the API
  */
-export async function putHday(
-  user: string,
-  doc: HdayDocument,
-): Promise<string> {
+export async function putHday(user: string, doc: HdayDocument): Promise<string> {
   return api(`/api/hday/${user}`, { method: 'PUT', body: JSON.stringify(doc) });
 }
