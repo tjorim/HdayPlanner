@@ -35,17 +35,16 @@ jobs:
           npm run build
           echo "✅ Build completed"
 
-      - name: Start HTTP server
+      - name: Start preview server
         working-directory: frontend
         run: |
-          echo "Starting HTTP server for Lighthouse..."
-          cd dist
-          python -m http.server 8080 &
+          echo "Starting Vite preview server for Lighthouse..."
+          npm run preview -- --port 8080 &
 
           # Wait for server to start with polling (max 30 seconds)
           echo "Waiting for server to be ready..."
           for i in {1..30}; do
-            if curl -f http://localhost:8080 > /dev/null 2>&1; then
+            if curl -f http://localhost:8080/HdayPlanner/ > /dev/null 2>&1; then
               echo "✅ Server is running (ready after ${i}s)"
               exit 0
             fi
@@ -56,7 +55,7 @@ jobs:
 
       - name: Run Lighthouse CI
         run: |
-          lhci autorun --upload.target=temporary-public-storage --collect.url=http://localhost:8080
+          lhci autorun --upload.target=temporary-public-storage --collect.url=http://localhost:8080/HdayPlanner/
           echo "✅ Lighthouse CI completed"
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
