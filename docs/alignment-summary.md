@@ -94,6 +94,7 @@ This document summarizes the alignment work completed to bring HdayPlanner's Dev
 
 - **Migration notes**:
   - Added `esbuild: { jsx: 'automatic' }` to vitest.config.ts for test compatibility
+  - Created `.npmrc` with `legacy-peer-deps=true` to handle @vitejs/plugin-react peer dependency (will be resolved in stable release)
   - All 184 tests passing
   - Zero breaking changes to application code
   - Build output size unchanged: ~159KB (gzipped: 52KB)
@@ -155,6 +156,7 @@ To maintain minimal changes and avoid breaking existing functionality:
 - 6 new workflow files
 - 4 new TypeScript config files
 - 2 new Oxc config files (oxlintrc.json + .oxfmtrc.json)
+- 1 new .npmrc file (legacy-peer-deps for Vite 8 beta)
 - 1 new test file (113 .hday parser tests)
 - 33 frontend files formatted with Oxfmt
 - 2 documentation files added
@@ -245,6 +247,9 @@ cat > .oxfmtrc.json << 'EOF'
   "semi": true
 }
 EOF
+
+# Configure npm for Vite 8 beta (temporary until stable release)
+echo "legacy-peer-deps=true" > .npmrc
 
 # Update vitest.config.ts (add for Vite 8 compatibility)
 # Add this to your defineConfig:
