@@ -3,5 +3,6 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  base: '/HdayPlanner/',
   server: { port: 5173 },
 });
