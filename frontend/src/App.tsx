@@ -16,7 +16,7 @@ import {
   sortEvents,
   toLine,
 } from './lib/hday';
-import { dayjs } from './utils/dateTimeUtils';
+import { dayjs, getWeekdayName } from './utils/dateTimeUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 const SCROLL_FOCUS_DELAY = 300; // Delay in ms for focusing after smooth scroll
@@ -33,17 +33,6 @@ const ERROR_START_DATE_REQUIRED = 'Start date is required';
  */
 function getCurrentMonth(): string {
   return dayjs().format('YYYY-MM');
-}
-
-/**
- * Convert ISO weekday number (1-7) to abbreviated day name.
- *
- * @param isoWeekday ISO weekday: 1=Mon, 2=Tue, ..., 7=Sun
- * @returns Abbreviated day name (e.g., "Mon", "Tue", etc.)
- */
-function getWeekdayName(isoWeekday: number): string {
-  const days = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
-  return days[isoWeekday as keyof typeof days] || '';
 }
 
 /**
@@ -844,7 +833,9 @@ export default function App() {
             edit and <b>Download</b> back to <code>.hday</code>. Flags: <code>a</code>=half AM,{' '}
             <code>p</code>
             =half PM, <code>b</code>=business,
-            <code>s</code>=course, <code>i</code>=in; weekly entries use <code>d0..d6</code>.
+            <code>s</code>=course, <code>i</code>=in, <code>w</code>=onsite, <code>n</code>=no fly,{' '}
+            <code>f</code>=can fly; weekly: <code>d1-d7</code> (Mon-Sun) with flags after (e.g.,{' '}
+            <code>d3pb</code>).
           </p>
           <label htmlFor="hdayText">Raw .hday content</label>
           <textarea

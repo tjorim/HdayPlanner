@@ -31,16 +31,6 @@ export const getISOWeekday = (date: Date | dayjs.Dayjs): number => {
 };
 
 /**
- * Get JavaScript-compatible weekday (0-6) where Sunday=0, Saturday=6
- * Use this for compatibility with .hday format (d0=Sunday, d1=Monday, etc.)
- * @param date - Date to get weekday from
- * @returns Weekday number (0-6)
- */
-export const getJSWeekday = (date: Date | dayjs.Dayjs): number => {
-  return dayjs(date).day();
-};
-
-/**
  * Get the Monday of the week containing the given date
  * @param date - Any date in the target week
  * @returns Date object for Monday of that week
@@ -56,4 +46,27 @@ export const getMonday = (date: Date | dayjs.Dayjs): Date => {
  */
 export const pad2 = (n: number): string => {
   return String(n).padStart(2, '0');
+};
+
+/**
+ * Map of ISO weekday numbers to abbreviated day names.
+ * ISO weekday: 1=Monday, 2=Tuesday, ..., 7=Sunday
+ */
+const WEEKDAY_NAMES: Record<number, string> = {
+  1: 'Mon',
+  2: 'Tue',
+  3: 'Wed',
+  4: 'Thu',
+  5: 'Fri',
+  6: 'Sat',
+  7: 'Sun',
+};
+
+/**
+ * Convert ISO weekday number (1-7) to abbreviated day name.
+ * @param isoWeekday ISO weekday: 1=Mon, 2=Tue, ..., 7=Sun
+ * @returns Abbreviated day name (e.g., "Mon", "Tue", etc.)
+ */
+export const getWeekdayName = (isoWeekday: number): string => {
+  return WEEKDAY_NAMES[isoWeekday] || '';
 };

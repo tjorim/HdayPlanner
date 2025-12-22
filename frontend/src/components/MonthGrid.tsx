@@ -2,7 +2,7 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
 import { getEventClass, getHalfDaySymbol } from '../lib/hday';
-import { dayjs, formatHdayDate, getISOWeekday, getJSWeekday, pad2 } from '../utils/dateTimeUtils';
+import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUtils';
 
 interface NationalHolidayInfo {
   name: string;
@@ -166,8 +166,7 @@ export function MonthGrid({
       // Get the day of week for this date
       const currentDate = dayjs(`${year}-${pad2(month)}-${pad2(d)}`);
       const isoWeekday = getISOWeekday(currentDate); // 1=Monday, 7=Sunday for .hday format
-      const jsWeekday = getJSWeekday(currentDate); // 0=Sunday, 6=Saturday for weekend detection
-      const isWeekend = jsWeekday === 0 || jsWeekday === 6;
+      const isWeekend = isoWeekday === 6 || isoWeekday === 7; // Saturday=6, Sunday=7 in ISO
       const holidayInfo = nationalHolidays.get(dateStr);
 
       // Build CSS classes

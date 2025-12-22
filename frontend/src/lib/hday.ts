@@ -1,7 +1,9 @@
 // Type definitions for event flags
-export type HalfDayFlag = 'half_am' | 'half_pm';
+// Time/location flags (mutually exclusive: only one of a/p/w/n/f)
+export type TimeLocationFlag = 'half_am' | 'half_pm' | 'onsite' | 'no_fly' | 'can_fly';
+// Type flags (mutually exclusive: only one of b/s/i, or default to holiday)
 export type TypeFlag = 'business' | 'course' | 'in' | 'holiday';
-export type EventFlag = HalfDayFlag | TypeFlag;
+export type EventFlag = TimeLocationFlag | TypeFlag;
 
 // Type definitions for .hday format
 export type HdayEvent = {
@@ -53,6 +55,9 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
     b: 'business',
     s: 'course',
     i: 'in',
+    w: 'onsite',
+    n: 'no_fly',
+    f: 'can_fly',
   };
 
   const flags: EventFlag[] = [];
@@ -60,7 +65,7 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
     if (flagMap[ch]) {
       flags.push(flagMap[ch]);
     } else {
-      console.warn(`Unknown flag character '${ch}' ignored. Known flags: a, p, b, s, i`);
+      console.warn(`Unknown flag character '${ch}' ignored. Known flags: a, p, b, s, i, w, n, f`);
     }
   }
 
@@ -69,16 +74,32 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
 
 /**
  * Ensure an array of event flags includes a type flag by appending `'holiday'` when none of `'business'`, `'course'`, or `'in'` is present.
+ * Also enforces mutual exclusivity of time/location flags (a/p/w/n/f) by keeping only the first one found.
  *
  * @param flags - The event flags to normalize
  * @returns A new array with `'holiday'` appended if no type flag is present; the input array is never modified.
  */
 export function normalizeEventFlags(flags: EventFlag[]): EventFlag[] {
-  // Default to 'holiday' if no type flags
-  if (!flags.some((f) => TYPE_FLAGS_SET.has(f))) {
-    return [...flags, 'holiday'];
+  let normalized = [...flags];
+
+  // Enforce mutual exclusivity of time/location flags (only keep first one)
+  const timeLocationFlags: TimeLocationFlag[] = ['half_am', 'half_pm', 'onsite', 'no_fly', 'can_fly'];
+  const foundTimeLocation = timeLocationFlags.filter(f => normalized.includes(f));
+
+  if (foundTimeLocation.length > 1) {
+    // Keep only the first time/location flag, remove the rest
+    const firstFlag = foundTimeLocation[0];
+    normalized = normalized.filter(f =>
+      !timeLocationFlags.includes(f as TimeLocationFlag) || f === firstFlag
+    );
+    console.warn(`Multiple time/location flags found (${foundTimeLocation.join(', ')}). Keeping only: ${firstFlag}`);
   }
-  return [...flags];
+
+  // Default to 'holiday' if no type flags
+  if (!normalized.some((f) => TYPE_FLAGS_SET.has(f))) {
+    return [...normalized, 'holiday'];
+  }
+  return normalized;
 }
 
 /**
@@ -113,7 +134,7 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
   }
 
   // Remove all type flags and add only the priority one
-  const resolvedFlags = flags.filter((f) => f !== 'business' && f !== 'course' && f !== 'in');
+  const resolvedFlags: EventFlag[] = flags.filter((f) => f !== 'business' && f !== 'course' && f !== 'in');
   resolvedFlags.push(priorityFlag);
 
   return {
@@ -127,9 +148,9 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
  * Parse .hday text format into an array of HdayEvent objects.
  *
  * Format:
- * - Range events: `[prefix]YYYY/MM/DD-YYYY/MM/DD # title`
- * - Weekly events: `[prefix]dN # title` where N is 1-7 (Mon-Sun, ISO weekday)
- * - Prefix flags: a=half_am, p=half_pm, b=business, s=course, i=in
+ * - Range events: `[flags]YYYY/MM/DD-YYYY/MM/DD # title`
+ * - Weekly events: `dN[flags] # title` where N is 1-7 (Mon-Sun, ISO weekday)
+ * - Flags: a=half_am, p=half_pm, b=business, s=course, i=in, w=onsite, n=no_fly, f=can_fly
  * - Events without type flags (b/s/i) default to 'holiday'
  *
  * @param text Raw .hday file content
@@ -138,7 +159,7 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
 export function parseHday(text: string): HdayEvent[] {
   const reRange =
     /^(?<prefix>[a-z]*)?(?<start>\d{4}\/\d{2}\/\d{2})(?:-(?<end>\d{4}\/\d{2}\/\d{2}))?(?:\s*#\s*(?<title>.*))?$/i;
-  const reWeekly = /^(?<prefix>[a-z]*?)d(?<weekday>[1-7])(?:\s*#\s*(?<title>.*))?$/i;
+  const reWeekly = /^d(?<weekday>[1-7])(?<suffix>[a-z]*?)(?:\s*#\s*(?<title>.*))?$/i;
 
   const lines = text
     .split(/\r?\n/)
@@ -167,12 +188,12 @@ export function parseHday(text: string): HdayEvent[] {
     // Try parsing as weekly event
     const weeklyMatch = line.match(reWeekly);
     if (weeklyMatch?.groups) {
-      const { prefix = '', weekday, title = '' } = weeklyMatch.groups;
-      const flags = parsePrefixFlags(prefix);
+      const { suffix = '', weekday, title = '' } = weeklyMatch.groups;
+      const flags = parsePrefixFlags(suffix);
 
       events.push({
         type: 'weekly',
-        weekday: parseInt(weekday, 10),
+        weekday: parseInt(weekday || '0', 10),
         flags,
         title: title.trim(),
         raw: line,
@@ -205,11 +226,21 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
     business: 'b',
     course: 's',
     in: 'i',
+    onsite: 'w',
+    no_fly: 'n',
+    can_fly: 'f',
   };
 
-  const prefix = (ev.flags || [])
-    .filter((f) => f !== 'holiday')
-    .map((f) => flagMap[f] || '')
+  // Canonical flag order: time/location flags first (a/p/w/n/f), then type flags (b/s/i)
+  const flagOrder: EventFlag[] = [
+    'half_am', 'half_pm', 'onsite', 'no_fly', 'can_fly',
+    'business', 'course', 'in'
+  ];
+
+  const flags = ev.flags || [];
+  const prefix = flagOrder
+    .filter((f) => flags.includes(f))
+    .map((f) => flagMap[f])
     .join('');
 
   const title = ev.title ? ` # ${ev.title}` : '';
@@ -220,7 +251,7 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
     }
     return `${prefix}${ev.start}-${ev.end}${title}`;
   } else if (ev.type === 'weekly') {
-    return `${prefix}d${ev.weekday}${title}`;
+    return `d${ev.weekday}${prefix}${title}`;
   } else if (ev.type === 'unknown') {
     // Unknown event types must have the raw field for serialization
     if ('raw' in ev && ev.raw) {
@@ -269,23 +300,25 @@ export function getEventColor(flags?: EventFlag[]): string {
 }
 
 /**
- * Return a Unicode symbol representing a half-day based on event flags.
+ * Return a symbol representing time/location based on event flags.
  *
- * @param flags - Optional list of event flags; presence of `half_am` or `half_pm` determines the symbol
- * @returns `◐` if only `half_am` is present, `◑` if only `half_pm` is present, or an empty string otherwise
+ * @param flags - Optional list of event flags; presence of time/location flags determines the symbol
+ * @returns Symbol for the time/location flag, or empty string if none present
+ * - `◐` for half_am (morning half-day)
+ * - `◑` for half_pm (afternoon half-day)
+ * - `W` for onsite (onsite support)
+ * - `N` for no_fly (not able to fly)
+ * - `F` for can_fly (in principle able to fly)
  */
 export function getHalfDaySymbol(flags?: EventFlag[]): string {
   if (!flags) return '';
 
-  const hasAm = flags.includes('half_am');
-  const hasPm = flags.includes('half_pm');
-
-  // Both flags = full day, no symbol
-  if (hasAm && hasPm) return '';
-
-  // Only one flag = half day, show symbol
-  if (hasAm) return '◐';
-  if (hasPm) return '◑';
+  // Only one time/location flag can be present (mutually exclusive)
+  if (flags.includes('half_am')) return '◐';
+  if (flags.includes('half_pm')) return '◑';
+  if (flags.includes('onsite')) return 'W';
+  if (flags.includes('no_fly')) return 'N';
+  if (flags.includes('can_fly')) return 'F';
 
   return '';
 }
@@ -314,7 +347,7 @@ export function getEventClass(flags?: EventFlag[]): string {
  *
  * Sorting order:
  * 1. Range events sorted by start date (oldest first)
- * 2. Weekly events sorted by weekday (Sunday=0 to Saturday=6)
+ * 2. Weekly events sorted by weekday (Monday=1 to Sunday=7, ISO weekday)
  * 3. Unknown events at the end (maintain original order)
  *
  * @param events Array of HdayEvent objects to sort
