@@ -37,7 +37,12 @@ updates:
           - "@testing-library/*"
           - "@vitest/*"
           - "vitest"
-          - "jsdom"
+          - "happy-dom"
+      # Group Oxc toolchain (Rust-based linting and formatting)
+      oxc:
+        patterns:
+          - "oxlint"
+          - "oxfmt"
 
   # Monitor Python dependencies in backend
   - package-ecosystem: "pip"
