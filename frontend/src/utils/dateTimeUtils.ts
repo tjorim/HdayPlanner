@@ -66,10 +66,11 @@ const WEEKDAY_NAMES: Record<number, string> = {
  * Convert ISO weekday number (1-7) to abbreviated day name.
  * @param isoWeekday ISO weekday: 1=Mon, 2=Tue, ..., 7=Sun
  * @returns Abbreviated day name (e.g., "Mon", "Tue", etc.)
+ * @throws {RangeError} If isoWeekday is not in the range 1-7
  */
 export const getWeekdayName = (isoWeekday: number): string => {
   if (isoWeekday < 1 || isoWeekday > 7) {
-    console.warn(`Invalid ISO weekday: ${isoWeekday}. Expected 1-7.`);
+    throw new RangeError(`Invalid ISO weekday: ${isoWeekday}. Expected 1-7.`);
   }
-  return WEEKDAY_NAMES[isoWeekday] || '';
+  return WEEKDAY_NAMES[isoWeekday]!;
 };

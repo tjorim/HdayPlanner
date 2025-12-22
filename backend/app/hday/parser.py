@@ -1,9 +1,15 @@
+import logging
 import re
 from typing import List
 from .models import HdayEvent
 
+logger = logging.getLogger(__name__)
+
 PREFIX_MAP = {'a': 'half_am', 'p': 'half_pm', 'b': 'business', 'e': 'weekend', 'h': 'birthday', 'i': 'ill', 'k': 'in', 's': 'course', 'u': 'other', 'w': 'onsite', 'n': 'no_fly', 'f': 'can_fly'}
 REV_MAP = {v:k for k,v in PREFIX_MAP.items()}
+
+# Type flags that determine event category (mutually exclusive)
+TYPE_FLAGS = ('business', 'weekend', 'birthday', 'ill', 'in', 'course', 'other')
 
 RE_RANGE  = re.compile(r'^(?P<prefix>[a-z]*)?(?P<start>\d{4}/\d{2}/\d{2})(?:-(?P<end>\d{4}/\d{2}/\d{2}))?(?:\s*#\s*(?P<title>.*))?$', re.I)
 RE_WEEKLY = re.compile(r'^d(?P<weekday>[1-7])(?P<suffix>[a-z]*?)(?:\s*#\s*(?P<title>.*))?$', re.I)
@@ -22,16 +28,16 @@ def normalize_flags(flags: List[str]) -> List[str]:
     if len(found_time_location) > 1:
         first_flag = found_time_location[0]
         normalized = [f for f in normalized if f not in time_location_flags or f == first_flag]
-        print(f"Warning: Multiple time/location flags found ({', '.join(found_time_location)}). Keeping only: {first_flag}")
+        logger.warning(f"Multiple time/location flags found ({', '.join(found_time_location)}). Keeping only: {first_flag}")
 
     # Enforce mutual exclusivity of type flags
-    type_flags = ['business', 'weekend', 'birthday', 'ill', 'in', 'course', 'other']
+    type_flags = list(TYPE_FLAGS)
     found_types = [f for f in normalized if f in type_flags]
 
     if len(found_types) > 1:
         first_type = found_types[0]
         normalized = [f for f in normalized if f not in type_flags or f == first_type]
-        print(f"Warning: Multiple type flags found ({', '.join(found_types)}). Keeping only: {first_type}")
+        logger.warning(f"Multiple type flags found ({', '.join(found_types)}). Keeping only: {first_type}")
 
     return normalized
 
@@ -46,7 +52,7 @@ def parse_text(text: str) -> List[HdayEvent]:
             prefix = g['prefix'] or ''
             flags = [PREFIX_MAP.get(ch, f'flag_{ch}') for ch in prefix]
             flags = normalize_flags(flags)
-            if not any(f in ('business','weekend','birthday','ill','in','course','other') for f in flags):
+            if not any(f in TYPE_FLAGS for f in flags):
                 flags.append('holiday')
             events.append(HdayEvent(
                 type='range', start=g['start'], end=g['end'] or g['start'],
@@ -59,7 +65,7 @@ def parse_text(text: str) -> List[HdayEvent]:
             suffix = g['suffix'] or ''
             flags = [PREFIX_MAP.get(ch, f'flag_{ch}') for ch in suffix]
             flags = normalize_flags(flags)
-            if not any(f in ('business','weekend','birthday','ill','in','course','other') for f in flags):
+            if not any(f in TYPE_FLAGS for f in flags):
                 flags.append('holiday')
             events.append(HdayEvent(
                 type='weekly', weekday=int(g['weekday']),

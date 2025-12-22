@@ -14,6 +14,17 @@ interface EventItemProps {
 }
 
 /**
+ * Accessible labels for time/location symbols
+ */
+const SYMBOL_LABELS: Record<string, string> = {
+  '◐': 'Morning half-day event',
+  '◑': 'Afternoon half-day event',
+  W: 'Onsite support',
+  N: 'Not able to fly',
+  F: 'In principle able to fly',
+};
+
+/**
  * Renders a single event item within a calendar day cell, with an optional half-day symbol.
  *
  * The component displays the event's title (falls back to "Event" if missing)
@@ -26,21 +37,7 @@ interface EventItemProps {
 function EventItem({ event }: EventItemProps) {
   const eventClass = getEventClass(event.flags);
   const symbol = getTimeLocationSymbol(event.flags);
-
-  // Generate accessible label for time/location symbols
-  // Symbols: ◐ (AM), ◑ (PM), W (onsite), N (no fly), F (can fly)
-  const symbolLabel =
-    symbol === '◐'
-      ? 'Morning half-day event'
-      : symbol === '◑'
-        ? 'Afternoon half-day event'
-        : symbol === 'W'
-          ? 'Onsite support'
-          : symbol === 'N'
-            ? 'Not able to fly'
-            : symbol === 'F'
-              ? 'In principle able to fly'
-              : undefined;
+  const symbolLabel = symbol ? SYMBOL_LABELS[symbol] : undefined;
 
   return (
     <div className={`event-item ${eventClass}`}>
