@@ -18,7 +18,7 @@ YYYY/MM/DD-YYYY/MM/DD    # Date range (inclusive)
 
 **Weekly Recurring:**
 ```
-d<0-6>    # Recurring every week on specific day (0=Sunday, 6=Saturday)
+d<1-7>    # Recurring every week on specific day (ISO weekday: 1=Monday, 7=Sunday)
 ```
 
 ## Prefix Flags
@@ -54,7 +54,7 @@ Flags can be combined by concatenating them. Common patterns:
 | `ai` | In office, half day AM | Light Teal with `,` (#00B8CC) |
 | `pi` | In office, half day PM | Light Teal with `'` (#00B8CC) |
 
-**Note:** Weekly recurring events (`d0-d6`) follow the same flag-based color scheme as above. For example, `d1` (Monday) is red, `bd5` (business Friday) is orange, `sd2` (training Tuesday) is dark yellow, etc.
+**Note:** Weekly recurring events (`d1-d7`) follow the same flag-based color scheme as above. For example, `d1` (Monday) is red, `bd5` (business Friday) is orange, `sd2` (training Tuesday) is dark yellow, etc.
 
 ## Comments and Metadata
 
@@ -95,7 +95,7 @@ as2024/03/12-2024/03/12 # Training in morning only
 i2024/07/01-2024/07/01 # In office despite vacation period
 ip2024/03/20-2024/03/20 # In office, leaving at noon
 
-# Weekly recurring
+# Weekly recurring (ISO weekday: 1=Mon, 7=Sun)
 d1 # Every Monday off
 d5 # Every Friday off
 pd3 # Every Wednesday afternoon off
@@ -139,6 +139,6 @@ When rendered in team overview pages:
 The `.hday` format maintains compatibility with legacy ASML holiday overview systems:
 - Prefix flags (`a`, `p`, `b`, `s`, `i`) are preserved
 - Date ranges use the same format
-- Weekly recurring patterns (`d0..6`) work as before
+- Weekly recurring patterns now use ISO weekday (`d1..d7` for Monday-Sunday)
 - Optional `# title` comments are supported
 - Existing overview pages continue working since files and structure remain unchanged

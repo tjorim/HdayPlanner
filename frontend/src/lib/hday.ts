@@ -128,7 +128,7 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
  *
  * Format:
  * - Range events: `[prefix]YYYY/MM/DD-YYYY/MM/DD # title`
- * - Weekly events: `[prefix]dN # title` where N is 0-6 (Sun-Sat)
+ * - Weekly events: `[prefix]dN # title` where N is 1-7 (Mon-Sun, ISO weekday)
  * - Prefix flags: a=half_am, p=half_pm, b=business, s=course, i=in
  * - Events without type flags (b/s/i) default to 'holiday'
  *
@@ -138,7 +138,7 @@ export function resolveTypeFlagConflicts(flags: EventFlag[]): {
 export function parseHday(text: string): HdayEvent[] {
   const reRange =
     /^(?<prefix>[a-z]*)?(?<start>\d{4}\/\d{2}\/\d{2})(?:-(?<end>\d{4}\/\d{2}\/\d{2}))?(?:\s*#\s*(?<title>.*))?$/i;
-  const reWeekly = /^(?<prefix>[a-z]*?)d(?<weekday>[0-6])(?:\s*#\s*(?<title>.*))?$/i;
+  const reWeekly = /^(?<prefix>[a-z]*?)d(?<weekday>[1-7])(?:\s*#\s*(?<title>.*))?$/i;
 
   const lines = text
     .split(/\r?\n/)

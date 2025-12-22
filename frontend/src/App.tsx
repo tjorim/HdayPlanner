@@ -16,6 +16,7 @@ import {
   sortEvents,
   toLine,
 } from './lib/hday';
+import { dayjs } from './utils/dateTimeUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 const SCROLL_FOCUS_DELAY = 300; // Delay in ms for focusing after smooth scroll
@@ -31,10 +32,18 @@ const ERROR_START_DATE_REQUIRED = 'Start date is required';
  * @returns The current local year and month in `YYYY-MM` format.
  */
 function getCurrentMonth(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
+  return dayjs().format('YYYY-MM');
+}
+
+/**
+ * Convert ISO weekday number (1-7) to abbreviated day name.
+ *
+ * @param isoWeekday ISO weekday: 1=Mon, 2=Tue, ..., 7=Sun
+ * @returns Abbreviated day name (e.g., "Mon", "Tue", etc.)
+ */
+function getWeekdayName(isoWeekday: number): string {
+  const days = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
+  return days[isoWeekday as keyof typeof days] || '';
 }
 
 /**
@@ -99,7 +108,7 @@ export default function App() {
   const currentYear = useMemo(() => {
     const [yearString] = month.split('-');
     const year = Number(yearString);
-    return Number.isInteger(year) ? year : new Date().getFullYear();
+    return Number.isInteger(year) ? year : dayjs().year();
   }, [month]);
 
   // Fetch national holidays (always enabled for NL)
@@ -292,9 +301,8 @@ export default function App() {
       return `Select ${ev.title}`;
     }
 
-    if (ev.type === 'weekly') {
-      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      return `Select weekly event on ${weekdays[ev.weekday || 0]}`;
+    if (ev.type === 'weekly' && ev.weekday) {
+      return `Select weekly event on ${getWeekdayName(ev.weekday)}`;
     }
 
     if (ev.end && ev.end !== ev.start) {
@@ -934,8 +942,8 @@ export default function App() {
                 <td>{ev.type}</td>
                 <td>{ev.start || ''}</td>
                 <td>
-                  {ev.type === 'weekly'
-                    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][ev.weekday || 0]
+                  {ev.type === 'weekly' && ev.weekday
+                    ? getWeekdayName(ev.weekday)
                     : ev.end || ''}
                 </td>
                 <td>{ev.flags?.join(', ')}</td>
@@ -1050,13 +1058,13 @@ export default function App() {
                   value={eventWeekday}
                   onChange={(e) => setEventWeekday(parseInt(e.target.value, 10))}
                 >
-                  <option value="0">Sun</option>
                   <option value="1">Mon</option>
                   <option value="2">Tue</option>
                   <option value="3">Wed</option>
                   <option value="4">Thu</option>
                   <option value="5">Fri</option>
                   <option value="6">Sat</option>
+                  <option value="7">Sun</option>
                 </select>
               </div>
             )}

@@ -261,14 +261,14 @@ describe('MonthGrid - Weekly Recurring Events', () => {
   });
 
   it('displays weekly recurring event only on matching weekdays', () => {
-    // Create a weekly event for Sunday (weekday 0)
+    // Create a weekly event for Sunday (ISO weekday 7)
     const events: HdayEvent[] = [
       {
         type: 'weekly',
-        weekday: 0, // Sunday
+        weekday: 7, // Sunday (ISO weekday)
         flags: ['holiday'],
         title: 'Sunday Event',
-        raw: 'd0 # Sunday Event',
+        raw: 'd7 # Sunday Event',
       },
     ];
 

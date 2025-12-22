@@ -290,7 +290,7 @@ describe('sortEvents', () => {
     expect(sorted[1].type).toBe('weekly');
   });
 
-  it('sorts weekly events by weekday (Sunday=0 to Saturday=6)', () => {
+  it('sorts weekly events by weekday (ISO: Monday=1 to Sunday=7)', () => {
     const events: HdayEvent[] = [
       { type: 'weekly', weekday: 5, flags: ['in'], title: 'Friday' },
       { type: 'weekly', weekday: 1, flags: ['in'], title: 'Monday' },
@@ -299,9 +299,9 @@ describe('sortEvents', () => {
 
     const sorted = sortEvents(events);
 
-    expect(sorted[0].weekday).toBe(1);
-    expect(sorted[1].weekday).toBe(3);
-    expect(sorted[2].weekday).toBe(5);
+    expect(sorted[0].weekday).toBe(1); // Monday
+    expect(sorted[1].weekday).toBe(3); // Wednesday
+    expect(sorted[2].weekday).toBe(5); // Friday
   });
 
   it('places weekly events before unknown events', () => {
@@ -770,11 +770,11 @@ describe('parseHday', () => {
       ]);
     });
 
-    it('parses all weekdays (0-6)', () => {
-      const days = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6'];
+    it('parses all ISO weekdays (1-7)', () => {
+      const days = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7'];
       for (let i = 0; i < days.length; i++) {
         const result = parseHday(days[i] as string);
-        expect(result[0]?.weekday).toBe(i);
+        expect(result[0]?.weekday).toBe(i + 1); // ISO weekday: 1=Mon, 7=Sun
       }
     });
   });

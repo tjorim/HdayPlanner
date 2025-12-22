@@ -2,6 +2,7 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
 import { getEventClass, getHalfDaySymbol } from '../lib/hday';
+import { dayjs, formatHdayDate, getISOWeekday, getJSWeekday, pad2 } from '../utils/dateTimeUtils';
 
 interface NationalHolidayInfo {
   name: string;
@@ -73,16 +74,17 @@ export function MonthGrid({
   const parts = ym.split('-').map(Number);
   const year = parts[0] ?? 0;
   const month = parts[1] ?? 0;
-  const first = new Date(year, month - 1, 1);
-  const last = new Date(year, month, 0);
-  const pad2 = (n: number) => String(n).padStart(2, '0');
+  const first = dayjs(`${year}-${pad2(month)}-01`);
+  const last = first.endOf('month');
 
   // Get today's date in YYYY/MM/DD format for comparison
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}/${pad2(today.getMonth() + 1)}/${pad2(today.getDate())}`;
+  const todayStr = formatHdayDate(dayjs());
 
-  const leadingPad = first.getDay(); // 0..6 (Sun..Sat)
-  const totalDays = last.getDate();
+  // Calculate leading padding for Monday-first week
+  // isoWeekday(): Monday=1, Sunday=7
+  // We need: Monday=0, Sunday=6 for grid positioning
+  const leadingPad = first.isoWeekday() - 1; // Monday=0, Sunday=6
+  const totalDays = last.date();
 
   // Roving tabindex: track which day-cell has focus
   const [focusedIndex, setFocusedIndex] = useState<number>(leadingPad);
@@ -161,10 +163,11 @@ export function MonthGrid({
       const dateStr = `${year}/${pad2(month)}/${pad2(d)}`;
       const isToday = dateStr === todayStr;
 
-      // Get the day of week (0 = Sunday, 6 = Saturday) for this date
-      const currentDate = new Date(year, month - 1, d);
-      const dayOfWeek = currentDate.getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      // Get the day of week for this date
+      const currentDate = dayjs(`${year}-${pad2(month)}-${pad2(d)}`);
+      const isoWeekday = getISOWeekday(currentDate); // 1=Monday, 7=Sunday for .hday format
+      const jsWeekday = getJSWeekday(currentDate); // 0=Sunday, 6=Saturday for weekend detection
+      const isWeekend = jsWeekday === 0 || jsWeekday === 6;
       const holidayInfo = nationalHolidays.get(dateStr);
 
       // Build CSS classes
@@ -184,9 +187,9 @@ export function MonthGrid({
         if (ev.type === 'range' && ev.start && ev.end) {
           return dateStr >= ev.start && dateStr <= ev.end;
         }
-        // Weekly recurring events that match this day of week
+        // Weekly recurring events that match this day of week (ISO: 1=Mon, 7=Sun)
         if (ev.type === 'weekly' && ev.weekday !== undefined) {
-          return ev.weekday === dayOfWeek;
+          return ev.weekday === isoWeekday;
         }
         return false;
       });

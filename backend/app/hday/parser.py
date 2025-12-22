@@ -6,7 +6,7 @@ PREFIX_MAP = {'a': 'half_am', 'p': 'half_pm', 'b': 'business', 's': 'course', 'i
 REV_MAP = {v:k for k,v in PREFIX_MAP.items()}
 
 RE_RANGE  = re.compile(r'^(?P<prefix>[a-z]*)?(?P<start>\d{4}/\d{2}/\d{2})(?:-(?P<end>\d{4}/\d{2}/\d{2}))?(?:\s*#\s*(?P<title>.*))?$', re.I)
-RE_WEEKLY = re.compile(r'^(?P<prefix>[a-z]*?)d(?P<weekday>[0-6])(?:\s*#\s*(?P<title>.*))?$', re.I)
+RE_WEEKLY = re.compile(r'^(?P<prefix>[a-z]*?)d(?P<weekday>[1-7])(?:\s*#\s*(?P<title>.*))?$', re.I)
 
 
 def parse_text(text: str) -> List[HdayEvent]:
