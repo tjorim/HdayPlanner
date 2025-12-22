@@ -118,7 +118,7 @@ describe('MonthGrid - National Holidays', () => {
 
     render(<MonthGrid events={events} ym={ym} nationalHolidays={holidays} />);
 
-    const cell = screen.getByLabelText('2025/12/25 - Christmas Day');
-    expect(cell.getAttribute('aria-label')).toBe('2025/12/25 - Christmas Day');
+    // getByLabelText will throw if element with this aria-label doesn't exist
+    screen.getByLabelText('2025/12/25 - Christmas Day');
   });
 });

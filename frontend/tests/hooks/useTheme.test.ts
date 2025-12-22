@@ -50,17 +50,35 @@ describe('useTheme', () => {
   });
 
   it('should toggle theme from light to dark', () => {
-    const { result } = renderHook(() => useTheme());
+    // Mock window.matchMedia to ensure deterministic behavior
+    const originalMatchMedia = window.matchMedia;
+    try {
+      const mockMatchMedia = vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+      window.matchMedia = mockMatchMedia as any;
 
-    expect(result.current.theme).toBe('light');
+      const { result } = renderHook(() => useTheme());
 
-    act(() => {
-      result.current.toggleTheme();
-    });
+      expect(result.current.theme).toBe('light');
 
-    expect(result.current.theme).toBe('dark');
-    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('dark');
-    expect(localStorage.getItem(THEME_KEY)).toBe('dark');
+      act(() => {
+        result.current.toggleTheme();
+      });
+
+      expect(result.current.theme).toBe('dark');
+      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('dark');
+      expect(localStorage.getItem(THEME_KEY)).toBe('dark');
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
   });
 
   it('should toggle theme from dark to light', () => {
@@ -79,37 +97,73 @@ describe('useTheme', () => {
   });
 
   it('should toggle theme multiple times', () => {
-    const { result } = renderHook(() => useTheme());
+    // Mock window.matchMedia to ensure deterministic behavior
+    const originalMatchMedia = window.matchMedia;
+    try {
+      const mockMatchMedia = vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+      window.matchMedia = mockMatchMedia as any;
 
-    // Start with light
-    expect(result.current.theme).toBe('light');
+      const { result } = renderHook(() => useTheme());
 
-    // Toggle to dark
-    act(() => {
-      result.current.toggleTheme();
-    });
-    expect(result.current.theme).toBe('dark');
+      // Start with light
+      expect(result.current.theme).toBe('light');
 
-    // Toggle back to light
-    act(() => {
-      result.current.toggleTheme();
-    });
-    expect(result.current.theme).toBe('light');
+      // Toggle to dark
+      act(() => {
+        result.current.toggleTheme();
+      });
+      expect(result.current.theme).toBe('dark');
 
-    // Toggle to dark again
-    act(() => {
-      result.current.toggleTheme();
-    });
-    expect(result.current.theme).toBe('dark');
+      // Toggle back to light
+      act(() => {
+        result.current.toggleTheme();
+      });
+      expect(result.current.theme).toBe('light');
+
+      // Toggle to dark again
+      act(() => {
+        result.current.toggleTheme();
+      });
+      expect(result.current.theme).toBe('dark');
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
   });
 
   it('should handle invalid localStorage values by defaulting to light', () => {
     localStorage.setItem(THEME_KEY, 'invalid-theme');
 
-    const { result } = renderHook(() => useTheme());
+    // Mock window.matchMedia to ensure deterministic behavior (no system preference)
+    const originalMatchMedia = window.matchMedia;
+    try {
+      const mockMatchMedia = vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+      window.matchMedia = mockMatchMedia as any;
 
-    expect(result.current.theme).toBe('light');
-    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light');
+      const { result } = renderHook(() => useTheme());
+
+      expect(result.current.theme).toBe('light');
+      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe('light');
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
   });
 
   it('should respect system preference when no stored preference exists', () => {

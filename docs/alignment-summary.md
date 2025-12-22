@@ -287,12 +287,12 @@ npm run build  # Should be significantly faster with Rolldown!
 - **Recommendation**: Adopt now for development, monitor for stable release
 
 **Resources:**
-- Oxc Documentation: https://oxc.rs/
-- Oxlint Rules: https://oxc.rs/docs/guide/usage/linter.html
-- Oxfmt Documentation: https://oxc.rs/docs/guide/usage/formatter.html
-- Rolldown: https://rolldown.rs/
-- Vite 8 Beta Announcement: https://vite.dev/blog/announcing-vite8-beta
-- GitHub: https://github.com/oxc-project/oxc
+- [Oxc Documentation](https://oxc.rs/)
+- [Oxlint Rules](https://oxc.rs/docs/guide/usage/linter.html)
+- [Oxfmt Documentation](https://oxc.rs/docs/guide/usage/formatter.html)
+- [Rolldown](https://rolldown.rs/)
+- [Vite 8 Beta Announcement](https://vite.dev/blog/announcing-vite8-beta)
+- [GitHub](https://github.com/oxc-project/oxc)
 
 ## Conclusion
 

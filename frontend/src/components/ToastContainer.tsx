@@ -26,6 +26,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
           <div key={toast.id} role="alert" className={`toast toast--${toast.type}`}>
             <span className="toast-message">{toast.message}</span>
             <button
+              type="button"
               onClick={() => onRemove(toast.id)}
               aria-label="Close notification"
               className="toast-close-btn"
@@ -37,6 +38,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
           <div key={toast.id} role="status" className={`toast toast--${toast.type}`}>
             <span className="toast-message">{toast.message}</span>
             <button
+              type="button"
               onClick={() => onRemove(toast.id)}
               aria-label="Close notification"
               className="toast-close-btn"

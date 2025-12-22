@@ -44,10 +44,28 @@ export function useFocusTrap(ref: RefObject<HTMLElement>, isActive: boolean): vo
             el instanceof HTMLTextAreaElement) &&
           el.disabled === true;
 
+        // Check if element is inside a disabled fieldset (but not in its first legend)
+        const isInDisabledFieldset = (element: Element): boolean => {
+          let current: Element | null = element;
+          while (current && current !== container) {
+            if (current instanceof HTMLFieldSetElement && current.disabled) {
+              // Elements inside the first <legend> of a disabled fieldset are NOT disabled
+              const firstLegend = current.querySelector(':scope > legend');
+              if (firstLegend && firstLegend.contains(element)) {
+                return false;
+              }
+              return true;
+            }
+            current = current.parentElement;
+          }
+          return false;
+        };
+
         const isHiddenAttr = el instanceof HTMLElement && el.hidden === true;
 
         return (
           !isDisabled &&
+          !isInDisabledFieldset(el) &&
           !isHiddenAttr &&
           style.display !== 'none' &&
           style.visibility !== 'hidden' &&
@@ -61,7 +79,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement>, isActive: boolean): vo
     const focusableElements = getFocusableElements(ref.current);
     if (focusableElements.length > 0) {
       // Focus first focusable child
-      focusableElements[0].focus();
+      focusableElements[0]?.focus();
     } else {
       // No focusable children: make container focusable and focus it
       if (!ref.current.hasAttribute('tabindex')) {
