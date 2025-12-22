@@ -4,7 +4,7 @@ import {
   type EventFlag,
   getEventClass,
   getEventColor,
-  getHalfDaySymbol,
+  getTimeLocationSymbol,
   type HdayEvent,
   normalizeEventFlags,
   parseHday,
@@ -57,8 +57,10 @@ describe('getEventColor', () => {
       expect(getEventColor(['business', 'half_pm'])).toBe(EVENT_COLORS.BUSINESS_HALF);
     });
 
-    it('returns BUSINESS_FULL for business with both half_am and half_pm (both halves = full day)', () => {
-      expect(getEventColor(['business', 'half_am', 'half_pm'])).toBe(EVENT_COLORS.BUSINESS_FULL);
+    it('returns BUSINESS_HALF for business with multiple time flags (keeps only first)', () => {
+      // Mutual exclusivity: only half_am is kept
+      const normalized = normalizeEventFlags(['business', 'half_am', 'half_pm']);
+      expect(getEventColor(normalized)).toBe(EVENT_COLORS.BUSINESS_HALF);
     });
   });
 
@@ -134,49 +136,63 @@ describe('getEventColor', () => {
   });
 });
 
-describe('getHalfDaySymbol', () => {
+describe('getTimeLocationSymbol', () => {
   it('returns empty string for undefined flags', () => {
-    expect(getHalfDaySymbol()).toBe('');
+    expect(getTimeLocationSymbol()).toBe('');
   });
 
   it('returns empty string for empty array', () => {
-    expect(getHalfDaySymbol([])).toBe('');
+    expect(getTimeLocationSymbol([])).toBe('');
   });
 
   it('returns left half-circle (◐) for half_am flag', () => {
-    expect(getHalfDaySymbol(['half_am'])).toBe('◐');
+    expect(getTimeLocationSymbol(['half_am'])).toBe('◐');
   });
 
   it('returns right half-circle (◑) for half_pm flag', () => {
-    expect(getHalfDaySymbol(['half_pm'])).toBe('◑');
+    expect(getTimeLocationSymbol(['half_pm'])).toBe('◑');
   });
 
   it('returns ◐ when half_am is combined with other flags', () => {
-    expect(getHalfDaySymbol(['business', 'half_am'])).toBe('◐');
+    expect(getTimeLocationSymbol(['business', 'half_am'])).toBe('◐');
   });
 
   it('returns ◑ when half_pm is combined with other flags', () => {
-    expect(getHalfDaySymbol(['course', 'half_pm'])).toBe('◑');
+    expect(getTimeLocationSymbol(['course', 'half_pm'])).toBe('◑');
   });
 
   it('returns empty string for full day events', () => {
-    expect(getHalfDaySymbol(['business'])).toBe('');
-    expect(getHalfDaySymbol(['course'])).toBe('');
-    expect(getHalfDaySymbol(['in'])).toBe('');
-    expect(getHalfDaySymbol(['holiday'])).toBe('');
+    expect(getTimeLocationSymbol(['business'])).toBe('');
+    expect(getTimeLocationSymbol(['course'])).toBe('');
+    expect(getTimeLocationSymbol(['in'])).toBe('');
+    expect(getTimeLocationSymbol(['holiday'])).toBe('');
   });
 
-  it('returns empty string when both half_am and half_pm are present (full day)', () => {
-    expect(getHalfDaySymbol(['half_am', 'half_pm'])).toBe('');
+  it('returns first time/location flag when multiple are present (mutual exclusivity)', () => {
+    // When multiple time/location flags are present, normalizeEventFlags keeps only the first one
+    const normalized = normalizeEventFlags(['half_am', 'half_pm']);
+    expect(getTimeLocationSymbol(normalized)).toBe('◐'); // Only half_am is kept
+  });
+
+  it('returns W for onsite flag', () => {
+    expect(getTimeLocationSymbol(['onsite'])).toBe('W');
+  });
+
+  it('returns N for no_fly flag', () => {
+    expect(getTimeLocationSymbol(['no_fly'])).toBe('N');
+  });
+
+  it('returns F for can_fly flag', () => {
+    expect(getTimeLocationSymbol(['can_fly'])).toBe('F');
   });
 
   it('uses Unicode symbols that are more intuitive than comma/apostrophe', () => {
     // Verify we're not using the old symbols
-    expect(getHalfDaySymbol(['half_am'])).not.toBe(',');
-    expect(getHalfDaySymbol(['half_pm'])).not.toBe("'");
+    expect(getTimeLocationSymbol(['half_am'])).not.toBe(',');
+    expect(getTimeLocationSymbol(['half_pm'])).not.toBe("'");
     // Verify Unicode codepoints
-    expect(getHalfDaySymbol(['half_am']).charCodeAt(0)).toBe(0x25d0); // ◐
-    expect(getHalfDaySymbol(['half_pm']).charCodeAt(0)).toBe(0x25d1); // ◑
+    expect(getTimeLocationSymbol(['half_am']).charCodeAt(0)).toBe(0x25d0); // ◐
+    expect(getTimeLocationSymbol(['half_pm']).charCodeAt(0)).toBe(0x25d1); // ◑
   });
 });
 
@@ -208,9 +224,10 @@ describe('normalizeEventFlags', () => {
     expect(result).not.toContain('holiday');
   });
 
-  it('preserves existing flags when adding holiday', () => {
+  it('enforces mutual exclusivity of time/location flags when adding holiday', () => {
     const result = normalizeEventFlags(['half_am', 'half_pm']);
-    expect(result).toEqual(['half_am', 'half_pm', 'holiday']);
+    // Only the first time/location flag is kept (half_am), then holiday is added
+    expect(result).toEqual(['half_am', 'holiday']);
   });
 
   it('preserves existing flags when not adding holiday', () => {
@@ -647,13 +664,27 @@ describe('parseHday', () => {
     });
 
     it('parses range event with in-office flag', () => {
-      const result = parseHday('i2024/12/25');
+      const result = parseHday('k2024/12/25');
       expect(result).toEqual([
         {
           type: 'range',
           start: '2024/12/25',
           end: '2024/12/25',
           flags: ['in'],
+          title: '',
+          raw: 'k2024/12/25',
+        },
+      ]);
+    });
+
+    it('parses range event with ill flag', () => {
+      const result = parseHday('i2024/12/25');
+      expect(result).toEqual([
+        {
+          type: 'range',
+          start: '2024/12/25',
+          end: '2024/12/25',
+          flags: ['ill'],
           title: '',
           raw: 'i2024/12/25',
         },
@@ -689,27 +720,28 @@ describe('parseHday', () => {
     });
 
     it('parses range event with multiple flags', () => {
-      const result = parseHday('ab2024/12/25 # Business trip AM');
+      const result = parseHday('ba2024/12/25 # Business trip AM');
       expect(result).toEqual([
         {
           type: 'range',
           start: '2024/12/25',
           end: '2024/12/25',
-          flags: ['half_am', 'business'],
+          flags: ['business', 'half_am'],
           title: 'Business trip AM',
-          raw: 'ab2024/12/25 # Business trip AM',
+          raw: 'ba2024/12/25 # Business trip AM',
         },
       ]);
     });
 
-    it('parses range event with both half-day flags', () => {
+    it('parses range event with multiple time/location flags (keeps only first)', () => {
       const result = parseHday('ap2024/12/25');
+      // Mutual exclusivity: only half_am (first time/location flag) is kept
       expect(result).toEqual([
         {
           type: 'range',
           start: '2024/12/25',
           end: '2024/12/25',
-          flags: ['half_am', 'half_pm', 'holiday'],
+          flags: ['half_am', 'holiday'],
           title: '',
           raw: 'ap2024/12/25',
         },
@@ -745,27 +777,27 @@ describe('parseHday', () => {
     });
 
     it('parses weekly event with in-office flag', () => {
-      const result = parseHday('id1 # Office day');
+      const result = parseHday('d1k # Office day');
       expect(result).toEqual([
         {
           type: 'weekly',
           weekday: 1,
           flags: ['in'],
           title: 'Office day',
-          raw: 'id1 # Office day',
+          raw: 'd1k # Office day',
         },
       ]);
     });
 
     it('parses weekly event with half-day flag', () => {
-      const result = parseHday('aid2');
+      const result = parseHday('d2ka');
       expect(result).toEqual([
         {
           type: 'weekly',
           weekday: 2,
-          flags: ['half_am', 'in'],
+          flags: ['in', 'half_am'],
           title: '',
-          raw: 'aid2',
+          raw: 'd2ka',
         },
       ]);
     });
@@ -803,7 +835,7 @@ describe('parseHday', () => {
     it('parses multiple events', () => {
       const input = `2024/12/25 # Christmas
 b2024/12/26-2024/12/28 # Business trip
-id1 # Office day`;
+d1k # Office day`;
 
       const result = parseHday(input);
       expect(result).toHaveLength(3);
@@ -882,7 +914,7 @@ describe('toLine', () => {
       flags: ['half_am', 'business'],
       title: 'Business AM',
     };
-    expect(toLine(event)).toBe('ab2024/12/25 # Business AM');
+    expect(toLine(event)).toBe('ba2024/12/25 # Business AM');
   });
 
   it('serializes weekly event', () => {
@@ -892,7 +924,7 @@ describe('toLine', () => {
       flags: ['in'],
       title: 'Office day',
     };
-    expect(toLine(event)).toBe('id1 # Office day');
+    expect(toLine(event)).toBe('d1k # Office day');
   });
 
   it('serializes unknown event with raw field', () => {
@@ -914,8 +946,8 @@ describe('toLine', () => {
 
   it('roundtrips parse and serialize correctly', () => {
     const input = `2024/12/25 # Christmas
-ab2024/12/26 # Business AM
-id1 # Office`;
+ba2024/12/26 # Business AM
+d1k # Office`;
 
     const events = parseHday(input);
     const serialized = events.map((e) => toLine(e)).join('\n');
@@ -949,7 +981,7 @@ id1 # Office`;
       weekday: 3,
       flags: ['in'],
     };
-    expect(toLine(event)).toBe('id3');
+    expect(toLine(event)).toBe('d3k');
   });
 });
 
@@ -974,8 +1006,10 @@ describe('getEventClass', () => {
     expect(getEventClass(['half_pm', 'holiday'])).toBe('event--holiday-half');
   });
 
-  it('returns holiday-full for both half flags', () => {
-    expect(getEventClass(['half_am', 'half_pm', 'holiday'])).toBe('event--holiday-full');
+  it('returns holiday-half for multiple time flags (keeps only first)', () => {
+    // Mutual exclusivity: only half_am is kept
+    const normalized = normalizeEventFlags(['half_am', 'half_pm', 'holiday']);
+    expect(getEventClass(normalized)).toBe('event--holiday-half');
   });
 
   it('returns business-full for business flag', () => {
@@ -1015,7 +1049,9 @@ describe('getEventClass', () => {
   });
 
   it('returns correct class for complex flag combinations', () => {
-    expect(getEventClass(['half_am', 'half_pm', 'business'])).toBe('event--business-full');
+    // Mutual exclusivity: when both half_am and half_pm present, only half_am is kept
+    const normalized1 = normalizeEventFlags(['half_am', 'half_pm', 'business']);
+    expect(getEventClass(normalized1)).toBe('event--business-half');
     expect(getEventClass(['half_am', 'course', 'in'])).toBe('event--course-half');
   });
 });

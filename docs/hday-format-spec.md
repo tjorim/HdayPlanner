@@ -23,7 +23,7 @@ d<1-7>    # Recurring every week on specific day (ISO weekday: 1=Monday, 7=Sunda
 
 ## Prefix Flags
 
-Flags modify the type or timing of an event. Multiple flags can be combined.
+Flags modify the type or timing of an event. You can combine one time/location flag with one type flag.
 
 ### Time/Location Flags (Mutually Exclusive)
 Only one of these flags can be used at a time:
@@ -33,10 +33,15 @@ Only one of these flags can be used at a time:
 - `n` - **N**ot able to fly
 - `f` - In principle able to **f**ly, to be aligned
 
-### Type Flags
+### Type Flags (Mutually Exclusive)
+Only one of these flags can be used at a time:
 - `b` - **Business** trip / out for work
+- `e` - Week**e**nd
+- `h` - Birthday / **h**oliday event
+- `i` - **I**ll / sick leave
+- `k` - In office (override - mar**k**s presence)
 - `s` - Training / cour**se**
-- `i` - **In** office (override - marks presence)
+- `u` - Other / **u**nspecified
 - *(no flag)* - Regular vacation/holiday
 
 ## Flag Combinations
@@ -49,14 +54,14 @@ Flags can be combined by concatenating them. Common patterns:
 | `a` | Half day AM off | Red with `,` (#FF9999) |
 | `p` | Half day PM off | Red with `'` (#FF9999) |
 | `b` | Business trip (full day) | Orange (#FFA500) |
-| `ab` | Business trip, half day AM | Orange with `,` (#FFCC77) |
-| `pb` | Business trip, half day PM | Orange with `'` (#FFCC77) |
+| `ba` | Business trip, half day AM | Orange with `,` (#FFCC77) |
+| `bp` | Business trip, half day PM | Orange with `'` (#FFCC77) |
 | `s` | Training/course (full day) | Dark Yellow/Gold (#D9AD00) |
-| `as` | Training, half day AM | Light Yellow with `,` (#F0D04D) |
-| `ps` | Training, half day PM | Light Yellow with `'` (#F0D04D) |
-| `i` | In office | Teal (#008899) |
-| `ai` | In office, half day AM | Light Teal with `,` (#00B8CC) |
-| `pi` | In office, half day PM | Light Teal with `'` (#00B8CC) |
+| `sa` | Training, half day AM | Light Yellow with `,` (#F0D04D) |
+| `sp` | Training, half day PM | Light Yellow with `'` (#F0D04D) |
+| `k` | In office | Teal (#008899) |
+| `ka` | In office, half day AM | Light Teal with `,` (#00B8CC) |
+| `kp` | In office, half day PM | Light Teal with `'` (#00B8CC) |
 
 **Note:** Weekly recurring events (`d1-d7`) follow the same flag-based color scheme as above. For example, `d1` (Monday) is red, `d5b` (business Friday) is orange, `d2s` (training Tuesday) is dark yellow, etc. Location flags like `w`, `n`, `f` can also be combined (e.g., `d3w` for onsite Wednesday).
 
@@ -89,15 +94,15 @@ a2024/05/15-2024/05/15 # Half day AM off
 
 # Business trips
 b2024/06/10-2024/06/12 # Business trip
-pb2024/09/15-2024/09/15 # Business trip, back at half day PM
+bp2024/09/15-2024/09/15 # Business trip, back at half day PM
 
 # Training
 s2024/04/08-2024/04/08 # Training course
-as2024/03/12-2024/03/12 # Training in morning only
+sa2024/03/12-2024/03/12 # Training in morning only
 
 # In office (override for presence)
-i2024/07/01-2024/07/01 # In office despite vacation period
-ip2024/03/20-2024/03/20 # In office, leaving at noon
+k2024/07/01-2024/07/01 # In office despite vacation period
+kp2024/03/20-2024/03/20 # In office, leaving at noon
 
 # Weekly recurring (ISO weekday: 1=Mon, 7=Sun)
 d1 # Every Monday off
@@ -141,7 +146,7 @@ When rendered in team overview pages:
 ## Compatibility with Legacy Systems
 
 The `.hday` format maintains compatibility with legacy ASML holiday overview systems:
-- Prefix flags (`a`, `p`, `b`, `s`, `i`, `w`, `n`, `f`) are preserved
+- Prefix flags (`a`, `p`, `b`, `e`, `h`, `i`, `k`, `s`, `u`, `w`, `n`, `f`) are preserved
 - Date ranges use the same format: `[flags]YYYY/MM/DD-YYYY/MM/DD`
 - Weekly recurring patterns use ISO weekday: `dN[flags]` where N is 1-7 (Mon-Sun)
 - Optional `# title` comments are supported

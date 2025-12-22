@@ -832,10 +832,10 @@ export default function App() {
             Paste your <code>.hday</code> content below (or load a file), click <b>Parse</b>, then
             edit and <b>Download</b> back to <code>.hday</code>. Flags: <code>a</code>=half AM,{' '}
             <code>p</code>
-            =half PM, <code>b</code>=business,
-            <code>s</code>=course, <code>i</code>=in, <code>w</code>=onsite, <code>n</code>=no fly,{' '}
-            <code>f</code>=can fly; weekly: <code>d1-d7</code> (Mon-Sun) with flags after (e.g.,{' '}
-            <code>d3pb</code>).
+            =half PM, <code>b</code>=business, <code>e</code>=weekend, <code>h</code>=birthday,{' '}
+            <code>i</code>=ill, <code>k</code>=in, <code>s</code>=course, <code>u</code>=other,{' '}
+            <code>w</code>=onsite, <code>n</code>=no fly, <code>f</code>=can fly; weekly:{' '}
+            <code>d1-d7</code> (Mon-Sun) with flags after (e.g., <code>d3pb</code>).
           </p>
           <label htmlFor="hdayText">Raw .hday content</label>
           <textarea

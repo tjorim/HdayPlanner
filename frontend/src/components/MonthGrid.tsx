@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
-import { getEventClass, getHalfDaySymbol } from '../lib/hday';
+import { getEventClass, getTimeLocationSymbol } from '../lib/hday';
 import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUtils';
 
 interface NationalHolidayInfo {
@@ -25,23 +25,27 @@ interface EventItemProps {
  */
 function EventItem({ event }: EventItemProps) {
   const eventClass = getEventClass(event.flags);
-  const symbol = getHalfDaySymbol(event.flags);
+  const symbol = getTimeLocationSymbol(event.flags);
 
-  // Generate accessible label for half-day symbols
-  // getHalfDaySymbol only returns ◐ (AM), ◑ (PM) or '' (no symbol)
-  const halfDayLabel =
+  // Generate accessible label for time/location symbols
+  // Symbols: ◐ (AM), ◑ (PM), W (onsite), N (no fly), F (can fly)
+  const symbolLabel =
     symbol === '◐'
       ? 'Morning half-day event'
       : symbol === '◑'
         ? 'Afternoon half-day event'
-        : undefined;
+        : symbol === 'W'
+          ? 'Onsite support'
+          : symbol === 'N'
+            ? 'Not able to fly'
+            : symbol === 'F'
+              ? 'In principle able to fly'
+              : undefined;
 
   return (
     <div className={`event-item ${eventClass}`}>
       {symbol && (
-        // getHalfDaySymbol only returns ◐ (AM), ◑ (PM) or '' (no symbol),
-        // so we provide a consistent accessible name and role.
-        <span className="half-day-symbol" aria-label={halfDayLabel} role="img">
+        <span className="half-day-symbol" aria-label={symbolLabel} role="img">
           {symbol}
         </span>
       )}
@@ -97,7 +101,7 @@ export function MonthGrid({
     // Focus the first real day
     const el = cellRefs.current[firstDayIndex];
     el?.focus();
-  }, [leadingPad]);
+  }, [ym, leadingPad]);
 
   const clampToRealDay = (idx: number) => {
     const min = leadingPad;
