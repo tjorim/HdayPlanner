@@ -1,0 +1,78 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-frontend:
+    name: Frontend Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run TypeScript check
+        working-directory: frontend
+        run: |
+          echo "🔍 Running TypeScript validation..."
+          npx tsc --noEmit
+          echo "✅ TypeScript validation completed"
+
+      - name: Run tests
+        working-directory: frontend
+        run: |
+          echo "🧪 Running test suite..."
+          npm run test
+          echo "✅ Tests completed"
+
+      - name: Summary
+        run: |
+          echo "🎯 Quality Check Summary:"
+          echo "├── ✅ TypeScript validated"
+          echo "└── ✅ Tests passed (Vitest)"
+
+  lint-backend:
+    name: Backend Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Validate Python syntax
+        working-directory: backend
+        run: |
+          echo "🔍 Running Python syntax validation..."
+          python -m py_compile $(find . -name "*.py")
+          echo "✅ Python syntax validation completed"
+
+      - name: Summary
+        run: |
+          echo "🎯 Quality Check Summary:"
+          echo "└── ✅ Python syntax validated"

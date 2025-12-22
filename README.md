@@ -252,6 +252,33 @@ Contributions welcome! Areas of interest:
 - Integration with other calendar systems
 - Documentation improvements
 
+### Development Workflow
+
+This project uses modern DevOps practices:
+
+**Code Quality:**
+- **Biome** for linting and formatting (`npm run lint`, `npm run format`)
+- **TypeScript** strict mode with comprehensive checks
+- **Vitest** for unit testing with 126+ tests
+- All checks run automatically in CI
+
+**Automated Workflows:**
+- **CI/CD Pipeline** - Automated testing, building, and deployment
+- **Dependabot** - Weekly dependency updates for npm, pip, and GitHub Actions
+- **PR Validation** - Automatic code review and change analysis
+- **Dependency Monitor** - Weekly security audits
+
+**Before submitting a PR:**
+```bash
+cd frontend
+npm run typecheck  # Validate TypeScript
+npm run lint       # Check code quality
+npm run test       # Run tests
+npm run build      # Ensure build works
+```
+
+See [docs/alignment-summary.md](docs/alignment-summary.md) for details on the CI/CD setup.
+
 ## 📝 License
 
 [Add your chosen license here]
