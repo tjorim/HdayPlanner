@@ -243,7 +243,6 @@ export function MonthGrid({
                   {holiday.emoji}
                 </span>
                 <span className="holiday-name" aria-hidden="true">
-                  {' '}
                   {holiday.name}
                 </span>
               </Fragment>
