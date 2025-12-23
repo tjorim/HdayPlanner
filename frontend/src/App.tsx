@@ -85,14 +85,24 @@ const TIME_LOCATION_FLAG_OPTIONS: Array<[TimeLocationFlag | 'none', string]> = [
   ['can_fly', 'can_fly'],
 ];
 
-const TYPE_FLAGS: TypeFlag[] = ['business', 'weekend', 'birthday', 'ill', 'in', 'course', 'other'];
-const TIME_LOCATION_FLAGS: TimeLocationFlag[] = [
+const TYPE_FLAGS: ReadonlyArray<TypeFlag> = [
+  'business',
+  'weekend',
+  'birthday',
+  'ill',
+  'in',
+  'course',
+  'other',
+];
+const TIME_LOCATION_FLAGS: ReadonlyArray<TimeLocationFlag> = [
   'half_am',
   'half_pm',
   'onsite',
   'no_fly',
   'can_fly',
 ];
+const TYPE_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TYPE_FLAGS;
+const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATION_FLAGS;
 
 /**
  * Main application component for the Holiday Planner UI.
@@ -831,7 +841,7 @@ export default function App() {
 
   function handleTypeFlagChange(flag: TypeFlag | 'none') {
     setEventFlags((prev) => {
-      const withoutTypeFlags = prev.filter((f) => !TYPE_FLAGS.includes(f as TypeFlag));
+      const withoutTypeFlags = prev.filter((f) => !TYPE_FLAGS_AS_EVENT_FLAGS.includes(f));
       if (flag === 'none') {
         return withoutTypeFlags;
       }
@@ -841,8 +851,8 @@ export default function App() {
 
   function handleTimeFlagChange(flag: TimeLocationFlag | 'none') {
     setEventFlags((prev) => {
-      const withoutTimeFlags = prev.filter((f) =>
-        !TIME_LOCATION_FLAGS.includes(f as TimeLocationFlag),
+      const withoutTimeFlags = prev.filter(
+        (f) => !TIME_LOCATION_FLAGS_AS_EVENT_FLAGS.includes(f),
       );
       if (flag === 'none') {
         return withoutTimeFlags;
@@ -1280,7 +1290,9 @@ export default function App() {
                             label={label}
                             checked={
                               flag === 'none'
-                                ? !eventFlags.some((f) => TYPE_FLAGS.includes(f as TypeFlag))
+                                ? !eventFlags.some((f) =>
+                                    TYPE_FLAGS_AS_EVENT_FLAGS.includes(f),
+                                  )
                                 : eventFlags.includes(flag)
                             }
                             onChange={() => handleTypeFlagChange(flag)}
@@ -1305,7 +1317,7 @@ export default function App() {
                             checked={
                               flag === 'none'
                                 ? !eventFlags.some((f) =>
-                                    TIME_LOCATION_FLAGS.includes(f as TimeLocationFlag),
+                                    TIME_LOCATION_FLAGS_AS_EVENT_FLAGS.includes(f),
                                   )
                                 : eventFlags.includes(flag)
                             }
