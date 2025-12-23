@@ -23,6 +23,8 @@ import { isValidDate, parseHdayDate } from './lib/dateValidation';
 import {
   type EventFlag,
   type HdayEvent,
+  type TimeLocationFlag,
+  type TypeFlag,
   getEventTypeLabel,
   normalizeEventFlags,
   parseHday,
@@ -99,7 +101,7 @@ export default function App() {
   const [eventStart, setEventStart] = useState('');
   const [eventEnd, setEventEnd] = useState('');
   const [eventWeekday, setEventWeekday] = useState(1);
-  const [eventFlags, setEventFlags] = useState<string[]>([]);
+  const [eventFlags, setEventFlags] = useState<EventFlag[]>([]);
   const previewLine = useMemo(() => {
     const hasRange = eventType === 'range' && !!eventStart;
     const hasWeekly = eventType === 'weekly' && !!eventWeekday;
@@ -108,7 +110,7 @@ export default function App() {
       return '';
     }
 
-    const normalizedFlags = normalizeEventFlags(eventFlags as EventFlag[]);
+    const normalizedFlags = normalizeEventFlags(eventFlags);
     const baseEvent: Omit<HdayEvent, 'raw'> = hasRange
       ? {
           type: 'range',
@@ -702,7 +704,7 @@ export default function App() {
     const flags = eventFlags.filter((f) => f !== 'holiday');
 
     // Normalize flags - enforces mutual exclusivity by keeping first flag in each category
-    const finalFlags = normalizeEventFlags(flags as EventFlag[]);
+    const finalFlags = normalizeEventFlags(flags);
 
     // Build base event object without raw field
     const baseEvent: Omit<HdayEvent, 'raw'> =
@@ -811,7 +813,7 @@ export default function App() {
     setShowConfirmDialog(false);
   }
 
-  function handleTypeFlagChange(flag: string) {
+  function handleTypeFlagChange(flag: TypeFlag | 'none') {
     setEventFlags((prev) => {
       const withoutTypeFlags = prev.filter(
         (f) =>
@@ -830,7 +832,7 @@ export default function App() {
     });
   }
 
-  function handleTimeFlagChange(flag: string) {
+  function handleTimeFlagChange(flag: TimeLocationFlag | 'none') {
     setEventFlags((prev) => {
       const withoutTimeFlags = prev.filter(
         (f) => f !== 'half_am' && f !== 'half_pm' && f !== 'onsite' && f !== 'no_fly' && f !== 'can_fly',
@@ -1133,7 +1135,7 @@ export default function App() {
                     <Card.Body className="py-2">
                       <div className="small text-uppercase text-muted">Preview</div>
                       <div className="fw-semibold">
-                        {getEventTypeLabel(eventFlags as EventFlag[])}{' '}
+                        {getEventTypeLabel(eventFlags)}{' '}
                         {eventType === 'weekly'
                           ? eventWeekday
                             ? `· ${getWeekdayName(eventWeekday)}`
