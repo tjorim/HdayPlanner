@@ -270,6 +270,7 @@ Events are sorted in this priority order:
 ✅ Add tests when modifying parser logic
 ✅ Use existing WCAG AA compliant color scheme
 ✅ Keep bundle size small (no heavy dependencies)
+✅ Bootstrap UI stack (bootstrap, bootstrap-icons, react-bootstrap) is now allowed for UI consistency and accessibility
 
 ### Don'ts
 ❌ Don't add backend-required features without standalone fallback
@@ -277,7 +278,7 @@ Events are sorted in this priority order:
 ❌ Don't remove accessibility features
 ❌ Don't use colors that fail WCAG AA contrast (4.5:1 minimum)
 ❌ Don't assume backend is always available
-❌ Don't add heavy dependencies (React + Vite only)
+❌ Don't add heavy dependencies (React + Vite only), except the approved Bootstrap UI stack for frontend layout
 
 ## File Format Reference
 
