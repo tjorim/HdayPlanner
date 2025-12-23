@@ -77,17 +77,12 @@ def parse_text(text: str) -> List[HdayEvent]:
 
 
 def to_text(events: List[HdayEvent]) -> str:
-    # Canonical flag order: type flags first, then time/location flags
-    flag_order = ['business', 'weekend', 'birthday', 'ill', 'in', 'course', 'other',
-                  'half_am', 'half_pm', 'onsite', 'no_fly', 'can_fly']
-
     out_lines: List[str] = []
     for ev in events:
-        # compose prefix letters from flags in canonical order
+        # Preserve the original order of flags from input (FIFO), don't reorder
+        # Filter out 'holiday' which is not in REV_MAP and shouldn't be serialized
         flags = ev.flags or []
-        # Sort flags according to canonical order
-        sorted_flags = [f for f in flag_order if f in flags]
-        pref = ''.join(REV_MAP.get(f,'') for f in sorted_flags)
+        pref = ''.join(REV_MAP.get(f, '') for f in flags if f in REV_MAP)
 
         if ev.type == 'range':
             title = f" # {ev.title}" if ev.title else ''

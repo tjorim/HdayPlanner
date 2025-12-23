@@ -8,7 +8,6 @@ import {
   type HdayEvent,
   normalizeEventFlags,
   parseHday,
-  resolveTypeFlagConflicts,
   sortEvents,
   toLine,
 } from '../../src/lib/hday';
@@ -586,94 +585,6 @@ describe('sortEvents', () => {
     // Events without start dates maintain their relative order (stable sort)
     expect(sorted[1].title).toBe('No start A');
     expect(sorted[2].title).toBe('No start B');
-  });
-});
-
-describe('resolveTypeFlagConflicts', () => {
-  it('returns no conflict when no type flags present', () => {
-    const result = resolveTypeFlagConflicts(['half_am']);
-    expect(result).toEqual({
-      resolvedFlags: ['half_am'],
-      hasConflict: false,
-    });
-  });
-
-  it('returns no conflict when only one type flag present', () => {
-    const result = resolveTypeFlagConflicts(['business', 'half_am']);
-    expect(result).toEqual({
-      resolvedFlags: ['business', 'half_am'],
-      hasConflict: false,
-    });
-  });
-
-  it('returns no conflict when only holiday flag present', () => {
-    const result = resolveTypeFlagConflicts(['holiday', 'half_am']);
-    expect(result).toEqual({
-      resolvedFlags: ['holiday', 'half_am'],
-      hasConflict: false,
-    });
-  });
-
-  it('prioritizes business over course', () => {
-    const result = resolveTypeFlagConflicts(['business', 'course']);
-    expect(result).toEqual({
-      resolvedFlags: ['business'],
-      hasConflict: true,
-      selectedFlag: 'business',
-    });
-  });
-
-  it('prioritizes business over in', () => {
-    const result = resolveTypeFlagConflicts(['business', 'in']);
-    expect(result).toEqual({
-      resolvedFlags: ['business'],
-      hasConflict: true,
-      selectedFlag: 'business',
-    });
-  });
-
-  it('prioritizes course over in', () => {
-    const result = resolveTypeFlagConflicts(['course', 'in']);
-    expect(result).toEqual({
-      resolvedFlags: ['course'],
-      hasConflict: true,
-      selectedFlag: 'course',
-    });
-  });
-
-  it('prioritizes business over all other type flags', () => {
-    const result = resolveTypeFlagConflicts(['business', 'course', 'in']);
-    expect(result).toEqual({
-      resolvedFlags: ['business'],
-      hasConflict: true,
-      selectedFlag: 'business',
-    });
-  });
-
-  it('preserves half-day flags during resolution', () => {
-    const result = resolveTypeFlagConflicts(['half_am', 'business', 'course']);
-    expect(result).toEqual({
-      resolvedFlags: ['half_am', 'business'],
-      hasConflict: true,
-      selectedFlag: 'business',
-    });
-  });
-
-  it('preserves multiple half-day flags during resolution', () => {
-    const result = resolveTypeFlagConflicts(['half_am', 'half_pm', 'course', 'in']);
-    expect(result).toEqual({
-      resolvedFlags: ['half_am', 'half_pm', 'course'],
-      hasConflict: true,
-      selectedFlag: 'course',
-    });
-  });
-
-  it('handles empty array', () => {
-    const result = resolveTypeFlagConflicts([]);
-    expect(result).toEqual({
-      resolvedFlags: [],
-      hasConflict: false,
-    });
   });
 });
 

@@ -33,6 +33,8 @@ Only one of these flags can be used at a time:
 - `n` - **N**ot able to fly
 - `f` - In principle able to **f**ly, to be aligned
 
+**Note:** If multiple time/location flags are present in the input (e.g., `ap`), only the **first one** is kept. The list order above does NOT imply priority.
+
 ### Type Flags (Mutually Exclusive)
 Only one of these flags can be used at a time:
 - `b` - **Business** trip / out for work
@@ -43,6 +45,8 @@ Only one of these flags can be used at a time:
 - `s` - Training / cour**se**
 - `u` - Other / **u**nspecified
 - *(no flag)* - Regular vacation/holiday
+
+**Note:** If multiple type flags are present in the input (e.g., `sb`), only the **first one** is kept. The list order above does NOT imply priority.
 
 ## Flag Combinations
 
@@ -118,7 +122,7 @@ kp2024/03/20-2024/03/20 # In office, leaving at noon
 
 # Weekend events
 e2024/06/15-2024/06/16 # Weekend work event
-ep2024/03/08-2024/03/08 # Weekend morning shift
+ep2024/03/08-2024/03/08 # Weekend afternoon shift
 
 # Birthday
 h2024/05/20-2024/05/20 # Birthday

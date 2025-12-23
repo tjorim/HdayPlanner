@@ -91,7 +91,7 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
 /**
  * Ensure an array of event flags includes a type flag by appending `'holiday'` when none is present.
  * Also enforces mutual exclusivity of both time/location flags (a/p/w/n/f) and type flags (b/e/h/i/k/s/u)
- * by keeping only the first one found in each category.
+ * by keeping only the first one found in the INPUT order for each category (not based on any priority).
  *
  * @param flags - The event flags to normalize
  * @returns A new array with `'holiday'` appended if no type flag is present; the input array is never modified.
@@ -99,31 +99,37 @@ function parsePrefixFlags(prefix: string): EventFlag[] {
 export function normalizeEventFlags(flags: EventFlag[]): EventFlag[] {
   let normalized = [...flags];
 
-  // Enforce mutual exclusivity of time/location flags (only keep first one)
+  // Enforce mutual exclusivity of time/location flags (keep first one from input)
   const timeLocationFlags: TimeLocationFlag[] = ['half_am', 'half_pm', 'onsite', 'no_fly', 'can_fly'];
-  const foundTimeLocation = timeLocationFlags.filter(f => normalized.includes(f));
+  const firstTimeLocationInInput = normalized.find(f => timeLocationFlags.includes(f as TimeLocationFlag));
+  const foundTimeLocation = normalized.filter(f => timeLocationFlags.includes(f as TimeLocationFlag));
 
   if (foundTimeLocation.length > 1) {
-    // Keep only the first time/location flag, remove the rest
-    const firstFlag = foundTimeLocation[0];
+    // Keep only the first time/location flag from the input, remove all others
     normalized = normalized.filter(f =>
-      !timeLocationFlags.includes(f as TimeLocationFlag) || f === firstFlag
+      !timeLocationFlags.includes(f as TimeLocationFlag) || f === firstTimeLocationInInput
     );
-    console.warn(`Multiple time/location flags found (${foundTimeLocation.join(', ')}). Keeping only: ${firstFlag}`);
+    console.warn(
+      `Multiple time/location flags found (${foundTimeLocation.join(', ')}). ` +
+      `Keeping first from input: ${firstTimeLocationInInput}`
+    );
   }
 
-  // Enforce mutual exclusivity of type flags (only keep first one)
+  // Enforce mutual exclusivity of type flags (keep first one from input)
   // Exclude 'holiday' as it's the default fallback
   const typeFlags: TypeFlag[] = ['business', 'weekend', 'birthday', 'ill', 'in', 'course', 'other'];
-  const foundTypes = typeFlags.filter(f => normalized.includes(f));
+  const firstTypeInInput = normalized.find(f => typeFlags.includes(f as TypeFlag));
+  const foundTypes = normalized.filter(f => typeFlags.includes(f as TypeFlag));
 
   if (foundTypes.length > 1) {
-    // Keep only the first type flag, remove the rest
-    const firstType = foundTypes[0];
+    // Keep only the first type flag from the input, remove all others
     normalized = normalized.filter(f =>
-      !typeFlags.includes(f as TypeFlag) || f === firstType
+      !typeFlags.includes(f as TypeFlag) || f === firstTypeInInput
     );
-    console.warn(`Multiple type flags found (${foundTypes.join(', ')}). Keeping only: ${firstType}`);
+    console.warn(
+      `Multiple type flags found (${foundTypes.join(', ')}). ` +
+      `Keeping first from input: ${firstTypeInInput}`
+    );
   }
 
   // Default to 'holiday' if no type flags
@@ -131,48 +137,6 @@ export function normalizeEventFlags(flags: EventFlag[]): EventFlag[] {
     return [...normalized, 'holiday'];
   }
   return normalized;
-}
-
-/**
- * Resolve type flag conflicts when multiple type flags are present.
- *
- * When multiple type flags (business, course, in) are selected, apply priority:
- * business > course > in
- *
- * @param flags - The event flags to resolve
- * @returns Object with resolvedFlags array, hasConflict boolean, and selectedFlag if conflict occurred
- */
-export function resolveTypeFlagConflicts(flags: EventFlag[]): {
-  resolvedFlags: EventFlag[];
-  hasConflict: boolean;
-  selectedFlag?: TypeFlag;
-} {
-  const typeFlags = flags.filter(
-    (f): f is TypeFlag => f === 'business' || f === 'course' || f === 'in',
-  );
-
-  // No conflict if 0 or 1 type flags
-  if (typeFlags.length <= 1) {
-    return { resolvedFlags: [...flags], hasConflict: false };
-  }
-
-  // Multiple type flags - apply priority order (business > course > in)
-  let priorityFlag: TypeFlag = 'in';
-  if (typeFlags.includes('business')) {
-    priorityFlag = 'business';
-  } else if (typeFlags.includes('course')) {
-    priorityFlag = 'course';
-  }
-
-  // Remove all type flags and add only the priority one
-  const resolvedFlags: EventFlag[] = flags.filter((f) => f !== 'business' && f !== 'course' && f !== 'in');
-  resolvedFlags.push(priorityFlag);
-
-  return {
-    resolvedFlags,
-    hasConflict: true,
-    selectedFlag: priorityFlag,
-  };
 }
 
 /**
@@ -275,15 +239,11 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
     can_fly: 'f',
   };
 
-  // Canonical flag order: type flags first (b/e/h/i/k/s/u), then time/location flags (a/p/w/n/f)
-  const flagOrder: EventFlag[] = [
-    'business', 'weekend', 'birthday', 'ill', 'in', 'course', 'other',
-    'half_am', 'half_pm', 'onsite', 'no_fly', 'can_fly'
-  ];
-
   const flags = ev.flags || [];
-  const prefix = flagOrder
-    .filter((f) => flags.includes(f))
+  // Preserve the original order of flags from input (FIFO), don't reorder
+  // Filter out 'holiday' which is not in flagMap and shouldn't be serialized
+  const prefix = flags
+    .filter((f) => flagMap[f] !== undefined)
     .map((f) => flagMap[f])
     .join('');
 

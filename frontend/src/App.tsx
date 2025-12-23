@@ -12,7 +12,6 @@ import {
   type HdayEvent,
   normalizeEventFlags,
   parseHday,
-  resolveTypeFlagConflicts,
   sortEvents,
   toLine,
 } from './lib/hday';
@@ -668,19 +667,8 @@ export default function App() {
 
     const flags = eventFlags.filter((f) => f !== 'holiday');
 
-    // Resolve type flag conflicts using priority order
-    const { resolvedFlags, hasConflict, selectedFlag } = resolveTypeFlagConflicts(
-      flags as EventFlag[],
-    );
-
-    if (hasConflict && selectedFlag) {
-      showToast(
-        `Multiple event types selected. Using '${selectedFlag}' (priority: business > course > in).`,
-        'info',
-      );
-    }
-
-    const finalFlags = normalizeEventFlags(resolvedFlags);
+    // Normalize flags - enforces mutual exclusivity by keeping first flag in each category
+    const finalFlags = normalizeEventFlags(flags as EventFlag[]);
 
     // Build base event object without raw field
     const baseEvent: Omit<HdayEvent, 'raw'> =
