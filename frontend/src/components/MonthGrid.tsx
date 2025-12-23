@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
 import { getEventClass, getEventTypeLabel, getTimeLocationSymbol } from '../lib/hday';
 import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUtils';
@@ -99,6 +99,10 @@ export function MonthGrid({
     const max = leadingPad + totalDays - 1;
     return Math.min(Math.max(idx, min), max);
   };
+
+  useEffect(() => {
+    setFocusedIndex((prev) => clampToRealDay(prev));
+  }, [leadingPad, totalDays]);
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
     let next: number;
