@@ -38,6 +38,7 @@ import {
   sortEvents,
   toLine,
 } from './lib/hday';
+import type { PublicHolidayInfo, SchoolHolidayInfo } from './types/holidays';
 import { dayjs, getWeekdayName } from './utils/dateTimeUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
@@ -206,7 +207,7 @@ export default function App() {
 
   // Convert holidays to a Map for quick lookup by date
   const publicHolidayMap = useMemo(() => {
-    const map = new Map<string, { name: string; localName: string }>();
+    const map = new Map<string, PublicHolidayInfo>();
     holidays.forEach((holiday) => {
       const start = dayjs(holiday.startDate);
       const end = dayjs(holiday.endDate);
@@ -227,7 +228,7 @@ export default function App() {
   }, [holidays]);
 
   const schoolHolidayMap = useMemo(() => {
-    const map = new Map<string, { name: string }>();
+    const map = new Map<string, SchoolHolidayInfo>();
     schoolHolidays.forEach((holiday) => {
       const start = dayjs(holiday.startDate);
       const end = dayjs(holiday.endDate);
