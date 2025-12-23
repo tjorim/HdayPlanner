@@ -65,6 +65,35 @@ function getCurrentMonth(): string {
   return dayjs().format('YYYY-MM');
 }
 
+const TYPE_FLAG_OPTIONS: Array<[TypeFlag | 'none', string]> = [
+  ['none', 'None'],
+  ['business', 'business'],
+  ['weekend', 'weekend'],
+  ['birthday', 'birthday'],
+  ['ill', 'ill'],
+  ['in', 'in'],
+  ['course', 'course'],
+  ['other', 'other'],
+];
+
+const TIME_LOCATION_FLAG_OPTIONS: Array<[TimeLocationFlag | 'none', string]> = [
+  ['none', 'None'],
+  ['half_am', 'half_am (Morning)'],
+  ['half_pm', 'half_pm (Afternoon)'],
+  ['onsite', 'onsite'],
+  ['no_fly', 'no_fly'],
+  ['can_fly', 'can_fly'],
+];
+
+const TYPE_FLAGS: TypeFlag[] = ['business', 'weekend', 'birthday', 'ill', 'in', 'course', 'other'];
+const TIME_LOCATION_FLAGS: TimeLocationFlag[] = [
+  'half_am',
+  'half_pm',
+  'onsite',
+  'no_fly',
+  'can_fly',
+];
+
 /**
  * Main application component for the Holiday Planner UI.
  *
@@ -802,16 +831,7 @@ export default function App() {
 
   function handleTypeFlagChange(flag: TypeFlag | 'none') {
     setEventFlags((prev) => {
-      const withoutTypeFlags = prev.filter(
-        (f) =>
-          f !== 'business' &&
-          f !== 'weekend' &&
-          f !== 'birthday' &&
-          f !== 'ill' &&
-          f !== 'in' &&
-          f !== 'course' &&
-          f !== 'other',
-      );
+      const withoutTypeFlags = prev.filter((f) => !TYPE_FLAGS.includes(f as TypeFlag));
       if (flag === 'none') {
         return withoutTypeFlags;
       }
@@ -821,8 +841,8 @@ export default function App() {
 
   function handleTimeFlagChange(flag: TimeLocationFlag | 'none') {
     setEventFlags((prev) => {
-      const withoutTimeFlags = prev.filter(
-        (f) => f !== 'half_am' && f !== 'half_pm' && f !== 'onsite' && f !== 'no_fly' && f !== 'can_fly',
+      const withoutTimeFlags = prev.filter((f) =>
+        !TIME_LOCATION_FLAGS.includes(f as TimeLocationFlag),
       );
       if (flag === 'none') {
         return withoutTimeFlags;
@@ -1251,33 +1271,18 @@ export default function App() {
                   <fieldset className="border rounded p-3">
                     <legend className="float-none w-auto px-2 fs-6">Type Flags</legend>
                     <Row className="g-2">
-                      {(
-                        [
-                          ['none', 'None'],
-                          ['business', 'business'],
-                          ['weekend', 'weekend'],
-                          ['birthday', 'birthday'],
-                          ['ill', 'ill'],
-                          ['in', 'in'],
-                          ['course', 'course'],
-                          ['other', 'other'],
-                        ] as const
-                      ).map(([flag, label]) => (
+                      {TYPE_FLAG_OPTIONS.map(([flag, label]) => (
                         <Col sm={6} lg={4} key={flag}>
                           <FlagCheckbox
                             id={`flag-${flag}`}
                             name="type-flag"
                             type="radio"
                             label={label}
-                            checked={flag === 'none' ? !eventFlags.some((f) =>
-                              f === 'business' ||
-                              f === 'weekend' ||
-                              f === 'birthday' ||
-                              f === 'ill' ||
-                              f === 'in' ||
-                              f === 'course' ||
-                              f === 'other'
-                            ) : eventFlags.includes(flag)}
+                            checked={
+                              flag === 'none'
+                                ? !eventFlags.some((f) => TYPE_FLAGS.includes(f as TypeFlag))
+                                : eventFlags.includes(flag)
+                            }
                             onChange={() => handleTypeFlagChange(flag)}
                           />
                         </Col>
@@ -1290,29 +1295,20 @@ export default function App() {
                   <fieldset className="border rounded p-3">
                     <legend className="float-none w-auto px-2 fs-6">Time / Location Flags</legend>
                     <Row className="g-2">
-                      {(
-                        [
-                          ['none', 'None'],
-                          ['half_am', 'half_am (Morning)'],
-                          ['half_pm', 'half_pm (Afternoon)'],
-                          ['onsite', 'onsite'],
-                          ['no_fly', 'no_fly'],
-                          ['can_fly', 'can_fly'],
-                        ] as const
-                      ).map(([flag, label]) => (
+                      {TIME_LOCATION_FLAG_OPTIONS.map(([flag, label]) => (
                         <Col sm={6} lg={4} key={flag}>
                           <FlagCheckbox
                             id={`flag-${flag}`}
                             name="time-flag"
                             type="radio"
                             label={label}
-                            checked={flag === 'none' ? !eventFlags.some((f) =>
-                              f === 'half_am' ||
-                              f === 'half_pm' ||
-                              f === 'onsite' ||
-                              f === 'no_fly' ||
-                              f === 'can_fly'
-                            ) : eventFlags.includes(flag)}
+                            checked={
+                              flag === 'none'
+                                ? !eventFlags.some((f) =>
+                                    TIME_LOCATION_FLAGS.includes(f as TimeLocationFlag),
+                                  )
+                                : eventFlags.includes(flag)
+                            }
                             onChange={() => handleTimeFlagChange(flag)}
                           />
                         </Col>
