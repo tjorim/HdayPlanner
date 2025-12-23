@@ -72,6 +72,37 @@ function getCurrentMonth(): string {
   return dayjs().format('YYYY-MM');
 }
 
+function createHolidayMap<HolidayType extends { startDate: string; endDate: string }, InfoType>(
+  holidays: HolidayType[],
+  getName: (holiday: HolidayType) => string,
+  createInfo: (name: string) => InfoType,
+  holidayTypeForWarning: string,
+): Map<string, InfoType> {
+  const map = new Map<string, InfoType>();
+  holidays.forEach((holiday) => {
+    const start = dayjs(holiday.startDate);
+    const end = dayjs(holiday.endDate);
+    if (!start.isValid() || !end.isValid()) {
+      console.warn(
+        `Invalid ${holidayTypeForWarning} holiday date range: ${holiday.startDate} - ${holiday.endDate}`,
+      );
+      return;
+    }
+    if (end.isBefore(start)) {
+      console.warn(
+        `Inverted ${holidayTypeForWarning} holiday date range: ${holiday.startDate} - ${holiday.endDate}`,
+      );
+      return;
+    }
+    const holidayName = getName(holiday);
+    for (let current = start; !current.isAfter(end); current = current.add(1, 'day')) {
+      const dateKey = convertDateFormat(current.format('YYYY-MM-DD'));
+      map.set(dateKey, createInfo(holidayName));
+    }
+  });
+  return map;
+}
+
 const TYPE_FLAG_OPTIONS: Array<[TypeFlag | 'none', string]> = [
   ['none', 'None'],
   ['business', 'business'],
@@ -206,44 +237,27 @@ export default function App() {
   );
 
   // Convert holidays to a Map for quick lookup by date
-  const publicHolidayMap = useMemo(() => {
-    const map = new Map<string, PublicHolidayInfo>();
-    holidays.forEach((holiday) => {
-      const start = dayjs(holiday.startDate);
-      const end = dayjs(holiday.endDate);
-      if (!start.isValid() || !end.isValid()) {
-        console.warn(`Invalid public holiday date range: ${holiday.startDate} - ${holiday.endDate}`);
-        return;
-      }
-      const holidayName = getPublicHolidayName(holiday);
-      for (let current = start; !current.isAfter(end); current = current.add(1, 'day')) {
-        const dateKey = convertDateFormat(current.format('YYYY-MM-DD'));
-        map.set(dateKey, {
-          name: holidayName,
-          localName: holidayName,
-        });
-      }
-    });
-    return map;
-  }, [holidays]);
+  const publicHolidayMap = useMemo(
+    () =>
+      createHolidayMap(
+        holidays,
+        getPublicHolidayName,
+        (name): PublicHolidayInfo => ({ name, localName: name }),
+        'public',
+      ),
+    [holidays],
+  );
 
-  const schoolHolidayMap = useMemo(() => {
-    const map = new Map<string, SchoolHolidayInfo>();
-    schoolHolidays.forEach((holiday) => {
-      const start = dayjs(holiday.startDate);
-      const end = dayjs(holiday.endDate);
-      if (!start.isValid() || !end.isValid()) {
-        console.warn(`Invalid school holiday date range: ${holiday.startDate} - ${holiday.endDate}`);
-        return;
-      }
-      const holidayName = getSchoolHolidayName(holiday);
-      for (let current = start; !current.isAfter(end); current = current.add(1, 'day')) {
-        const dateKey = convertDateFormat(current.format('YYYY-MM-DD'));
-        map.set(dateKey, { name: holidayName });
-      }
-    });
-    return map;
-  }, [schoolHolidays]);
+  const schoolHolidayMap = useMemo(
+    () =>
+      createHolidayMap(
+        schoolHolidays,
+        getSchoolHolidayName,
+        (name): SchoolHolidayInfo => ({ name }),
+        'school',
+      ),
+    [schoolHolidays],
+  );
 
   // Show toast if holidays fail to load (only on error transition)
   useErrorToast(publicHolidaysError, 'Failed to load public holidays', showToast);

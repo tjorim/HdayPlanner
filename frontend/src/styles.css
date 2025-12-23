@@ -206,6 +206,9 @@ body {
   color: var(--badge-holiday-text);
   font-weight: 600;
 }
+.holiday-indicator + .holiday-name {
+  margin-left: 0.5em;
+}
 .event-item {
   font-size: 12px;
   margin-top: 4px;
