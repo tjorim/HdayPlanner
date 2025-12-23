@@ -1,7 +1,7 @@
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
-import { getEventClass, getTimeLocationSymbol } from '../lib/hday';
+import { getEventClass, getEventTypeLabel, getTimeLocationSymbol } from '../lib/hday';
 import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUtils';
 
 interface NationalHolidayInfo {
@@ -27,7 +27,7 @@ const SYMBOL_LABELS: Record<string, string> = {
 /**
  * Renders a single event item within a calendar day cell, with an optional half-day symbol.
  *
- * The component displays the event's title (falls back to "Event" if missing)
+ * The component displays the event's title (falls back to the event type label if missing)
  * and, when present, a half-day symbol with an accessible label:
  * '◐' -> "Morning half-day event", '◑' -> "Afternoon half-day event".
  *
@@ -40,6 +40,7 @@ function EventItem({ event }: EventItemProps) {
   const eventClass = `${baseClass} ${hasTitle ? '' : 'event--no-title'}`.trim();
   const symbol = getTimeLocationSymbol(event.flags);
   const symbolLabel = symbol ? SYMBOL_LABELS[symbol] : undefined;
+  const fallbackLabel = getEventTypeLabel(event.flags);
 
   return (
     <div className={`event-item ${eventClass}`}>
@@ -48,11 +49,7 @@ function EventItem({ event }: EventItemProps) {
           {symbol}
         </span>
       )}
-      {hasTitle ? (
-        event.title
-      ) : (
-        <span className="event-empty" aria-hidden="true" title="No title">●</span>
-      )}
+      {hasTitle ? event.title : fallbackLabel}
     </div>
   );
 }
@@ -93,8 +90,8 @@ export function MonthGrid({
   const leadingPad = first.isoWeekday() - 1; // Monday=0, Sunday=6
   const totalDays = last.date();
 
-  // Roving tabindex: track which day-cell has focus (no automatic selection on mount)
-  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  // Roving tabindex: track which day-cell has focus (start on first real day)
+  const [focusedIndex, setFocusedIndex] = useState<number>(leadingPad);
   const cellRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const clampToRealDay = (idx: number) => {
@@ -102,6 +99,10 @@ export function MonthGrid({
     const max = leadingPad + totalDays - 1;
     return Math.min(Math.max(idx, min), max);
   };
+
+  useEffect(() => {
+    setFocusedIndex((prev) => clampToRealDay(prev));
+  }, [leadingPad, totalDays]);
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
     let next: number;

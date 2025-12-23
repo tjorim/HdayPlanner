@@ -1,4 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Accordion,
+  Button,
+  ButtonGroup,
+  Card,
+  Col,
+  Container,
+  Form,
+  Modal,
+  Row,
+  Stack,
+  Table,
+} from 'react-bootstrap';
 import { getHday, type HdayDocument, putHday } from './api/hday';
 import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { MonthGrid } from './components/MonthGrid';
@@ -10,6 +23,10 @@ import { isValidDate, parseHdayDate } from './lib/dateValidation';
 import {
   type EventFlag,
   type HdayEvent,
+  type TimeLocationFlag,
+  type TypeFlag,
+  buildPreviewLine,
+  getEventTypeLabel,
   normalizeEventFlags,
   parseHday,
   sortEvents,
@@ -18,7 +35,21 @@ import {
 import { dayjs, getWeekdayName } from './utils/dateTimeUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
-const SCROLL_FOCUS_DELAY = 300; // Delay in ms for focusing after smooth scroll
+
+type FlagCheckboxProps = {
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+  name: string;
+  type?: 'checkbox' | 'radio';
+};
+
+function FlagCheckbox({ id, label, checked, onChange, name, type = 'checkbox' }: FlagCheckboxProps) {
+  return (
+    <Form.Check id={id} name={name} type={type} label={label} checked={checked} onChange={onChange} />
+  );
+}
 
 // Error message constants
 const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)';
@@ -33,6 +64,45 @@ const ERROR_START_DATE_REQUIRED = 'Start date is required';
 function getCurrentMonth(): string {
   return dayjs().format('YYYY-MM');
 }
+
+const TYPE_FLAG_OPTIONS: Array<[TypeFlag | 'none', string]> = [
+  ['none', 'None'],
+  ['business', 'business'],
+  ['weekend', 'weekend'],
+  ['birthday', 'birthday'],
+  ['ill', 'ill'],
+  ['in', 'in'],
+  ['course', 'course'],
+  ['other', 'other'],
+];
+
+const TIME_LOCATION_FLAG_OPTIONS: Array<[TimeLocationFlag | 'none', string]> = [
+  ['none', 'None'],
+  ['half_am', 'half_am (Morning)'],
+  ['half_pm', 'half_pm (Afternoon)'],
+  ['onsite', 'onsite'],
+  ['no_fly', 'no_fly'],
+  ['can_fly', 'can_fly'],
+];
+
+const TYPE_FLAGS: ReadonlyArray<TypeFlag> = [
+  'business',
+  'weekend',
+  'birthday',
+  'ill',
+  'in',
+  'course',
+  'other',
+];
+const TIME_LOCATION_FLAGS: ReadonlyArray<TimeLocationFlag> = [
+  'half_am',
+  'half_pm',
+  'onsite',
+  'no_fly',
+  'can_fly',
+];
+const TYPE_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TYPE_FLAGS;
+const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATION_FLAGS;
 
 /**
  * Main application component for the Holiday Planner UI.
@@ -53,6 +123,7 @@ export default function App() {
   const [user, setUser] = useState('testuser');
   const [doc, setDoc] = useState<HdayDocument>({ raw: '', events: [] });
   const [month, setMonth] = useState(getCurrentMonth());
+  const [showEventModal, setShowEventModal] = useState(false);
 
   const handlePreviousMonth = React.useCallback(() => {
     setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
@@ -70,7 +141,19 @@ export default function App() {
   const [eventStart, setEventStart] = useState('');
   const [eventEnd, setEventEnd] = useState('');
   const [eventWeekday, setEventWeekday] = useState(1);
-  const [eventFlags, setEventFlags] = useState<string[]>([]);
+  const [eventFlags, setEventFlags] = useState<EventFlag[]>([]);
+  const previewLine = useMemo(
+    () =>
+      buildPreviewLine({
+        eventType,
+        start: eventStart,
+        end: eventEnd,
+        weekday: eventWeekday,
+        title: eventTitle,
+        flags: eventFlags,
+      }),
+    [eventType, eventStart, eventEnd, eventWeekday, eventTitle, eventFlags],
+  );
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const formRef = React.useRef<HTMLDivElement>(null);
@@ -270,21 +353,18 @@ export default function App() {
 
   // Handle start date change with validation
   const handleStartDateChange = useCallback((value: string) => {
-    // Accept YYYY-MM-DD (from date input) or YYYY/MM/DD and normalize to YYYY/MM/DD
-    const normalized = value ? (value.includes('-') ? value.replace(/-/g, '/') : value) : '';
-    setEventStart(normalized);
-    validateStartDate(normalized);
+    setEventStart(value);
+    validateStartDate(value);
     // Re-validate end date since the range validity may have changed with the new start date
     if (eventEndRef.current) {
-      validateEndDate(eventEndRef.current, normalized);
+      validateEndDate(eventEndRef.current, value);
     }
   }, [validateStartDate, validateEndDate]);
 
   // Handle end date change with validation
   const handleEndDateChange = useCallback((value: string) => {
-    const normalized = value ? (value.includes('-') ? value.replace(/-/g, '/') : value) : '';
-    setEventEnd(normalized);
-    validateEndDate(normalized, eventStartRef.current);
+    setEventEnd(value);
+    validateEndDate(value, eventStartRef.current);
   }, [validateEndDate]);
 
   // Bulk operations - defined before keyboard shortcuts to avoid hoisting issues
@@ -294,12 +374,14 @@ export default function App() {
       return `Select ${ev.title}`;
     }
 
+    const typeLabel = getEventTypeLabel(ev.flags);
+
     if (ev.type === 'weekly' && ev.weekday) {
-      return `Select weekly event on ${getWeekdayName(ev.weekday)}`;
+      return `Select ${typeLabel} weekly event on ${getWeekdayName(ev.weekday)}`;
     }
 
     if (ev.end && ev.end !== ev.start) {
-      return `Select event from ${ev.start || ''} to ${ev.end}`;
+      return `Select ${typeLabel} event from ${ev.start || ''} to ${ev.end}`;
     }
 
     if (ev.flags && ev.flags.length > 0) {
@@ -323,10 +405,10 @@ export default function App() {
           }
         })
         .join(', ');
-      return `Select event on ${ev.start || ''} with ${readableFlags}`;
+      return `Select ${typeLabel} event on ${ev.start || ''} with ${readableFlags}`;
     }
 
-    return `Select event on ${ev.start || ''}`;
+    return `Select ${typeLabel} event on ${ev.start || ''}`;
   };
 
   const handleSelectAll = useCallback(() => {
@@ -527,17 +609,8 @@ export default function App() {
     }
   }, [doc.events]);
 
-  // Scroll to form when entering edit mode
-  useEffect(() => {
-    if (editIndex >= 0 && formRef.current) {
-      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [editIndex]);
-
   // Keyboard shortcuts
   useEffect(() => {
-    let focusTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
     function handleKeyDown(e: KeyboardEvent) {
       // Skip keyboard shortcuts when user is typing in an input, textarea, or select
       const target = e.target;
@@ -564,25 +637,9 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         if (!USE_BACKEND) {
           e.preventDefault();
-          // Clear any existing timeout before creating a new one
-          if (focusTimeoutId) {
-            clearTimeout(focusTimeoutId);
-          }
-          // Reset form and scroll to it
+          // Reset form and open modal
           handleResetForm();
-          if (formRef.current) {
-            formRef.current.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start',
-            });
-            // Focus the first input in the form after scrolling
-            focusTimeoutId = setTimeout(() => {
-              const firstInput = formRef.current?.querySelector('input, select');
-              if (firstInput instanceof HTMLElement) {
-                firstInput.focus();
-              }
-            }, SCROLL_FOCUS_DELAY);
-          }
+          setShowEventModal(true);
         }
       }
 
@@ -590,6 +647,9 @@ export default function App() {
       if (e.key === 'Escape') {
         if (editIndex >= 0) {
           handleResetForm();
+        }
+        if (showEventModal) {
+          setShowEventModal(false);
         }
       }
 
@@ -621,15 +681,12 @@ export default function App() {
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      // Clean up pending timeout on unmount
-      if (focusTimeoutId) {
-        clearTimeout(focusTimeoutId);
-      }
     };
   }, [
     editIndex,
     handleDownload,
     handleResetForm,
+    showEventModal,
     selectedIndices.size,
     handleSelectAll,
     handleBulkDelete,
@@ -643,19 +700,19 @@ export default function App() {
       if (!eventStart) {
         setStartDateError(ERROR_START_DATE_REQUIRED);
         showToast('Please provide a valid start date.', 'warning');
-        return;
+        return false;
       }
       if (!isValidDate(eventStart)) {
         setStartDateError(ERROR_INVALID_DATE_FORMAT);
         showToast('Please provide a valid start date in YYYY/MM/DD format.', 'warning');
-        return;
+        return false;
       }
 
       // Validate end date if provided
       if (eventEnd && !isValidDate(eventEnd)) {
         setEndDateError(ERROR_INVALID_DATE_FORMAT);
         showToast('Please provide a valid end date in YYYY/MM/DD format.', 'warning');
-        return;
+        return false;
       }
 
       // Validate that end date is not before start date
@@ -665,7 +722,7 @@ export default function App() {
         if (endDate < startDate) {
           setEndDateError(ERROR_END_DATE_BEFORE_START);
           showToast('End date must be the same or after start date.', 'warning');
-          return;
+          return false;
         }
       }
     }
@@ -673,7 +730,7 @@ export default function App() {
     const flags = eventFlags.filter((f) => f !== 'holiday');
 
     // Normalize flags - enforces mutual exclusivity by keeping first flag in each category
-    const finalFlags = normalizeEventFlags(flags as EventFlag[]);
+    const finalFlags = normalizeEventFlags(flags);
 
     // Build base event object without raw field
     const baseEvent: Omit<HdayEvent, 'raw'> =
@@ -709,6 +766,7 @@ export default function App() {
     }
 
     handleResetForm();
+    return true;
   }
 
   function handleEdit(index: number) {
@@ -725,6 +783,7 @@ export default function App() {
     }
 
     setEditIndex(index);
+    setShowEventModal(true);
     setEventType(ev.type);
     setEventTitle(ev.title || '');
 
@@ -741,6 +800,24 @@ export default function App() {
 
     // Set flags (filter out 'holiday' for display)
     setEventFlags(ev.flags?.filter((f) => f !== 'holiday') || []);
+  }
+
+  function handleOpenCreateModal() {
+    handleResetForm();
+    setShowEventModal(true);
+  }
+
+  function handleModalEntered() {
+    const firstInput = formRef.current?.querySelector('input, select, textarea');
+    if (firstInput instanceof HTMLElement) {
+      firstInput.focus();
+    }
+  }
+
+  function handleSubmitEvent() {
+    if (handleAddOrUpdate()) {
+      setShowEventModal(false);
+    }
   }
 
   function handleDelete(index: number) {
@@ -762,389 +839,508 @@ export default function App() {
     setShowConfirmDialog(false);
   }
 
-  function handleFlagToggle(flag: string) {
-    setEventFlags((prev) =>
-      prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag],
-    );
+  function handleTypeFlagChange(flag: TypeFlag | 'none') {
+    setEventFlags((prev) => {
+      const withoutTypeFlags = prev.filter((f) => !TYPE_FLAGS_AS_EVENT_FLAGS.includes(f));
+      if (flag === 'none') {
+        return withoutTypeFlags;
+      }
+      return [...withoutTypeFlags, flag];
+    });
+  }
+
+  function handleTimeFlagChange(flag: TimeLocationFlag | 'none') {
+    setEventFlags((prev) => {
+      const withoutTimeFlags = prev.filter(
+        (f) => !TIME_LOCATION_FLAGS_AS_EVENT_FLAGS.includes(f),
+      );
+      if (flag === 'none') {
+        return withoutTimeFlags;
+      }
+      return [...withoutTimeFlags, flag];
+    });
   }
 
   return (
-    <div>
+    <Container fluid="md" className="py-4">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <header>
-        <h1>Holiday Planner</h1>
 
-        <div className="row">
-          <button
-            className="theme-toggle"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
-
-          {USE_BACKEND ? (
-            // Backend mode UI
-            <>
-              <input
-                value={user}
-                onChange={(e) => setUser(e.target.value)}
-                placeholder="Username"
-              />
-              <button className="primary" onClick={load}>
-                Load from API
-              </button>
-              <button className="primary" onClick={save}>
-                Save to API
-              </button>
-            </>
-          ) : (
-            // Standalone mode UI
-            <>
-              <input
-                type="file"
-                accept=".hday,.txt"
-                onChange={handleFileUpload}
-                aria-label="Upload .hday or .txt file"
-              />
-              <button className="primary" onClick={handleParse}>
-                Parse
-              </button>
-              <button className="primary" onClick={handleDownload}>
-                Download .hday
-              </button>
-            </>
-          )}
-        </div>
-      </header>
-
-      {!USE_BACKEND && (
-        <>
-          <p className="muted">
-            Paste your <code>.hday</code> content below (or load a file), click <b>Parse</b>, then
-            edit and <b>Download</b> back to <code>.hday</code>. Flags: <code>a</code>=half AM,{' '}
-            <code>p</code>
-            =half PM, <code>b</code>=business, <code>e</code>=weekend, <code>h</code>=birthday,{' '}
-            <code>i</code>=ill, <code>k</code>=in, <code>s</code>=course, <code>u</code>=other,{' '}
-            <code>w</code>=onsite, <code>n</code>=no fly, <code>f</code>=can fly; weekly:{' '}
-            <code>d1-d7</code> (Mon-Sun) with flags after (e.g., <code>d3pb</code>).
-          </p>
-          <label htmlFor="hdayText">Raw .hday content</label>
-          <textarea
-            id="hdayText"
-            value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            placeholder={`Example:\n2024/12/23-2025/01/05 # Kerstvakantie\np2024/07/17-2024/07/17\na2025/03/25-2025/03/25`}
-            className="textarea-mono"
-          />
-        </>
-      )}
-
-      <h2>Events</h2>
-      {!USE_BACKEND && (
-        <div className="row" style={{ gap: '0.5rem', marginBottom: '1rem' }}>
-          <button onClick={handleClearAll}>Clear table</button>
-          <button
-            onClick={handleBulkDelete}
-            disabled={selectedIndices.size === 0}
-            title="Delete selected events"
-          >
-            {selectedIndices.size === 0
-              ? 'Delete Selected'
-              : selectedIndices.size === 1
-                ? 'Delete 1 event'
-                : `Delete ${selectedIndices.size} events`}
-          </button>
-          <button
-            onClick={handleBulkDuplicate}
-            disabled={selectedIndices.size === 0}
-            title="Duplicate selected events"
-          >
-            {selectedIndices.size === 0
-              ? 'Duplicate Selected'
-              : selectedIndices.size === 1
-                ? 'Duplicate 1 event'
-                : `Duplicate ${selectedIndices.size} events`}
-          </button>
-          <button onClick={handleImportFile} title="Import events from another .hday file">
-            Import from .hday
-          </button>
-          <input
-            ref={importFileInputRef}
-            type="file"
-            accept=".hday,.txt"
-            onChange={handleImportFileChange}
-            style={{ display: 'none' }}
-            aria-label="Import .hday file"
-          />
-        </div>
-      )}
-
-      <table className="table">
-        <thead>
-          <tr>
-            {!USE_BACKEND && (
-              <th>
-                <input
-                  ref={selectAllCheckboxRef}
-                  type="checkbox"
-                  checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
-                  onChange={handleSelectAll}
-                  aria-label="Select or deselect all events in the table"
-                  title="Select/deselect all events"
-                />
-              </th>
-            )}
-            <th>#</th>
-            <th>Type</th>
-            <th>Start</th>
-            <th>End/Weekday</th>
-            <th>Flags</th>
-            <th>Title</th>
-            {!USE_BACKEND && <th>Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedEvents.map((ev, sortedIdx) => {
-            // Get the original index from the array for edit/delete operations
-            const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1;
-            return (
-              <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
-                {!USE_BACKEND && (
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedIndices.has(originalIdx)}
-                      onChange={() => handleToggleSelect(originalIdx)}
-                      disabled={originalIdx === -1}
-                      aria-label={getEventAriaLabel(ev)}
-                    />
-                  </td>
-                )}
-                <td>{sortedIdx + 1}</td>
-                <td>{ev.type}</td>
-                <td>{ev.start || ''}</td>
-                <td>
-                  {ev.type === 'weekly' && ev.weekday
-                    ? getWeekdayName(ev.weekday)
-                    : ev.end || ''}
-                </td>
-                <td>{ev.flags?.join(', ')}</td>
-                <td>{ev.title || ''}</td>
-                {!USE_BACKEND && (
-                  <td>
-                    <button
-                      onClick={() => handleEdit(originalIdx)}
-                      disabled={ev.type === 'unknown' || originalIdx === -1}
-                      title={
-                        ev.type === 'unknown' ? 'Cannot edit unknown event types' : 'Edit event'
-                      }
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDuplicate(originalIdx)}
-                      disabled={originalIdx === -1}
-                      title="Duplicate this event"
-                    >
-                      Duplicate
-                    </button>
-                    <button onClick={() => handleDelete(originalIdx)} disabled={originalIdx === -1}>
-                      Delete
-                    </button>
-                  </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {!USE_BACKEND && (
-        <>
-          <h2>Add / Edit event</h2>
-          <div ref={formRef} className="event-form controls">
-            <div>
-              <label htmlFor="eventType">Event type</label>
-              <br />
-              <select
-                id="eventType"
-                value={eventType}
-                onChange={(e) => setEventType(e.target.value as 'range' | 'weekly')}
-              >
-                <option value="range">Range (start-end)</option>
-                <option value="weekly">Weekly (weekday)</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="eventTitle">Comment (optional)</label>
-              <br />
-              <input
-                id="eventTitle"
-                aria-label="Comment"
-                value={eventTitle}
-                onChange={(e) => setEventTitle(e.target.value)}
-                placeholder="Optional comment"
-              />
-            </div>
-
-            {eventType === 'range' ? (
-              <div>
-                <label htmlFor="eventStart">
-                  Start (YYYY/MM/DD) <span className="required-indicator">*</span>
-                </label>
-                <br />
-                <input
-                  id="eventStart"
-                  type="date"
-                  value={eventStart ? eventStart.replace(/\//g, '-') : ''}
-                  onChange={(e) => handleStartDateChange(e.target.value ? e.target.value.replace(/-/g, '/') : '')}
-                  className={startDateError ? 'input-error' : ''}
-                  aria-invalid={!!startDateError}
-                  aria-required="true"
-                  aria-describedby={startDateError ? 'eventStart-error' : undefined}
-                />
-                {/* Wrapper always occupies space (min-height) to prevent layout shifts */}
-                <div className="error-message-wrapper">
-                  {startDateError && (
-                    <div id="eventStart-error" className="error-message" role="alert">
-                      {startDateError}
-                    </div>
-                  )}
-                </div>
-                <br />
-                <label htmlFor="eventEnd">End (YYYY/MM/DD)</label>
-                <br />
-                <input
-                  id="eventEnd"
-                  type="date"
-                  value={eventEnd ? eventEnd.replace(/\//g, '-') : ''}
-                  onChange={(e) => handleEndDateChange(e.target.value ? e.target.value.replace(/-/g, '/') : '')}
-                  className={endDateError ? 'input-error' : ''}
-                  aria-invalid={!!endDateError}
-                  aria-describedby={endDateError ? 'eventEnd-error' : undefined}
-                />
-                {/* Wrapper always occupies space (min-height) to prevent layout shifts */}
-                <div className="error-message-wrapper">
-                  {endDateError && (
-                    <div id="eventEnd-error" className="error-message" role="alert">
-                      {endDateError}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <label htmlFor="eventWeekday">Weekday</label>
-                <br />
-                <select
-                  id="eventWeekday"
-                  value={eventWeekday}
-                  onChange={(e) => setEventWeekday(parseInt(e.target.value, 10))}
-                >
-                  <option value="1">Mon</option>
-                  <option value="2">Tue</option>
-                  <option value="3">Wed</option>
-                  <option value="4">Thu</option>
-                  <option value="5">Fri</option>
-                  <option value="6">Sat</option>
-                  <option value="7">Sun</option>
-                </select>
-              </div>
-            )}
-
-            <div>
-              <div>
-                <fieldset>
-                  <legend>Type Flags</legend>
-                  <div className="muted">Only one type flag is allowed; if multiple are selected only the first will be used.</div>
-                  <label htmlFor="flag-business">
-                    <input id="flag-business" type="checkbox" checked={eventFlags.includes('business')} onChange={() => handleFlagToggle('business')} /> business
-                  </label>
-                  <br />
-                  <label htmlFor="flag-weekend">
-                    <input id="flag-weekend" type="checkbox" checked={eventFlags.includes('weekend')} onChange={() => handleFlagToggle('weekend')} /> weekend
-                  </label>
-                  <br />
-                  <label htmlFor="flag-birthday">
-                    <input id="flag-birthday" type="checkbox" checked={eventFlags.includes('birthday')} onChange={() => handleFlagToggle('birthday')} /> birthday
-                  </label>
-                  <br />
-                  <label htmlFor="flag-ill">
-                    <input id="flag-ill" type="checkbox" checked={eventFlags.includes('ill')} onChange={() => handleFlagToggle('ill')} /> ill
-                  </label>
-                  <br />
-                  <label htmlFor="flag-in">
-                    <input id="flag-in" type="checkbox" checked={eventFlags.includes('in')} onChange={() => handleFlagToggle('in')} /> in
-                  </label>
-                  <br />
-                  <label htmlFor="flag-course">
-                    <input id="flag-course" type="checkbox" checked={eventFlags.includes('course')} onChange={() => handleFlagToggle('course')} /> course
-                  </label>
-                  <br />
-                  <label htmlFor="flag-other">
-                    <input id="flag-other" type="checkbox" checked={eventFlags.includes('other')} onChange={() => handleFlagToggle('other')} /> other
-                  </label>
-                </fieldset>
-
-                <fieldset>
-                  <legend>Time / Location Flags</legend>
-                  <div className="muted">Only one time/location flag is allowed; if multiple are selected only the first will be used.</div>
-                  <label htmlFor="flag-half-am">
-                    <input id="flag-half-am" type="checkbox" checked={eventFlags.includes('half_am')} onChange={() => handleFlagToggle('half_am')} /> half_am (Morning)
-                  </label>
-                  <br />
-                  <label htmlFor="flag-half-pm">
-                    <input id="flag-half-pm" type="checkbox" checked={eventFlags.includes('half_pm')} onChange={() => handleFlagToggle('half_pm')} /> half_pm (Afternoon)
-                  </label>
-                  <br />
-                  <label htmlFor="flag-onsite">
-                    <input id="flag-onsite" type="checkbox" checked={eventFlags.includes('onsite')} onChange={() => handleFlagToggle('onsite')} /> onsite
-                  </label>
-                  <br />
-                  <label htmlFor="flag-no-fly">
-                    <input id="flag-no-fly" type="checkbox" checked={eventFlags.includes('no_fly')} onChange={() => handleFlagToggle('no_fly')} /> no_fly
-                  </label>
-                  <br />
-                  <label htmlFor="flag-can-fly">
-                    <input id="flag-can-fly" type="checkbox" checked={eventFlags.includes('can_fly')} onChange={() => handleFlagToggle('can_fly')} /> can_fly
-                  </label>
-                </fieldset>
-              </div>
-            </div>
-
-            <div>
-              <button className="primary" onClick={handleAddOrUpdate}>
-                {editIndex >= 0 ? 'Update' : 'Add'}
-              </button>
-              <button onClick={handleResetForm}>Reset form</button>
+      <Card className="mb-4 shadow-sm">
+        <Card.Body className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+          <div>
+            <Card.Title as="h1" className="mb-1">
+              Holiday Planner
+            </Card.Title>
+            <div className="text-muted">
+              Plan time off, track flags, and review holidays at a glance.
             </div>
           </div>
-        </>
+
+          <Stack direction="horizontal" gap={2} className="flex-wrap">
+            <Button
+              variant="outline-secondary"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              <i
+                className={`bi bi-${theme === 'light' ? 'moon-stars' : 'sun'} me-2`}
+                aria-hidden="true"
+              />
+              {theme === 'light' ? 'Dark' : 'Light'}
+            </Button>
+
+            {USE_BACKEND ? (
+              <>
+                <Form.Control
+                  value={user}
+                  onChange={(e) => setUser(e.target.value)}
+                  placeholder="Username"
+                />
+                <Button variant="primary" onClick={load}>
+                  Load from API
+                </Button>
+                <Button variant="primary" onClick={save}>
+                  Save to API
+                </Button>
+              </>
+            ) : (
+              <>
+                <Form.Control
+                  type="file"
+                  accept=".hday,.txt"
+                  onChange={handleFileUpload}
+                  aria-label="Upload .hday or .txt file"
+                />
+                <Button variant="primary" onClick={handleParse}>
+                  Parse
+                </Button>
+                <Button variant="primary" onClick={handleDownload}>
+                  Download .hday
+                </Button>
+              </>
+            )}
+          </Stack>
+        </Card.Body>
+      </Card>
+
+      {!USE_BACKEND && (
+        <Accordion className="mb-4 shadow-sm" defaultActiveKey="raw-content">
+          <Accordion.Item eventKey="raw-content">
+            <Accordion.Header>Raw .hday content</Accordion.Header>
+            <Accordion.Body>
+              <p className="text-muted">
+                Paste your <code>.hday</code> content below (or load a file), click <b>Parse</b>,
+                then edit and <b>Download</b> back to <code>.hday</code>. Flags: <code>a</code>=half
+                AM, <code>p</code>=half PM, <code>b</code>=business, <code>e</code>=weekend,{' '}
+                <code>h</code>=birthday, <code>i</code>=ill, <code>k</code>=in, <code>s</code>=course,{' '}
+                <code>u</code>=other, <code>w</code>=onsite, <code>n</code>=no fly, <code>f</code>=can fly;
+                weekly: <code>d1-d7</code> (Mon-Sun) with flags after (e.g., <code>d3pb</code>).
+              </p>
+              <Form.Group controlId="hdayText">
+                <Form.Label>Raw .hday content</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={8}
+                  value={rawText}
+                  onChange={(e) => setRawText(e.target.value)}
+                  placeholder={`Example:\n2024/12/23-2025/01/05 # Kerstvakantie\np2024/07/17-2024/07/17\na2025/03/25-2025/03/25`}
+                  className="textarea-mono"
+                />
+              </Form.Group>
+            </Accordion.Body>
+          </Accordion.Item>
+        </Accordion>
       )}
 
-      <h2>Month view</h2>
-      <div className="row">
-        <label htmlFor="month-view-input" className="mr-2">
-          Select month:
-        </label>
-        <button className="primary" onClick={handlePreviousMonth} aria-label="Previous month">◀</button>
-        <input
-          id="month-view-input"
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          aria-describedby="month-view-help"
-        />
-        <button className="primary" onClick={handleNextMonth} aria-label="Next month">▶</button>
-        <span id="month-view-help" className="muted">
-          Format: YYYY-MM
-        </span>
-      </div>
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <h2 className="h5 mb-0">Events</h2>
+          {!USE_BACKEND && (
+            <Stack direction="horizontal" gap={2} className="flex-wrap">
+              <Button variant="primary" size="sm" onClick={handleOpenCreateModal}>
+                <i className="bi bi-plus-lg me-2" aria-hidden="true" />
+                New event
+              </Button>
+              <Button variant="outline-secondary" size="sm" onClick={handleClearAll}>
+                Clear table
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={selectedIndices.size === 0}
+                title="Delete selected events"
+              >
+                {selectedIndices.size === 0
+                  ? 'Delete Selected'
+                  : selectedIndices.size === 1
+                    ? 'Delete 1 event'
+                    : `Delete ${selectedIndices.size} events`}
+              </Button>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={handleBulkDuplicate}
+                disabled={selectedIndices.size === 0}
+                title="Duplicate selected events"
+              >
+                {selectedIndices.size === 0
+                  ? 'Duplicate Selected'
+                  : selectedIndices.size === 1
+                    ? 'Duplicate 1 event'
+                    : `Duplicate ${selectedIndices.size} events`}
+              </Button>
+              <Button variant="outline-primary" size="sm" onClick={handleImportFile}>
+                Import from .hday
+              </Button>
+              <input
+                ref={importFileInputRef}
+                type="file"
+                accept=".hday,.txt"
+                onChange={handleImportFileChange}
+                style={{ display: 'none' }}
+                aria-label="Import .hday file"
+              />
+            </Stack>
+          )}
+        </Card.Header>
 
-      {month && <MonthGrid events={doc.events} ym={month} nationalHolidays={holidayMap} />}
+        <Card.Body>
+          <Table striped bordered hover responsive className="align-middle">
+            <thead>
+              <tr>
+                {!USE_BACKEND && (
+                  <th>
+                    <input
+                      ref={selectAllCheckboxRef}
+                      type="checkbox"
+                      checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
+                      onChange={handleSelectAll}
+                      aria-label="Select or deselect all events in the table"
+                      title="Select/deselect all events"
+                    />
+                  </th>
+                )}
+                <th>#</th>
+                <th>Type</th>
+                <th>Start</th>
+                <th>End/Weekday</th>
+                <th>Flags</th>
+                <th>Title</th>
+                {!USE_BACKEND && <th>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedEvents.map((ev, sortedIdx) => {
+                const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1;
+                return (
+                  <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
+                    {!USE_BACKEND && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedIndices.has(originalIdx)}
+                          onChange={() => handleToggleSelect(originalIdx)}
+                          disabled={originalIdx === -1}
+                          aria-label={getEventAriaLabel(ev)}
+                        />
+                      </td>
+                    )}
+                    <td>{sortedIdx + 1}</td>
+                    <td>{ev.type}</td>
+                    <td>{ev.start || ''}</td>
+                    <td>
+                      {ev.type === 'weekly' && ev.weekday
+                        ? getWeekdayName(ev.weekday)
+                        : ev.end || ''}
+                    </td>
+                    <td>{ev.flags?.join(', ')}</td>
+                    <td>{ev.title || ''}</td>
+                    {!USE_BACKEND && (
+                      <td>
+                        <ButtonGroup size="sm">
+                          <Button
+                            variant="outline-secondary"
+                            onClick={() => handleEdit(originalIdx)}
+                            disabled={ev.type === 'unknown' || originalIdx === -1}
+                            title={
+                              ev.type === 'unknown'
+                                ? 'Cannot edit unknown event types'
+                                : 'Edit event'
+                            }
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline-primary"
+                            onClick={() => handleDuplicate(originalIdx)}
+                            disabled={originalIdx === -1}
+                            title="Duplicate this event"
+                          >
+                            Duplicate
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            onClick={() => handleDelete(originalIdx)}
+                            disabled={originalIdx === -1}
+                          >
+                            Delete
+                          </Button>
+                        </ButtonGroup>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </Card.Body>
+      </Card>
+
+      <Card className="mb-4 shadow-sm">
+        <Card.Header>
+          <h2 className="h5 mb-0">Month view</h2>
+        </Card.Header>
+        <Card.Body>
+          <Stack direction="horizontal" gap={2} className="flex-wrap mb-3">
+            <Form.Label htmlFor="month-view-input" className="mb-0">
+              Select month:
+            </Form.Label>
+            <Button variant="outline-primary" onClick={handlePreviousMonth} aria-label="Previous month">
+              <i className="bi bi-chevron-left" aria-hidden="true" />
+            </Button>
+            <Form.Control
+              id="month-view-input"
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              aria-describedby="month-view-help"
+              style={{ maxWidth: '180px' }}
+            />
+            <Button variant="outline-primary" onClick={handleNextMonth} aria-label="Next month">
+              <i className="bi bi-chevron-right" aria-hidden="true" />
+            </Button>
+            <Form.Text id="month-view-help" className="text-muted">
+              Format: YYYY-MM
+            </Form.Text>
+          </Stack>
+
+          {month && <MonthGrid events={doc.events} ym={month} nationalHolidays={holidayMap} />}
+        </Card.Body>
+      </Card>
+
+      {!USE_BACKEND && (
+        <Modal
+          show={showEventModal}
+          onHide={() => {
+            setShowEventModal(false);
+            handleResetForm();
+          }}
+          onEntered={handleModalEntered}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>{editIndex >= 0 ? 'Edit event' : 'New event'}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body ref={formRef}>
+            <Form>
+              <Row className="g-3">
+                <Col xs={12}>
+                  <Card className="bg-light border-0">
+                    <Card.Body className="py-2">
+                      <div className="small text-uppercase text-muted">Preview</div>
+                      <div className="fw-semibold">
+                        {getEventTypeLabel(eventFlags)}{' '}
+                        {eventType === 'weekly'
+                          ? eventWeekday
+                            ? `· ${getWeekdayName(eventWeekday)}`
+                            : ''
+                          : eventStart
+                            ? eventEnd && eventEnd !== eventStart
+                              ? `· ${eventStart} → ${eventEnd}`
+                              : `· ${eventStart}`
+                            : '· Select a date'}
+                      </div>
+                      {eventTitle && <div className="text-muted">{eventTitle}</div>}
+                      {eventFlags.length > 0 && (
+                        <div className="text-muted small">
+                          Flags: {eventFlags.join(', ')}
+                        </div>
+                      )}
+                      <div className="mt-2">
+                        <div className="small text-uppercase text-muted">Raw line</div>
+                        <div className="font-monospace">
+                          {previewLine || 'Fill in the required fields to preview the .hday line.'}
+                        </div>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="eventType">
+                    <Form.Label>Event type</Form.Label>
+                    <Form.Select
+                      value={eventType}
+                      onChange={(e) => setEventType(e.target.value as 'range' | 'weekly')}
+                    >
+                      <option value="range">Range (start-end)</option>
+                      <option value="weekly">Weekly (weekday)</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+
+                <Col md={6}>
+                  <Form.Group controlId="eventTitle">
+                    <Form.Label>Comment (optional)</Form.Label>
+                    <Form.Control
+                      aria-label="Comment"
+                      value={eventTitle}
+                      onChange={(e) => setEventTitle(e.target.value)}
+                      placeholder="Optional comment"
+                    />
+                  </Form.Group>
+                </Col>
+
+                {eventType === 'range' ? (
+                  <>
+                    <Col md={6}>
+                      <Form.Group controlId="eventStart">
+                        <Form.Label>
+                          Start (YYYY/MM/DD) <span className="required-indicator">*</span>
+                        </Form.Label>
+                        <Form.Control
+                          type="date"
+                          value={eventStart ? eventStart.replace(/\//g, '-') : ''}
+                          onChange={(e) =>
+                            handleStartDateChange(
+                              e.target.value ? e.target.value.replace(/-/g, '/') : '',
+                            )
+                          }
+                          className={startDateError ? 'input-error' : ''}
+                          aria-invalid={!!startDateError}
+                          aria-required="true"
+                          aria-describedby={startDateError ? 'eventStart-error' : undefined}
+                        />
+                        <div className="error-message-wrapper">
+                          {startDateError && (
+                            <div id="eventStart-error" className="error-message" role="alert">
+                              {startDateError}
+                            </div>
+                          )}
+                        </div>
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="eventEnd">
+                        <Form.Label>End (YYYY/MM/DD)</Form.Label>
+                        <Form.Control
+                          type="date"
+                          value={eventEnd ? eventEnd.replace(/\//g, '-') : ''}
+                          onChange={(e) =>
+                            handleEndDateChange(
+                              e.target.value ? e.target.value.replace(/-/g, '/') : '',
+                            )
+                          }
+                          className={endDateError ? 'input-error' : ''}
+                          aria-invalid={!!endDateError}
+                          aria-describedby={endDateError ? 'eventEnd-error' : undefined}
+                        />
+                        <div className="error-message-wrapper">
+                          {endDateError && (
+                            <div id="eventEnd-error" className="error-message" role="alert">
+                              {endDateError}
+                            </div>
+                          )}
+                        </div>
+                      </Form.Group>
+                    </Col>
+                  </>
+                ) : (
+                  <Col md={6}>
+                    <Form.Group controlId="eventWeekday">
+                      <Form.Label>Weekday</Form.Label>
+                      <Form.Select
+                        value={eventWeekday}
+                        onChange={(e) => setEventWeekday(parseInt(e.target.value, 10))}
+                      >
+                        <option value="1">Mon</option>
+                        <option value="2">Tue</option>
+                        <option value="3">Wed</option>
+                        <option value="4">Thu</option>
+                        <option value="5">Fri</option>
+                        <option value="6">Sat</option>
+                        <option value="7">Sun</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                )}
+
+                <Col xs={12}>
+                  <fieldset className="border rounded p-3">
+                    <legend className="float-none w-auto px-2 fs-6">Type Flags</legend>
+                    <Row className="g-2">
+                      {TYPE_FLAG_OPTIONS.map(([flag, label]) => (
+                        <Col sm={6} lg={4} key={flag}>
+                          <FlagCheckbox
+                            id={`flag-${flag}`}
+                            name="type-flag"
+                            type="radio"
+                            label={label}
+                            checked={
+                              flag === 'none'
+                                ? !eventFlags.some((f) =>
+                                    TYPE_FLAGS_AS_EVENT_FLAGS.includes(f),
+                                  )
+                                : eventFlags.includes(flag)
+                            }
+                            onChange={() => handleTypeFlagChange(flag)}
+                          />
+                        </Col>
+                      ))}
+                    </Row>
+                  </fieldset>
+                </Col>
+
+                <Col xs={12}>
+                  <fieldset className="border rounded p-3">
+                    <legend className="float-none w-auto px-2 fs-6">Time / Location Flags</legend>
+                    <Row className="g-2">
+                      {TIME_LOCATION_FLAG_OPTIONS.map(([flag, label]) => (
+                        <Col sm={6} lg={4} key={flag}>
+                          <FlagCheckbox
+                            id={`flag-${flag}`}
+                            name="time-flag"
+                            type="radio"
+                            label={label}
+                            checked={
+                              flag === 'none'
+                                ? !eventFlags.some((f) =>
+                                    TIME_LOCATION_FLAGS_AS_EVENT_FLAGS.includes(f),
+                                  )
+                                : eventFlags.includes(flag)
+                            }
+                            onChange={() => handleTimeFlagChange(flag)}
+                          />
+                        </Col>
+                      ))}
+                    </Row>
+                  </fieldset>
+                </Col>
+              </Row>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="outline-secondary" onClick={handleResetForm}>
+              Reset form
+            </Button>
+            <Button variant="primary" onClick={handleSubmitEvent}>
+              {editIndex >= 0 ? 'Update' : 'Add'}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
 
       {/* Confirmation dialog */}
       <ConfirmationDialog
@@ -1156,6 +1352,6 @@ export default function App() {
         onConfirm={confirmClearAll}
         onCancel={cancelClearAll}
       />
-    </div>
+    </Container>
   );
 }
