@@ -239,11 +239,17 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
     can_fly: 'f',
   };
 
+  // Canonical serialization order: type flags first, then time/location flags
+  // This is for readability/consistency, NOT for priority resolution
+  // (normalization already ensured only one flag from each category exists)
+  const flagOrder: EventFlag[] = [
+    'business', 'weekend', 'birthday', 'ill', 'course', 'in', 'other',
+    'half_am', 'half_pm', 'onsite', 'no_fly', 'can_fly'
+  ];
+
   const flags = ev.flags || [];
-  // Preserve the original order of flags from input (FIFO), don't reorder
-  // Filter out 'holiday' which is not in flagMap and shouldn't be serialized
-  const prefix = flags
-    .filter((f) => flagMap[f] !== undefined)
+  const prefix = flagOrder
+    .filter((f) => flags.includes(f))
     .map((f) => flagMap[f])
     .join('');
 
