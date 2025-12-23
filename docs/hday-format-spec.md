@@ -48,38 +48,71 @@ Only one of these flags can be used at a time:
 
 **Note:** If multiple type flags are present in the input (e.g., `sb`), only the **first one** is kept. The list order above does NOT imply priority.
 
+
 ## Flag Combinations
 
-Flags can be combined by concatenating them. Common patterns:
+Flags can be combined by concatenating them. The most common pattern is:
 
-| Flags | Meaning | Display Color |
-|-------|---------|---------------|
-| *(none)* | Regular vacation/holiday | Red (#EC0000) |
-| `a` | Half day AM off | Pink with `,` (#FF8A8A) |
-| `p` | Half day PM off | Pink with `'` (#FF8A8A) |
-| `b` | Business trip (full day) | Orange (#FF9500) |
-| `ba` | Business trip, half day AM | Light Orange with `,` (#FFC04D) |
-| `bp` | Business trip, half day PM | Light Orange with `'` (#FFC04D) |
-| `s` | Training/course (full day) | Dark Yellow/Gold (#D9AD00) |
-| `sa` | Training, half day AM | Light Yellow with `,` (#F0D04D) |
-| `sp` | Training, half day PM | Light Yellow with `'` (#F0D04D) |
-| `k` | In office | Teal (#008899) |
-| `ka` | In office, half day AM | Light Teal with `,` (#00B8CC) |
-| `kp` | In office, half day PM | Light Teal with `'` (#00B8CC) |
-| `e` | Weekend | Dark Magenta (#990099) |
-| `ea` | Weekend, half day AM | Light Magenta with `,` (#CC66CC) |
-| `ep` | Weekend, half day PM | Light Magenta with `'` (#CC66CC) |
-| `h` | Birthday | Dark Blue (#0000CC) |
-| `ha` | Birthday, half day AM | Light Blue with `,` (#6666FF) |
-| `hp` | Birthday, half day PM | Light Blue with `'` (#6666FF) |
-| `i` | Ill/sick leave | Dark Olive (#336600) |
-| `ia` | Ill, half day AM | Light Olive with `,` (#669933) |
-| `ip` | Ill, half day PM | Light Olive with `'` (#669933) |
-| `u` | Other/unspecified | Dark Cyan (#008B8B) |
-| `ua` | Other, half day AM | Light Cyan with `,` (#4DB8B8) |
-| `up` | Other, half day PM | Light Cyan with `'` (#4DB8B8) |
+> **[type][time/location]**
 
-**Note:** Weekly recurring events (`d1-d7`) follow the same flag-based color scheme as above. For example, `d1` (Monday) is red, `d5b` (business Friday) is orange, `d2s` (training Tuesday) is dark yellow, etc. Location flags like `w`, `n`, `f` can also be combined (e.g., `d3w` for onsite Wednesday).
+Where:
+- **type**: One of `b` (business), `s` (training), `k` (in office), `e` (weekend), `h` (birthday), `i` (ill), `u` (other), or none (vacation/holiday)
+- **time/location**: One of `a` (AM), `p` (PM), `w` (onsite), `n` (not able to fly), or `f` (able to fly)
+
+**Important:** Only one time or location flag (`a`, `p`, `w`, `n`, `f`) may be used per event. Combinations like `aw`, `pa`, `an`, `pw`, etc. are **not permitted**.
+
+### Common Flag Combinations
+
+| Flags   | Meaning                                 | Display Color         |
+|---------|-----------------------------------------|----------------------|
+| *(none)*| Regular vacation/holiday                | Red (#EC0000)        |
+| `a`     | Half day AM off                         | Pink with `,` (#FF8A8A) |
+| `p`     | Half day PM off                         | Pink with `'` (#FF8A8A) |
+| `b`     | Business trip (full day)                | Orange (#FF9500)     |
+| `ba`    | Business trip, half day AM              | Light Orange with `,` (#FFC04D) |
+| `bp`    | Business trip, half day PM              | Light Orange with `'` (#FFC04D) |
+| `bw`    | Business trip, onsite                   | Orange (#FF9500)     |
+| `bn`    | Business trip, not able to fly          | Orange (#FF9500)     |
+| `bf`    | Business trip, able to fly              | Orange (#FF9500)     |
+| `s`     | Training/course (full day)              | Dark Yellow/Gold (#D9AD00) |
+| `sa`    | Training, half day AM                   | Light Yellow with `,` (#F0D04D) |
+| `sp`    | Training, half day PM                   | Light Yellow with `'` (#F0D04D) |
+| `sw`    | Training, onsite                        | Dark Yellow/Gold (#D9AD00) |
+| `sn`    | Training, not able to fly               | Dark Yellow/Gold (#D9AD00) |
+| `sf`    | Training, able to fly                   | Dark Yellow/Gold (#D9AD00) |
+| `k`     | In office                               | Teal (#008899)       |
+| `ka`    | In office, half day AM                  | Light Teal with `,` (#00B8CC) |
+| `kp`    | In office, half day PM                  | Light Teal with `'` (#00B8CC) |
+| `kw`    | In office, onsite                       | Teal (#008899)       |
+| `kn`    | In office, not able to fly              | Teal (#008899)       |
+| `kf`    | In office, able to fly                  | Teal (#008899)       |
+| `e`     | Weekend                                 | Dark Magenta (#990099) |
+| `ea`    | Weekend, half day AM                    | Light Magenta with `,` (#CC66CC) |
+| `ep`    | Weekend, half day PM                    | Light Magenta with `'` (#CC66CC) |
+| `ew`    | Weekend, onsite                         | Dark Magenta (#990099) |
+| `en`    | Weekend, not able to fly                | Dark Magenta (#990099) |
+| `ef`    | Weekend, able to fly                    | Dark Magenta (#990099) |
+| `h`     | Birthday                                | Dark Blue (#0000CC)  |
+| `ha`    | Birthday, half day AM                   | Light Blue with `,` (#6666FF) |
+| `hp`    | Birthday, half day PM                   | Light Blue with `'` (#6666FF) |
+| `hw`    | Birthday, onsite                        | Dark Blue (#0000CC)  |
+| `hn`    | Birthday, not able to fly               | Dark Blue (#0000CC)  |
+| `hf`    | Birthday, able to fly                   | Dark Blue (#0000CC)  |
+| `i`     | Ill/sick leave                          | Dark Olive (#336600) |
+| `ia`    | Ill, half day AM                        | Light Olive with `,` (#669933) |
+| `ip`    | Ill, half day PM                        | Light Olive with `'` (#669933) |
+| `iw`    | Ill, onsite                             | Dark Olive (#336600) |
+| `in`    | Ill, not able to fly                    | Dark Olive (#336600) |
+| `if`    | Ill, able to fly                        | Dark Olive (#336600) |
+| `u`     | Other/unspecified                       | Dark Cyan (#008B8B)  |
+| `ua`    | Other, half day AM                      | Light Cyan with `,` (#4DB8B8) |
+| `up`    | Other, half day PM                      | Light Cyan with `'` (#4DB8B8) |
+| `uw`    | Other, onsite                           | Dark Cyan (#008B8B)  |
+| `un`    | Other, not able to fly                  | Dark Cyan (#008B8B)  |
+| `uf`    | Other, able to fly                      | Dark Cyan (#008B8B)  |
+| `w`     | Onsite support (no type)                | Red (#EC0000)        |
+| `n`     | Not able to fly (no type)               | Red (#EC0000)        |
+| `f`     | Able to fly (no type)                   | Red (#EC0000)        |
 
 ## Comments and Metadata
 
@@ -108,9 +141,12 @@ Legacy Outlook integration detected event types by calendar subject keywords:
 p2024/03/26-2024/03/26 # Half day PM off
 a2024/05/15-2024/05/15 # Half day AM off
 
+
+
 # Business trips
 b2024/06/10-2024/06/12 # Business trip
 bp2024/09/15-2024/09/15 # Business trip, back at half day PM
+bw2024/10/01-2024/10/01 # Business trip, onsite
 
 # Training
 s2024/04/08-2024/04/08 # Training course
@@ -135,10 +171,13 @@ ia2024/03/05-2024/03/05 # Sick in morning, recovered PM
 u2024/04/22-2024/04/22 # Personal day
 ua2024/09/30-2024/09/30 # Appointment in morning
 
+
+
 # Weekly recurring (ISO weekday: 1=Mon, 7=Sun)
 d1 # Every Monday off
 d5 # Every Friday off
 d3p # Every Wednesday afternoon off
+d2bw # Every Tuesday business trip onsite
 
 # Metadata
 r Generated by: holidaytool V1.0RC7
