@@ -1,4 +1,4 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
   - name: 📖 Documentation
     url: https://github.com/tjorim/HdayPlanner/blob/main/README.md
