@@ -37,21 +37,21 @@ describe('MonthGrid - Weekend Highlighting', () => {
   });
 });
 
-describe('MonthGrid - National Holidays', () => {
+describe('MonthGrid - Public Holidays', () => {
   it('displays holiday indicator when holiday is provided', () => {
     const events: HdayEvent[] = [];
     const ym = '2025-01';
 
     // Create a mock holiday map
-    const holidays = new Map([
+    const publicHolidays = new Map([
       ['2025/01/01', { name: "New Year's Day", localName: 'Nieuwjaarsdag' }],
     ]);
 
-    render(<MonthGrid events={events} ym={ym} nationalHolidays={holidays} />);
+    render(<MonthGrid events={events} ym={ym} publicHolidays={publicHolidays} />);
 
     // Check that the cell has holiday class
     const holidayCell = screen.getByLabelText("2025/01/01 - New Year's Day");
-    expect(holidayCell.className).toContain('day--holiday');
+    expect(holidayCell.className).toContain('day--public-holiday');
 
     // Check that the holiday indicator emoji is present
     const indicator = screen.getByTitle('Nieuwjaarsdag');
@@ -74,20 +74,20 @@ describe('MonthGrid - National Holidays', () => {
     const ym = '2025-01';
 
     // Create a mock holiday map with multiple holidays
-    const holidays = new Map([
+    const publicHolidays = new Map([
       ['2025/01/01', { name: "New Year's Day", localName: 'Nieuwjaarsdag' }],
       ['2025/01/20', { name: 'MLK Day', localName: 'Martin Luther King Jr. Day' }],
     ]);
 
-    render(<MonthGrid events={events} ym={ym} nationalHolidays={holidays} />);
+    render(<MonthGrid events={events} ym={ym} publicHolidays={publicHolidays} />);
 
     // Check first holiday
     const newYearCell = screen.getByLabelText("2025/01/01 - New Year's Day");
-    expect(newYearCell.className).toContain('day--holiday');
+    expect(newYearCell.className).toContain('day--public-holiday');
 
     // Check second holiday
     const mlkCell = screen.getByLabelText('2025/01/20 - MLK Day');
-    expect(mlkCell.className).toContain('day--holiday');
+    expect(mlkCell.className).toContain('day--public-holiday');
 
     // Check that there are exactly 2 holiday indicators
     const indicators = screen.getAllByText('🎉');
@@ -99,26 +99,70 @@ describe('MonthGrid - National Holidays', () => {
     const ym = '2025-01';
 
     // January 4, 2025 is a Saturday
-    const holidays = new Map([
+    const publicHolidays = new Map([
       ['2025/01/04', { name: 'Test Holiday', localName: 'Test Holiday Local' }],
     ]);
 
-    render(<MonthGrid events={events} ym={ym} nationalHolidays={holidays} />);
+    render(<MonthGrid events={events} ym={ym} publicHolidays={publicHolidays} />);
 
     const cell = screen.getByLabelText('2025/01/04 - Test Holiday');
     expect(cell.className).toContain('day--weekend');
-    expect(cell.className).toContain('day--holiday');
+    expect(cell.className).toContain('day--public-holiday');
   });
 
   it('includes holiday name in aria-label for accessibility', () => {
     const events: HdayEvent[] = [];
     const ym = '2025-12';
 
-    const holidays = new Map([['2025/12/25', { name: 'Christmas Day', localName: 'Kerstmis' }]]);
+    const publicHolidays = new Map([
+      ['2025/12/25', { name: 'Christmas Day', localName: 'Kerstmis' }],
+    ]);
 
-    render(<MonthGrid events={events} ym={ym} nationalHolidays={holidays} />);
+    render(<MonthGrid events={events} ym={ym} publicHolidays={publicHolidays} />);
 
     // getByLabelText will throw if element with this aria-label doesn't exist
     screen.getByLabelText('2025/12/25 - Christmas Day');
+  });
+});
+
+describe('MonthGrid - School Holidays', () => {
+  it('displays school holiday indicator and aria-label', () => {
+    const events: HdayEvent[] = [];
+    const ym = '2025-04';
+
+    const schoolHolidays = new Map([['2025/04/18', { name: 'Spring Break' }]]);
+
+    render(<MonthGrid events={events} ym={ym} schoolHolidays={schoolHolidays} />);
+
+    const holidayCell = screen.getByLabelText('2025/04/18 - School Holiday: Spring Break');
+    expect(holidayCell.className).toContain('day--school-holiday');
+
+    const indicator = screen.getByTitle('Spring Break');
+    expect(indicator.textContent).toBe('🏫');
+  });
+
+  it('includes both public and school holiday labels when overlapping', () => {
+    const events: HdayEvent[] = [];
+    const ym = '2025-04';
+
+    const publicHolidays = new Map([
+      ['2025/04/18', { name: 'Good Friday', localName: 'Goede Vrijdag' }],
+    ]);
+    const schoolHolidays = new Map([['2025/04/18', { name: 'Spring Break' }]]);
+
+    render(
+      <MonthGrid
+        events={events}
+        ym={ym}
+        publicHolidays={publicHolidays}
+        schoolHolidays={schoolHolidays}
+      />,
+    );
+
+    const holidayCell = screen.getByLabelText(
+      '2025/04/18 - Good Friday - School Holiday: Spring Break',
+    );
+    expect(holidayCell.className).toContain('day--public-holiday');
+    expect(holidayCell.className).toContain('day--school-holiday');
   });
 });

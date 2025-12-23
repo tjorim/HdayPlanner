@@ -16,7 +16,13 @@ import { getHday, type HdayDocument, putHday } from './api/hday';
 import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { MonthGrid } from './components/MonthGrid';
 import { ToastContainer } from './components/ToastContainer';
-import { convertDateFormat, useNationalHolidays } from './hooks/useNationalHolidays';
+import { useErrorToast } from './hooks/useErrorToast';
+import {
+  convertDateFormat,
+  getPublicHolidayName,
+  usePublicHolidays,
+} from './hooks/usePublicHolidays';
+import { getSchoolHolidayName, useSchoolHolidays } from './hooks/useSchoolHolidays';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
 import { isValidDate, parseHdayDate } from './lib/dateValidation';
@@ -111,7 +117,7 @@ const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATI
  *
  * Features include:
  * - Event editing (add, update, delete, duplicate, and bulk actions)
- * - Month view with national holidays
+ * - Month view with public holidays
  * - Import and export of `.hday` documents
  * - Toast notifications for user feedback
  * - Theme selection and theming support
@@ -190,30 +196,57 @@ export default function App() {
     return Number.isInteger(year) ? year : dayjs().year();
   }, [month]);
 
-  // Fetch national holidays (always enabled for NL)
-  const { holidays, error: holidaysError } = useNationalHolidays('NL', currentYear, true);
+  // Fetch public holidays (always enabled for NL)
+  const { holidays, error: publicHolidaysError } = usePublicHolidays('NL', currentYear, 'EN', true);
+  const { holidays: schoolHolidays, error: schoolHolidaysError } = useSchoolHolidays(
+    'NL',
+    currentYear,
+    'NL-NH',
+  );
 
   // Convert holidays to a Map for quick lookup by date
-  const holidayMap = useMemo(() => {
+  const publicHolidayMap = useMemo(() => {
     const map = new Map<string, { name: string; localName: string }>();
     holidays.forEach((holiday) => {
-      const dateKey = convertDateFormat(holiday.date);
-      map.set(dateKey, {
-        name: holiday.name,
-        localName: holiday.localName,
-      });
+      const start = dayjs(holiday.startDate);
+      const end = dayjs(holiday.endDate);
+      if (!start.isValid() || !end.isValid()) {
+        console.warn(`Invalid public holiday date range: ${holiday.startDate} - ${holiday.endDate}`);
+        return;
+      }
+      const holidayName = getPublicHolidayName(holiday);
+      for (let current = start; !current.isAfter(end); current = current.add(1, 'day')) {
+        const dateKey = convertDateFormat(current.format('YYYY-MM-DD'));
+        map.set(dateKey, {
+          name: holidayName,
+          localName: holidayName,
+        });
+      }
     });
     return map;
   }, [holidays]);
 
+  const schoolHolidayMap = useMemo(() => {
+    const map = new Map<string, { name: string }>();
+    schoolHolidays.forEach((holiday) => {
+      const start = dayjs(holiday.startDate);
+      const end = dayjs(holiday.endDate);
+      if (!start.isValid() || !end.isValid()) {
+        console.warn(`Invalid school holiday date range: ${holiday.startDate} - ${holiday.endDate}`);
+        return;
+      }
+      const holidayName = getSchoolHolidayName(holiday);
+      for (let current = start; !current.isAfter(end); current = current.add(1, 'day')) {
+        const dateKey = convertDateFormat(current.format('YYYY-MM-DD'));
+        map.set(dateKey, { name: holidayName });
+      }
+    });
+    return map;
+  }, [schoolHolidays]);
+
   // Show toast if holidays fail to load (only on error transition)
-  const prevErrorRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (holidaysError && holidaysError !== prevErrorRef.current) {
-      showToast(`Failed to load national holidays: ${holidaysError}`, 'error');
-    }
-    prevErrorRef.current = holidaysError;
-  }, [holidaysError, showToast]);
+  useErrorToast(publicHolidaysError, 'Failed to load public holidays', showToast);
+  useErrorToast(schoolHolidaysError, 'Failed to load school holidays', showToast);
 
   // Set indeterminate state for select-all checkbox
   useEffect(() => {
@@ -1126,7 +1159,14 @@ export default function App() {
             </Form.Text>
           </Stack>
 
-          {month && <MonthGrid events={doc.events} ym={month} nationalHolidays={holidayMap} />}
+          {month && (
+            <MonthGrid
+              events={doc.events}
+              ym={month}
+              publicHolidays={publicHolidayMap}
+              schoolHolidays={schoolHolidayMap}
+            />
+          )}
         </Card.Body>
       </Card>
 

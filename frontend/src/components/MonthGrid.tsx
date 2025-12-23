@@ -4,9 +4,13 @@ import type { HdayEvent } from '../lib/hday';
 import { getEventClass, getEventTypeLabel, getTimeLocationSymbol } from '../lib/hday';
 import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUtils';
 
-interface NationalHolidayInfo {
+interface PublicHolidayInfo {
   name: string;
   localName: string;
+}
+
+interface SchoolHolidayInfo {
+  name: string;
 }
 
 interface EventItemProps {
@@ -55,7 +59,7 @@ function EventItem({ event }: EventItemProps) {
 }
 
 /**
- * Render a month calendar grid with events and optional national holiday annotations.
+ * Render a month calendar grid with events and optional holiday annotations.
  *
  * It renders each day of the month for the given year-month (`ym`) as a focusable cell.
  * Each cell displays events that occur on that date and marks today, weekends, and holidays.
@@ -63,17 +67,20 @@ function EventItem({ event }: EventItemProps) {
  *
  * @param events - Array of events (HdayEvent) to be shown; events may be range or weekly types and are shown on any date they apply to.
  * @param ym - Year-month string in the format "YYYY-MM" identifying which month to render.
- * @param nationalHolidays - Optional map keyed by "YYYY/MM/DD" to holiday metadata used to mark and label holiday dates; defaults to an empty Map.
+ * @param publicHolidays - Optional map keyed by "YYYY/MM/DD" to holiday metadata used to mark and label public holiday dates; defaults to an empty Map.
+ * @param schoolHolidays - Optional map keyed by "YYYY/MM/DD" to school holiday metadata used to mark and label school holiday dates; defaults to an empty Map.
  * @returns The calendar grid as a JSX element containing week rows and day cells.
  */
 export function MonthGrid({
   events,
   ym,
-  nationalHolidays = new Map(),
+  publicHolidays = new Map(),
+  schoolHolidays = new Map(),
 }: {
   events: HdayEvent[];
   ym: string;
-  nationalHolidays?: Map<string, NationalHolidayInfo>;
+  publicHolidays?: Map<string, PublicHolidayInfo>;
+  schoolHolidays?: Map<string, SchoolHolidayInfo>;
 }) {
   const parts = ym.split('-').map(Number);
   const year = parts[0] ?? 0;
@@ -169,18 +176,21 @@ export function MonthGrid({
       const currentDate = dayjs(`${year}-${pad2(month)}-${pad2(d)}`);
       const isoWeekday = getISOWeekday(currentDate); // 1=Monday, 7=Sunday for .hday format
       const isWeekend = isoWeekday === 6 || isoWeekday === 7; // Saturday=6, Sunday=7 in ISO
-      const holidayInfo = nationalHolidays.get(dateStr);
+      const publicHolidayInfo = publicHolidays.get(dateStr);
+      const schoolHolidayInfo = schoolHolidays.get(dateStr);
 
       // Build CSS classes
       const classes = ['day'];
       if (isToday) classes.push('day--today');
       if (isWeekend) classes.push('day--weekend');
-      if (holidayInfo) classes.push('day--holiday');
+      if (publicHolidayInfo) classes.push('day--public-holiday');
+      if (schoolHolidayInfo) classes.push('day--school-holiday');
 
       // Build aria-label
       let ariaLabel = dateStr;
       if (isToday) ariaLabel += ' (Today)';
-      if (holidayInfo) ariaLabel += ` - ${holidayInfo.name}`;
+      if (publicHolidayInfo) ariaLabel += ` - ${publicHolidayInfo.name}`;
+      if (schoolHolidayInfo) ariaLabel += ` - School Holiday: ${schoolHolidayInfo.name}`;
 
       // Filter all events that apply to this date in a single pass
       const todays = events.filter((ev) => {
@@ -207,18 +217,28 @@ export function MonthGrid({
         >
           <div className="date">
             {dateStr}
-            {holidayInfo && (
+            {publicHolidayInfo && (
               <>
                 <span
                   className="holiday-indicator"
-                  title={holidayInfo.localName}
+                  title={publicHolidayInfo.localName}
                   role="img"
                   aria-hidden="true"
                 >
                   🎉
                 </span>
-                <span className="holiday-name" aria-hidden="true"> {holidayInfo.name}</span>
+                <span className="holiday-name" aria-hidden="true"> {publicHolidayInfo.name}</span>
               </>
+            )}
+            {schoolHolidayInfo && (
+              <span
+                className="school-holiday-indicator"
+                title={schoolHolidayInfo.name}
+                role="img"
+                aria-hidden="true"
+              >
+                🏫
+              </span>
             )}
           </div>
           {todays.map((ev) => (
