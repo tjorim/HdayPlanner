@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { useOpenHolidays } from './useOpenHolidays';
 
 export interface SchoolHolidayName {
   language: string;
@@ -49,81 +50,26 @@ export function useSchoolHolidays(
   language: string = DEFAULT_LANGUAGE,
   enabled: boolean = true,
 ) {
-  const [holidays, setHolidays] = useState<SchoolHoliday[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const isValidYear = Number.isInteger(year) && year >= 1000 && year <= 9999;
+  const isEnabled = enabled && Boolean(countryCode) && Boolean(subdivisionCode) && isValidYear;
+  const params = useMemo(
+    () => ({
+      countryIsoCode: countryCode,
+      validFrom: `${year}-01-01`,
+      validTo: `${year}-12-31`,
+      languageIsoCode: language,
+      subdivisionCode,
+    }),
+    [countryCode, year, language, subdivisionCode],
+  );
 
-  useEffect(() => {
-    const isValidYear = Number.isInteger(year) && year >= 1000 && year <= 9999;
-    if (!enabled || !countryCode || !subdivisionCode || !isValidYear) {
-      setHolidays([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchHolidays = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(
-          `https://openholidaysapi.org/SchoolHolidays?countryIsoCode=${countryCode}` +
-            `&validFrom=${year}-01-01&validTo=${year}-12-31` +
-            `&languageIsoCode=${language}&subdivisionCode=${subdivisionCode}`,
-          {
-            headers: {
-              Accept: 'application/json',
-            },
-            signal: AbortSignal.timeout(10000),
-          },
-        );
-
-        if (!cancelled && !response.ok) {
-          throw new Error(`Failed to fetch school holidays: ${response.status} ${response.statusText}`);
-        }
-
-        if (cancelled) {
-          return;
-        }
-
-        const data: SchoolHoliday[] = await response.json();
-
-        if (!cancelled) {
-          setHolidays(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          if (err instanceof Error) {
-            if (err.name === 'AbortError' || err.name === 'TimeoutError') {
-              setError('Request timeout: Unable to reach school holiday API');
-            } else if (err.message.startsWith('Failed to fetch school holidays:')) {
-              setError(err.message);
-            } else if (err.message.includes('Failed to fetch')) {
-              setError('Network error: Unable to connect to school holiday API');
-            } else {
-              setError(err.message);
-            }
-          } else {
-            setError('Failed to fetch school holidays');
-          }
-          setHolidays([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchHolidays();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [countryCode, year, subdivisionCode, language, enabled]);
-
-  return { holidays, loading, error };
+  return useOpenHolidays<SchoolHoliday>({
+    endpoint: 'SchoolHolidays',
+    params,
+    enabled: isEnabled,
+    responseErrorPrefix: 'Failed to fetch school holidays',
+    timeoutError: 'Request timeout: Unable to reach school holiday API',
+    networkError: 'Network error: Unable to connect to school holiday API',
+    unknownError: 'Failed to fetch school holidays',
+  });
 }
