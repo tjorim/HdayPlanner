@@ -3,6 +3,7 @@ import { getHday, type HdayDocument, putHday } from './api/hday';
 import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { MonthGrid } from './components/MonthGrid';
 import { ToastContainer } from './components/ToastContainer';
+import { useErrorToast } from './hooks/useErrorToast';
 import {
   convertDateFormat,
   getPublicHolidayName,
@@ -153,21 +154,8 @@ export default function App() {
   }, [schoolHolidays]);
 
   // Show toast if holidays fail to load (only on error transition)
-  const prevPublicErrorRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (publicHolidaysError && publicHolidaysError !== prevPublicErrorRef.current) {
-      showToast(`Failed to load public holidays: ${publicHolidaysError}`, 'error');
-    }
-    prevPublicErrorRef.current = publicHolidaysError;
-  }, [publicHolidaysError, showToast]);
-
-  const prevSchoolErrorRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (schoolHolidaysError && schoolHolidaysError !== prevSchoolErrorRef.current) {
-      showToast(`Failed to load school holidays: ${schoolHolidaysError}`, 'error');
-    }
-    prevSchoolErrorRef.current = schoolHolidaysError;
-  }, [schoolHolidaysError, showToast]);
+  useErrorToast(publicHolidaysError, 'Failed to load public holidays', showToast);
+  useErrorToast(schoolHolidaysError, 'Failed to load school holidays', showToast);
 
   // Set indeterminate state for select-all checkbox
   useEffect(() => {
