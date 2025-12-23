@@ -82,6 +82,24 @@ export default function App() {
   const [doc, setDoc] = useState<HdayDocument>({ raw: '', events: [] });
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
+
+  const handlePreviousMonth = React.useCallback(() => {
+    setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
+  }, []);
+
+  const handleNextMonth = React.useCallback(() => {
+    setMonth((prev) => dayjs(prev + '-01').add(1, 'month').format('YYYY-MM'));
+  }, []);
+
+  // Standalone mode state
+  const [rawText, setRawText] = useState('');
+  const [editIndex, setEditIndex] = useState<number>(-1);
+  const [eventType, setEventType] = useState<'range' | 'weekly'>('range');
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventStart, setEventStart] = useState('');
+  const [eventEnd, setEventEnd] = useState('');
+  const [eventWeekday, setEventWeekday] = useState(1);
+  const [eventFlags, setEventFlags] = useState<string[]>([]);
   const previewLine = useMemo(() => {
     const hasRange = eventType === 'range' && !!eventStart;
     const hasWeekly = eventType === 'weekly' && !!eventWeekday;
@@ -108,24 +126,6 @@ export default function App() {
 
     return toLine(baseEvent);
   }, [eventType, eventStart, eventEnd, eventWeekday, eventTitle, eventFlags]);
-
-  const handlePreviousMonth = React.useCallback(() => {
-    setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
-  }, []);
-
-  const handleNextMonth = React.useCallback(() => {
-    setMonth((prev) => dayjs(prev + '-01').add(1, 'month').format('YYYY-MM'));
-  }, []);
-
-  // Standalone mode state
-  const [rawText, setRawText] = useState('');
-  const [editIndex, setEditIndex] = useState<number>(-1);
-  const [eventType, setEventType] = useState<'range' | 'weekly'>('range');
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventStart, setEventStart] = useState('');
-  const [eventEnd, setEventEnd] = useState('');
-  const [eventWeekday, setEventWeekday] = useState(1);
-  const [eventFlags, setEventFlags] = useState<string[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const formRef = React.useRef<HTMLDivElement>(null);
