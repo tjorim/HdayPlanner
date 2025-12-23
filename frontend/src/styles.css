@@ -7,6 +7,7 @@
   --surface: #fff;
   --surface-alt: #f0f0f0;
   --surface-holiday: #fff4e6;
+  --surface-school-holiday: #e8f1ff;
   --primary: #1976d2;
   --primary-shadow: rgba(25, 118, 210, 0.3);
   --primary-text: #fff;
@@ -62,6 +63,7 @@
   --surface: #161b22;
   --surface-alt: #21262d;
   --surface-holiday: #4a3800;
+  --surface-school-holiday: #1f2b44;
   --primary: #58a6ff;
   --primary-shadow: rgba(88, 166, 255, 0.3);
   --primary-text: #0d1117;
@@ -280,12 +282,24 @@ button:disabled {
   background-color: var(--surface-alt);
 }
 
-.day--holiday {
+.day--public-holiday {
   background-color: var(--surface-holiday);
 }
 
-.day--weekend.day--holiday {
+.day--school-holiday {
+  background-color: var(--surface-school-holiday);
+}
+
+.day--weekend.day--public-holiday {
   background-color: var(--surface-holiday);
+}
+
+.day--weekend.day--school-holiday {
+  background-color: var(--surface-school-holiday);
+}
+
+.day--public-holiday.day--school-holiday {
+  background: linear-gradient(135deg, var(--surface-holiday), var(--surface-school-holiday));
 }
 
 .day--today {
@@ -307,6 +321,7 @@ button:disabled {
   margin-left: 4px;
   font-size: 14px;
 }
+
 .item {
   font-size: 12px;
   margin-top: 4px;

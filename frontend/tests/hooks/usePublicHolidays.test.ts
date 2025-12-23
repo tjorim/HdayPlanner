@@ -2,15 +2,15 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   convertDateFormat,
-  type NationalHoliday,
-  useNationalHolidays,
-} from '../../src/hooks/useNationalHolidays';
+  type PublicHoliday,
+  usePublicHolidays,
+} from '../../src/hooks/usePublicHolidays';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-describe('useNationalHolidays', () => {
+describe('usePublicHolidays', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -20,17 +20,16 @@ describe('useNationalHolidays', () => {
   });
 
   it('should fetch holidays successfully', async () => {
-    const mockHolidays: NationalHoliday[] = [
+    const mockHolidays: PublicHoliday[] = [
       {
-        date: '2025-01-01',
-        localName: 'Nieuwjaarsdag',
-        name: "New Year's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public'],
+        id: 'holiday-1',
+        startDate: '2025-01-01',
+        endDate: '2025-01-01',
+        type: 'Public',
+        name: [{ language: 'EN', text: "New Year's Day" }],
+        regionalScope: 'National',
+        temporalScope: 'FullDay',
+        nationwide: true,
       },
     ];
 
@@ -39,7 +38,7 @@ describe('useNationalHolidays', () => {
       json: async () => mockHolidays,
     });
 
-    const { result } = renderHook(() => useNationalHolidays('NL', 2025, true));
+    const { result } = renderHook(() => usePublicHolidays('NL', 2025, 'EN', true));
 
     // Initially loading
     expect(result.current.loading).toBe(true);
@@ -54,98 +53,15 @@ describe('useNationalHolidays', () => {
     expect(result.current.holidays).toEqual(mockHolidays);
     expect(result.current.error).toBe(null);
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://date.nager.at/api/v3/PublicHolidays/2025/NL',
+      'https://openholidaysapi.org/PublicHolidays?countryIsoCode=NL&validFrom=2025-01-01&validTo=2025-12-31&languageIsoCode=EN',
       expect.objectContaining({
         headers: { Accept: 'application/json' },
       }),
     );
   });
 
-  it('should filter NL holidays to only Public type', async () => {
-    const mockHolidays: NationalHoliday[] = [
-      {
-        date: '2025-01-01',
-        localName: 'Nieuwjaarsdag',
-        name: "New Year's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public'],
-      },
-      {
-        date: '2025-02-14',
-        localName: 'Valentijnsdag',
-        name: "Valentine's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: false,
-        counties: null,
-        launchYear: null,
-        types: ['Observance'],
-      },
-    ];
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockHolidays,
-    });
-
-    const { result } = renderHook(() => useNationalHolidays('NL', 2025, true));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Should only include Public type holidays for NL
-    expect(result.current.holidays).toHaveLength(1);
-    expect(result.current.holidays[0].name).toBe("New Year's Day");
-  });
-
-  it('should not filter holidays for non-NL countries', async () => {
-    const mockHolidays: NationalHoliday[] = [
-      {
-        date: '2025-01-01',
-        localName: "New Year's Day",
-        name: "New Year's Day",
-        countryCode: 'US',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public'],
-      },
-      {
-        date: '2025-02-14',
-        localName: "Valentine's Day",
-        name: "Valentine's Day",
-        countryCode: 'US',
-        fixed: true,
-        global: false,
-        counties: null,
-        launchYear: null,
-        types: ['Observance'],
-      },
-    ];
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockHolidays,
-    });
-
-    const { result } = renderHook(() => useNationalHolidays('US', 2025, true));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Should include all holidays for non-NL countries
-    expect(result.current.holidays).toHaveLength(2);
-  });
-
   it('should not fetch when disabled', async () => {
-    const { result } = renderHook(() => useNationalHolidays('NL', 2025, false));
+    const { result } = renderHook(() => usePublicHolidays('NL', 2025, 'EN', false));
 
     expect(result.current.loading).toBe(false);
     expect(result.current.holidays).toEqual([]);
@@ -154,7 +70,7 @@ describe('useNationalHolidays', () => {
   });
 
   it('should not fetch when countryCode is empty', async () => {
-    const { result } = renderHook(() => useNationalHolidays('', 2025, true));
+    const { result } = renderHook(() => usePublicHolidays('', 2025, 'EN', true));
 
     expect(result.current.loading).toBe(false);
     expect(result.current.holidays).toEqual([]);
@@ -163,7 +79,7 @@ describe('useNationalHolidays', () => {
   });
 
   it('should not fetch when year is 0', async () => {
-    const { result } = renderHook(() => useNationalHolidays('NL', 0, true));
+    const { result } = renderHook(() => usePublicHolidays('NL', 0, 'EN', true));
 
     expect(result.current.loading).toBe(false);
     expect(result.current.holidays).toEqual([]);
@@ -174,7 +90,7 @@ describe('useNationalHolidays', () => {
   it('should handle network errors', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
-    const { result } = renderHook(() => useNationalHolidays('NL', 2025, true));
+    const { result } = renderHook(() => usePublicHolidays('NL', 2025, 'EN', true));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -195,7 +111,7 @@ describe('useNationalHolidays', () => {
       },
     });
 
-    const { result } = renderHook(() => useNationalHolidays('XX', 2025, true));
+    const { result } = renderHook(() => usePublicHolidays('XX', 2025, 'EN', true));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -210,7 +126,7 @@ describe('useNationalHolidays', () => {
     timeoutError.name = 'TimeoutError';
     mockFetch.mockRejectedValueOnce(timeoutError);
 
-    const { result } = renderHook(() => useNationalHolidays('NL', 2025, true));
+    const { result } = renderHook(() => usePublicHolidays('NL', 2025, 'EN', true));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -225,7 +141,7 @@ describe('useNationalHolidays', () => {
     abortError.name = 'AbortError';
     mockFetch.mockRejectedValueOnce(abortError);
 
-    const { result } = renderHook(() => useNationalHolidays('NL', 2025, true));
+    const { result } = renderHook(() => usePublicHolidays('NL', 2025, 'EN', true));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -238,7 +154,7 @@ describe('useNationalHolidays', () => {
   it('should handle generic errors', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Something went wrong'));
 
-    const { result } = renderHook(() => useNationalHolidays('NL', 2025, true));
+    const { result } = renderHook(() => usePublicHolidays('NL', 2025, 'EN', true));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -251,7 +167,7 @@ describe('useNationalHolidays', () => {
   it('should handle non-Error exceptions', async () => {
     mockFetch.mockRejectedValueOnce('Unknown error');
 
-    const { result } = renderHook(() => useNationalHolidays('NL', 2025, true));
+    const { result } = renderHook(() => usePublicHolidays('NL', 2025, 'EN', true));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -269,7 +185,7 @@ describe('useNationalHolidays', () => {
 
     mockFetch.mockReturnValueOnce(fetchPromise);
 
-    const { unmount } = renderHook(() => useNationalHolidays('NL', 2025, true));
+    const { unmount } = renderHook(() => usePublicHolidays('NL', 2025, 'EN', true));
 
     // Unmount before fetch completes
     unmount();
@@ -288,31 +204,29 @@ describe('useNationalHolidays', () => {
   });
 
   it('should refetch when countryCode changes', async () => {
-    const nlHolidays: NationalHoliday[] = [
+    const nlHolidays: PublicHoliday[] = [
       {
-        date: '2025-01-01',
-        localName: 'Nieuwjaarsdag',
-        name: "New Year's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public'],
+        id: 'holiday-nl',
+        startDate: '2025-01-01',
+        endDate: '2025-01-01',
+        type: 'Public',
+        name: [{ language: 'EN', text: "New Year's Day" }],
+        regionalScope: 'National',
+        temporalScope: 'FullDay',
+        nationwide: true,
       },
     ];
 
-    const deHolidays: NationalHoliday[] = [
+    const deHolidays: PublicHoliday[] = [
       {
-        date: '2025-01-01',
-        localName: 'Neujahr',
-        name: "New Year's Day",
-        countryCode: 'DE',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public'],
+        id: 'holiday-de',
+        startDate: '2025-01-01',
+        endDate: '2025-01-01',
+        type: 'Public',
+        name: [{ language: 'EN', text: 'New Year\'s Day' }],
+        regionalScope: 'National',
+        temporalScope: 'FullDay',
+        nationwide: true,
       },
     ];
 
@@ -327,7 +241,7 @@ describe('useNationalHolidays', () => {
       });
 
     const { result, rerender } = renderHook(
-      ({ country }) => useNationalHolidays(country, 2025, true),
+      ({ country }) => usePublicHolidays(country, 2025, 'EN', true),
       { initialProps: { country: 'NL' } },
     );
 
@@ -349,31 +263,29 @@ describe('useNationalHolidays', () => {
   });
 
   it('should refetch when year changes', async () => {
-    const holidays2025: NationalHoliday[] = [
+    const holidays2025: PublicHoliday[] = [
       {
-        date: '2025-01-01',
-        localName: 'Nieuwjaarsdag',
-        name: "New Year's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public'],
+        id: 'holiday-2025',
+        startDate: '2025-01-01',
+        endDate: '2025-01-01',
+        type: 'Public',
+        name: [{ language: 'EN', text: "New Year's Day" }],
+        regionalScope: 'National',
+        temporalScope: 'FullDay',
+        nationwide: true,
       },
     ];
 
-    const holidays2026: NationalHoliday[] = [
+    const holidays2026: PublicHoliday[] = [
       {
-        date: '2026-01-01',
-        localName: 'Nieuwjaarsdag',
-        name: "New Year's Day",
-        countryCode: 'NL',
-        fixed: true,
-        global: true,
-        counties: null,
-        launchYear: null,
-        types: ['Public'],
+        id: 'holiday-2026',
+        startDate: '2026-01-01',
+        endDate: '2026-01-01',
+        type: 'Public',
+        name: [{ language: 'EN', text: "New Year's Day" }],
+        regionalScope: 'National',
+        temporalScope: 'FullDay',
+        nationwide: true,
       },
     ];
 
@@ -387,9 +299,12 @@ describe('useNationalHolidays', () => {
         json: async () => holidays2026,
       });
 
-    const { result, rerender } = renderHook(({ year }) => useNationalHolidays('NL', year, true), {
-      initialProps: { year: 2025 },
-    });
+    const { result, rerender } = renderHook(
+      ({ year }) => usePublicHolidays('NL', year, 'EN', true),
+      {
+        initialProps: { year: 2025 },
+      },
+    );
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
