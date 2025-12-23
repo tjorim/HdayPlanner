@@ -1284,7 +1284,7 @@ export default function App() {
                       {TYPE_FLAG_OPTIONS.map(([flag, label]) => (
                         <Col sm={6} lg={4} key={flag}>
                           <FlagCheckbox
-                            id={`flag-${flag}`}
+                            id={`type-flag-${flag}`}
                             name="type-flag"
                             type="radio"
                             label={label}
@@ -1310,7 +1310,7 @@ export default function App() {
                       {TIME_LOCATION_FLAG_OPTIONS.map(([flag, label]) => (
                         <Col sm={6} lg={4} key={flag}>
                           <FlagCheckbox
-                            id={`flag-${flag}`}
+                            id={`time-flag-${flag}`}
                             name="time-flag"
                             type="radio"
                             label={label}
