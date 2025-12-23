@@ -117,7 +117,7 @@ body {
     Helvetica,
     Arial,
     sans-serif;
-  margin: 20px;
+  margin: 0;
   background-color: var(--bg);
   color: var(--text);
 }
@@ -129,131 +129,9 @@ body {
       color 0.2s ease;
   }
 }
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-button {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  button {
-    transition:
-      background-color 0.2s ease,
-      border-color 0.2s ease;
-  }
-}
-
-button:hover:not(:disabled) {
-  background: var(--surface-alt);
-}
-
-button.primary {
-  background: var(--primary);
-  color: var(--primary-text);
-  border-color: var(--primary);
-}
-
-button.primary:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Theme toggle button */
-.theme-toggle {
-  padding: 8px 12px;
-  font-size: 20px;
-  line-height: 1;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .theme-toggle {
-    transition:
-      background-color 0.2s ease,
-      transform 0.2s ease;
-  }
-
-  .theme-toggle:hover {
-    transform: scale(1.05);
-  }
-}
-
-.theme-toggle:hover {
-  background: var(--surface-alt);
-}
-
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-.table {
-  border-collapse: collapse;
-  width: 100%;
-  background: var(--table-bg);
-}
-
 .table th,
 .table td {
-  border: 1px solid var(--border);
-  padding: 6px;
   color: var(--text);
-}
-
-.table th {
-  background: var(--surface-alt);
-  font-weight: 600;
-}
-.badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-right: 4px;
-  font-size: 12px;
-  background: var(--badge-bg);
-  color: var(--badge-text);
-}
-
-.badge.holiday {
-  background: var(--badge-holiday-bg);
-  color: var(--badge-holiday-text);
-}
-
-.badge.business {
-  background: var(--badge-business-bg);
-  color: var(--badge-business-text);
-}
-
-.badge.course {
-  background: var(--badge-course-bg);
-  color: var(--badge-course-text);
-}
-
-.badge.half_am {
-  background: var(--badge-half-am-bg);
-  color: var(--badge-half-am-text);
-}
-
-.badge.half_pm {
-  background: var(--badge-half-pm-bg);
-  color: var(--badge-half-pm-text);
 }
 .calendar {
   display: flex;
@@ -314,10 +192,6 @@ button:disabled {
   color: var(--badge-holiday-text);
   font-weight: 600;
 }
-.item {
-  font-size: 12px;
-  margin-top: 4px;
-}
 .event-item {
   font-size: 12px;
   margin-top: 4px;
@@ -329,16 +203,6 @@ button:disabled {
 .event--no-title {
   padding: 6px 8px;
   opacity: 0.95;
-}
-.event-empty {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  line-height: 12px;
-  text-align: center;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.1);
-  color: rgba(0,0,0,0.6);
 }
 .event--holiday-full {
   background-color: var(--event-holiday-full);
@@ -397,49 +261,11 @@ label {
   color: var(--text);
 }
 
-input,
-select,
-textarea {
-  padding: 6px;
-  background: var(--input-bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-.row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.controls {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(280px, 1fr));
-  gap: 12px;
-  margin-top: 10px;
-}
-.muted {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
 /* Utility: monospace textarea full width */
 .textarea-mono {
   width: 100%;
   height: 220px;
   font-family: monospace;
-}
-
-/* Utility: right margin spacing */
-.mr-2 {
-  margin-right: 0.5rem;
 }
 
 /* Keyboard focus ring for calendar day cells */
