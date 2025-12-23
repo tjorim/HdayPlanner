@@ -15,6 +15,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "dayjs": "^1.11.19",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },

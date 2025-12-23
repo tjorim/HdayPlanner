@@ -2,6 +2,8 @@
  * Date validation utilities for the .hday format (YYYY/MM/DD)
  */
 
+import { dayjs } from '../utils/dateTimeUtils';
+
 const DATE_FORMAT_REGEX = /^\d{4}\/\d{2}\/\d{2}$/;
 
 /**
@@ -22,9 +24,9 @@ export function isValidDate(dateString: string): boolean {
   if (!DATE_FORMAT_REGEX.test(dateString)) {
     return false;
   }
-  const [year, month, day] = dateString.split('/').map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+  // Parse using dayjs strict mode and verify it round-trips correctly
+  const parsed = dayjs(dateString, 'YYYY/MM/DD', true);
+  return parsed.isValid() && parsed.format('YYYY/MM/DD') === dateString;
 }
 
 /**
@@ -33,7 +35,17 @@ export function isValidDate(dateString: string): boolean {
  * @param dateString - A date string formatted as `YYYY/MM/DD`. Must represent a valid calendar date.
  * @returns A Date representing the given date in the local timezone.
  */
-export function parseHdayDate(dateString: string): Date {
-  const [year, month, day] = dateString.split('/').map(Number);
-  return new Date(year, month - 1, day);
+/**
+ * Parse a date string in YYYY/MM/DD format into a Date object in the local timezone.
+ * Returns null if the input is invalid.
+ *
+ * @param dateString - A date string formatted as `YYYY/MM/DD`. Must represent a valid calendar date.
+ * @returns A Date representing the given date in the local timezone, or null if invalid.
+ */
+export function parseHdayDate(dateString: string): Date | null {
+  const parsed = dayjs(dateString, 'YYYY/MM/DD', true);
+  if (!parsed.isValid()) {
+    return null;
+  }
+  return parsed.toDate();
 }

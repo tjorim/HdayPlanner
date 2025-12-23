@@ -12,10 +12,10 @@ import {
   type HdayEvent,
   normalizeEventFlags,
   parseHday,
-  resolveTypeFlagConflicts,
   sortEvents,
   toLine,
 } from './lib/hday';
+import { dayjs, getWeekdayName } from './utils/dateTimeUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 const SCROLL_FOCUS_DELAY = 300; // Delay in ms for focusing after smooth scroll
@@ -31,10 +31,7 @@ const ERROR_START_DATE_REQUIRED = 'Start date is required';
  * @returns The current local year and month in `YYYY-MM` format.
  */
 function getCurrentMonth(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
+  return dayjs().format('YYYY-MM');
 }
 
 /**
@@ -99,7 +96,7 @@ export default function App() {
   const currentYear = useMemo(() => {
     const [yearString] = month.split('-');
     const year = Number(yearString);
-    return Number.isInteger(year) ? year : new Date().getFullYear();
+    return Number.isInteger(year) ? year : dayjs().year();
   }, [month]);
 
   // Fetch national holidays (always enabled for NL)
@@ -292,9 +289,8 @@ export default function App() {
       return `Select ${ev.title}`;
     }
 
-    if (ev.type === 'weekly') {
-      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      return `Select weekly event on ${weekdays[ev.weekday || 0]}`;
+    if (ev.type === 'weekly' && ev.weekday) {
+      return `Select weekly event on ${getWeekdayName(ev.weekday)}`;
     }
 
     if (ev.end && ev.end !== ev.start) {
@@ -671,19 +667,8 @@ export default function App() {
 
     const flags = eventFlags.filter((f) => f !== 'holiday');
 
-    // Resolve type flag conflicts using priority order
-    const { resolvedFlags, hasConflict, selectedFlag } = resolveTypeFlagConflicts(
-      flags as EventFlag[],
-    );
-
-    if (hasConflict && selectedFlag) {
-      showToast(
-        `Multiple event types selected. Using '${selectedFlag}' (priority: business > course > in).`,
-        'info',
-      );
-    }
-
-    const finalFlags = normalizeEventFlags(resolvedFlags);
+    // Normalize flags - enforces mutual exclusivity by keeping first flag in each category
+    const finalFlags = normalizeEventFlags(flags as EventFlag[]);
 
     // Build base event object without raw field
     const baseEvent: Omit<HdayEvent, 'raw'> =
@@ -835,8 +820,10 @@ export default function App() {
             Paste your <code>.hday</code> content below (or load a file), click <b>Parse</b>, then
             edit and <b>Download</b> back to <code>.hday</code>. Flags: <code>a</code>=half AM,{' '}
             <code>p</code>
-            =half PM, <code>b</code>=business,
-            <code>s</code>=course, <code>i</code>=in; weekly entries use <code>d0..d6</code>.
+            =half PM, <code>b</code>=business, <code>e</code>=weekend, <code>h</code>=birthday,{' '}
+            <code>i</code>=ill, <code>k</code>=in, <code>s</code>=course, <code>u</code>=other,{' '}
+            <code>w</code>=onsite, <code>n</code>=no fly, <code>f</code>=can fly; weekly:{' '}
+            <code>d1-d7</code> (Mon-Sun) with flags after (e.g., <code>d3pb</code>).
           </p>
           <label htmlFor="hdayText">Raw .hday content</label>
           <textarea
@@ -934,8 +921,8 @@ export default function App() {
                 <td>{ev.type}</td>
                 <td>{ev.start || ''}</td>
                 <td>
-                  {ev.type === 'weekly'
-                    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][ev.weekday || 0]
+                  {ev.type === 'weekly' && ev.weekday
+                    ? getWeekdayName(ev.weekday)
                     : ev.end || ''}
                 </td>
                 <td>{ev.flags?.join(', ')}</td>
@@ -1050,13 +1037,13 @@ export default function App() {
                   value={eventWeekday}
                   onChange={(e) => setEventWeekday(parseInt(e.target.value, 10))}
                 >
-                  <option value="0">Sun</option>
                   <option value="1">Mon</option>
                   <option value="2">Tue</option>
                   <option value="3">Wed</option>
                   <option value="4">Thu</option>
                   <option value="5">Fri</option>
                   <option value="6">Sat</option>
+                  <option value="7">Sun</option>
                 </select>
               </div>
             )}

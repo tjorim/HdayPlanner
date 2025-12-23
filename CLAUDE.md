@@ -117,7 +117,7 @@ The `.hday` format is the heart of this application. **Both frontend and backend
 
 **Date Patterns:**
 - Range: `2024/12/23-2025/01/05` (or single date: `2024/12/23-2024/12/23`)
-- Weekly: `d0` through `d6` (Sunday through Saturday)
+- Weekly: `d1` through `d7` (ISO weekday: Monday through Sunday)
 
 **Flags (concatenated prefix characters):**
 - `a` = half_am (morning half-day)
@@ -206,7 +206,7 @@ parseHdayDate(str): { year, month, day } | null
 
 Events are sorted in this priority order:
 1. Range events (by start date, oldest first)
-2. Weekly events (by weekday, Sunday=0 to Saturday=6)
+2. Weekly events (by weekday, ISO format: Monday=1 to Sunday=7)
 3. Unknown events (preserve original order)
 
 ### Backend Configuration
