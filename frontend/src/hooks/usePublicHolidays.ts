@@ -1,26 +1,49 @@
 import { useEffect, useState } from 'react';
 
-export interface NationalHoliday {
-  date: string; // YYYY-MM-DD format
-  localName: string;
-  name: string;
-  countryCode: string;
-  fixed: boolean;
-  global: boolean;
-  counties: string[] | null;
-  launchYear: number | null;
-  types: string[];
+export interface PublicHolidayName {
+  language: string;
+  text: string;
+}
+
+export interface PublicHoliday {
+  id: string;
+  startDate: string; // YYYY-MM-DD format
+  endDate: string; // YYYY-MM-DD format
+  type: string;
+  name: PublicHolidayName[];
+  regionalScope: string;
+  temporalScope: string;
+  nationwide: boolean;
+}
+
+const DEFAULT_LANGUAGE = 'EN';
+
+export function getPublicHolidayName(
+  holiday: PublicHoliday,
+  language: string = DEFAULT_LANGUAGE,
+) {
+  const match = holiday.name.find((entry) => entry.language === language);
+  if (match?.text) {
+    return match.text;
+  }
+  return holiday.name[0]?.text ?? 'Public Holiday';
 }
 
 /**
- * Hook to fetch national holidays from Nager.Date API
+ * Hook to fetch public holidays from OpenHolidays API
  * @param countryCode ISO 3166-1 alpha-2 country code (e.g., 'US', 'NL', 'DE')
  * @param year Year to fetch holidays for
+ * @param language Language code for holiday names (default: 'EN')
  * @param enabled Whether to fetch holidays (for conditional loading)
  * @returns Object with holidays array, loading state, and error
  */
-export function useNationalHolidays(countryCode: string, year: number, enabled: boolean = true) {
-  const [holidays, setHolidays] = useState<NationalHoliday[]>([]);
+export function usePublicHolidays(
+  countryCode: string,
+  year: number,
+  language: string = DEFAULT_LANGUAGE,
+  enabled: boolean = true,
+) {
+  const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +64,9 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
 
       try {
         const response = await fetch(
-          `https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`,
+          `https://openholidaysapi.org/PublicHolidays?countryIsoCode=${countryCode}` +
+            `&validFrom=${year}-01-01&validTo=${year}-12-31` +
+            `&languageIsoCode=${language}`,
           {
             headers: {
               Accept: 'application/json',
@@ -59,15 +84,10 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
           return;
         }
 
-        const data: NationalHoliday[] = await response.json();
+        const data: PublicHoliday[] = await response.json();
 
         if (!cancelled) {
-          // For Netherlands (NL), only show holidays with type "Public"
-          const filteredData =
-            countryCode === 'NL'
-              ? data.filter((holiday) => holiday.types?.includes('Public'))
-              : data;
-          setHolidays(filteredData);
+          setHolidays(data);
         }
       } catch (err) {
         if (!cancelled) {
@@ -101,22 +121,22 @@ export function useNationalHolidays(countryCode: string, year: number, enabled: 
     return () => {
       cancelled = true;
     };
-  }, [countryCode, year, enabled]);
+  }, [countryCode, year, language, enabled]);
 
   return { holidays, loading, error };
 }
 
 /**
- * Convert a date string from Nager.Date format to .hday format.
+ * Convert a date string from API format to .hday format.
  *
- * @param nagerDate - Date string in `YYYY-MM-DD` format
+ * @param apiDate - Date string in `YYYY-MM-DD` format
  * @returns The date string converted to `YYYY/MM/DD` format; returns the original string unchanged if the input does not match `YYYY-MM-DD` format.
  */
-export function convertDateFormat(nagerDate: string): string {
+export function convertDateFormat(apiDate: string): string {
   // Basic validation: ensure format is YYYY-MM-DD
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(nagerDate)) {
-    console.warn(`Invalid date format: ${nagerDate}. Expected YYYY-MM-DD format.`);
-    return nagerDate;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(apiDate)) {
+    console.warn(`Invalid date format: ${apiDate}. Expected YYYY-MM-DD format.`);
+    return apiDate;
   }
-  return nagerDate.replace(/-/g, '/');
+  return apiDate.replace(/-/g, '/');
 }
