@@ -389,6 +389,47 @@ export function getEventTypeLabel(flags?: EventFlag[]): string {
 }
 
 /**
+ * Build a preview .hday line from event inputs.
+ *
+ * @param params - Event inputs used to generate the raw line.
+ * @returns The .hday line, or an empty string if required fields are missing.
+ */
+export function buildPreviewLine(params: {
+  eventType: 'range' | 'weekly';
+  start: string;
+  end: string;
+  weekday: number;
+  title: string;
+  flags: EventFlag[];
+}): string {
+  const { eventType, start, end, weekday, title, flags } = params;
+  const hasRange = eventType === 'range' && !!start;
+  const hasWeekly = eventType === 'weekly' && !!weekday;
+
+  if (!hasRange && !hasWeekly) {
+    return '';
+  }
+
+  const normalizedFlags = normalizeEventFlags(flags);
+  const baseEvent: Omit<HdayEvent, 'raw'> = hasRange
+    ? {
+        type: 'range',
+        start,
+        end: end || start,
+        title,
+        flags: normalizedFlags,
+      }
+    : {
+        type: 'weekly',
+        weekday,
+        title,
+        flags: normalizedFlags,
+      };
+
+  return toLine(baseEvent);
+}
+
+/**
  * Sort events by date and type.
  *
  * Sorting order:

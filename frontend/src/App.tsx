@@ -25,6 +25,7 @@ import {
   type HdayEvent,
   type TimeLocationFlag,
   type TypeFlag,
+  buildPreviewLine,
   getEventTypeLabel,
   normalizeEventFlags,
   parseHday,
@@ -102,32 +103,18 @@ export default function App() {
   const [eventEnd, setEventEnd] = useState('');
   const [eventWeekday, setEventWeekday] = useState(1);
   const [eventFlags, setEventFlags] = useState<EventFlag[]>([]);
-  const previewLine = useMemo(() => {
-    const hasRange = eventType === 'range' && !!eventStart;
-    const hasWeekly = eventType === 'weekly' && !!eventWeekday;
-
-    if (!hasRange && !hasWeekly) {
-      return '';
-    }
-
-    const normalizedFlags = normalizeEventFlags(eventFlags);
-    const baseEvent: Omit<HdayEvent, 'raw'> = hasRange
-      ? {
-          type: 'range',
-          start: eventStart,
-          end: eventEnd || eventStart,
-          title: eventTitle,
-          flags: normalizedFlags,
-        }
-      : {
-          type: 'weekly',
-          weekday: eventWeekday,
-          title: eventTitle,
-          flags: normalizedFlags,
-        };
-
-    return toLine(baseEvent);
-  }, [eventType, eventStart, eventEnd, eventWeekday, eventTitle, eventFlags]);
+  const previewLine = useMemo(
+    () =>
+      buildPreviewLine({
+        eventType,
+        start: eventStart,
+        end: eventEnd,
+        weekday: eventWeekday,
+        title: eventTitle,
+        flags: eventFlags,
+      }),
+    [eventType, eventStart, eventEnd, eventWeekday, eventTitle, eventFlags],
+  );
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const formRef = React.useRef<HTMLDivElement>(null);
