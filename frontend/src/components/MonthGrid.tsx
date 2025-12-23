@@ -2,16 +2,8 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
 import { getEventClass, getEventTypeLabel, getTimeLocationSymbol } from '../lib/hday';
+import type { PublicHolidayInfo, SchoolHolidayInfo } from '../types/holidays';
 import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUtils';
-
-interface PublicHolidayInfo {
-  name: string;
-  localName: string;
-}
-
-interface SchoolHolidayInfo {
-  name: string;
-}
 
 interface EventItemProps {
   event: HdayEvent;
@@ -231,14 +223,17 @@ export function MonthGrid({
               </>
             )}
             {schoolHolidayInfo && (
-              <span
-                className="school-holiday-indicator"
-                title={schoolHolidayInfo.name}
-                role="img"
-                aria-hidden="true"
-              >
-                🏫
-              </span>
+              <>
+                <span
+                  className="holiday-indicator"
+                  title={schoolHolidayInfo.name}
+                  role="img"
+                  aria-hidden="true"
+                >
+                  🏫
+                </span>
+                <span className="holiday-name" aria-hidden="true"> {schoolHolidayInfo.name}</span>
+              </>
             )}
           </div>
           {todays.map((ev) => (
