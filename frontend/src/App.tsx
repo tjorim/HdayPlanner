@@ -54,6 +54,14 @@ export default function App() {
   const [doc, setDoc] = useState<HdayDocument>({ raw: '', events: [] });
   const [month, setMonth] = useState(getCurrentMonth());
 
+  const handlePreviousMonth = React.useCallback(() => {
+    setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
+  }, []);
+
+  const handleNextMonth = React.useCallback(() => {
+    setMonth((prev) => dayjs(prev + '-01').add(1, 'month').format('YYYY-MM'));
+  }, []);
+
   // Standalone mode state
   const [rawText, setRawText] = useState('');
   const [editIndex, setEditIndex] = useState<number>(-1);
@@ -261,26 +269,23 @@ export default function App() {
   }, []);
 
   // Handle start date change with validation
-  const handleStartDateChange = useCallback(
-    (value: string) => {
-      setEventStart(value);
-      validateStartDate(value);
-      // Re-validate end date since the range validity may have changed with the new start date
-      if (eventEndRef.current) {
-        validateEndDate(eventEndRef.current, value);
-      }
-    },
-    [validateStartDate, validateEndDate],
-  );
+  const handleStartDateChange = useCallback((value: string) => {
+    // Accept YYYY-MM-DD (from date input) or YYYY/MM/DD and normalize to YYYY/MM/DD
+    const normalized = value ? (value.includes('-') ? value.replace(/-/g, '/') : value) : '';
+    setEventStart(normalized);
+    validateStartDate(normalized);
+    // Re-validate end date since the range validity may have changed with the new start date
+    if (eventEndRef.current) {
+      validateEndDate(eventEndRef.current, normalized);
+    }
+  }, [validateStartDate, validateEndDate]);
 
   // Handle end date change with validation
-  const handleEndDateChange = useCallback(
-    (value: string) => {
-      setEventEnd(value);
-      validateEndDate(value, eventStartRef.current);
-    },
-    [validateEndDate],
-  );
+  const handleEndDateChange = useCallback((value: string) => {
+    const normalized = value ? (value.includes('-') ? value.replace(/-/g, '/') : value) : '';
+    setEventEnd(normalized);
+    validateEndDate(normalized, eventStartRef.current);
+  }, [validateEndDate]);
 
   // Bulk operations - defined before keyboard shortcuts to avoid hoisting issues
   // Helper function to generate accessible aria-labels for event checkboxes
@@ -974,12 +979,14 @@ export default function App() {
             </div>
 
             <div>
-              <label htmlFor="eventTitle">Title (optional)</label>
+              <label htmlFor="eventTitle">Comment (optional)</label>
               <br />
               <input
                 id="eventTitle"
+                aria-label="Comment"
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
+                placeholder="Optional comment"
               />
             </div>
 
@@ -991,9 +998,9 @@ export default function App() {
                 <br />
                 <input
                   id="eventStart"
-                  value={eventStart}
-                  onChange={(e) => handleStartDateChange(e.target.value)}
-                  placeholder="2025/12/18"
+                  type="date"
+                  value={eventStart ? eventStart.replace(/\//g, '-') : ''}
+                  onChange={(e) => handleStartDateChange(e.target.value ? e.target.value.replace(/-/g, '/') : '')}
                   className={startDateError ? 'input-error' : ''}
                   aria-invalid={!!startDateError}
                   aria-required="true"
@@ -1012,9 +1019,9 @@ export default function App() {
                 <br />
                 <input
                   id="eventEnd"
-                  value={eventEnd}
-                  onChange={(e) => handleEndDateChange(e.target.value)}
-                  placeholder="2025/12/18"
+                  type="date"
+                  value={eventEnd ? eventEnd.replace(/\//g, '-') : ''}
+                  onChange={(e) => handleEndDateChange(e.target.value ? e.target.value.replace(/-/g, '/') : '')}
                   className={endDateError ? 'input-error' : ''}
                   aria-invalid={!!endDateError}
                   aria-describedby={endDateError ? 'eventEnd-error' : undefined}
@@ -1049,58 +1056,63 @@ export default function App() {
             )}
 
             <div>
-              <fieldset>
-                <legend>Flags</legend>
-                <label htmlFor="flag-half-am">
-                  <input
-                    id="flag-half-am"
-                    type="checkbox"
-                    checked={eventFlags.includes('half_am')}
-                    onChange={() => handleFlagToggle('half_am')}
-                  />{' '}
-                  half_am
-                </label>
-                <br />
-                <label htmlFor="flag-half-pm">
-                  <input
-                    id="flag-half-pm"
-                    type="checkbox"
-                    checked={eventFlags.includes('half_pm')}
-                    onChange={() => handleFlagToggle('half_pm')}
-                  />{' '}
-                  half_pm
-                </label>
-                <br />
-                <label htmlFor="flag-business">
-                  <input
-                    id="flag-business"
-                    type="checkbox"
-                    checked={eventFlags.includes('business')}
-                    onChange={() => handleFlagToggle('business')}
-                  />{' '}
-                  business
-                </label>
-                <br />
-                <label htmlFor="flag-course">
-                  <input
-                    id="flag-course"
-                    type="checkbox"
-                    checked={eventFlags.includes('course')}
-                    onChange={() => handleFlagToggle('course')}
-                  />{' '}
-                  course
-                </label>
-                <br />
-                <label htmlFor="flag-in">
-                  <input
-                    id="flag-in"
-                    type="checkbox"
-                    checked={eventFlags.includes('in')}
-                    onChange={() => handleFlagToggle('in')}
-                  />{' '}
-                  in
-                </label>
-              </fieldset>
+              <div>
+                <fieldset>
+                  <legend>Type Flags</legend>
+                  <div className="muted">Only one type flag is allowed; if multiple are selected only the first will be used.</div>
+                  <label htmlFor="flag-business">
+                    <input id="flag-business" type="checkbox" checked={eventFlags.includes('business')} onChange={() => handleFlagToggle('business')} /> business
+                  </label>
+                  <br />
+                  <label htmlFor="flag-weekend">
+                    <input id="flag-weekend" type="checkbox" checked={eventFlags.includes('weekend')} onChange={() => handleFlagToggle('weekend')} /> weekend
+                  </label>
+                  <br />
+                  <label htmlFor="flag-birthday">
+                    <input id="flag-birthday" type="checkbox" checked={eventFlags.includes('birthday')} onChange={() => handleFlagToggle('birthday')} /> birthday
+                  </label>
+                  <br />
+                  <label htmlFor="flag-ill">
+                    <input id="flag-ill" type="checkbox" checked={eventFlags.includes('ill')} onChange={() => handleFlagToggle('ill')} /> ill
+                  </label>
+                  <br />
+                  <label htmlFor="flag-in">
+                    <input id="flag-in" type="checkbox" checked={eventFlags.includes('in')} onChange={() => handleFlagToggle('in')} /> in
+                  </label>
+                  <br />
+                  <label htmlFor="flag-course">
+                    <input id="flag-course" type="checkbox" checked={eventFlags.includes('course')} onChange={() => handleFlagToggle('course')} /> course
+                  </label>
+                  <br />
+                  <label htmlFor="flag-other">
+                    <input id="flag-other" type="checkbox" checked={eventFlags.includes('other')} onChange={() => handleFlagToggle('other')} /> other
+                  </label>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Time / Location Flags</legend>
+                  <div className="muted">Only one time/location flag is allowed; if multiple are selected only the first will be used.</div>
+                  <label htmlFor="flag-half-am">
+                    <input id="flag-half-am" type="checkbox" checked={eventFlags.includes('half_am')} onChange={() => handleFlagToggle('half_am')} /> half_am (Morning)
+                  </label>
+                  <br />
+                  <label htmlFor="flag-half-pm">
+                    <input id="flag-half-pm" type="checkbox" checked={eventFlags.includes('half_pm')} onChange={() => handleFlagToggle('half_pm')} /> half_pm (Afternoon)
+                  </label>
+                  <br />
+                  <label htmlFor="flag-onsite">
+                    <input id="flag-onsite" type="checkbox" checked={eventFlags.includes('onsite')} onChange={() => handleFlagToggle('onsite')} /> onsite
+                  </label>
+                  <br />
+                  <label htmlFor="flag-no-fly">
+                    <input id="flag-no-fly" type="checkbox" checked={eventFlags.includes('no_fly')} onChange={() => handleFlagToggle('no_fly')} /> no_fly
+                  </label>
+                  <br />
+                  <label htmlFor="flag-can-fly">
+                    <input id="flag-can-fly" type="checkbox" checked={eventFlags.includes('can_fly')} onChange={() => handleFlagToggle('can_fly')} /> can_fly
+                  </label>
+                </fieldset>
+              </div>
             </div>
 
             <div>
@@ -1118,15 +1130,15 @@ export default function App() {
         <label htmlFor="month-view-input" className="mr-2">
           Select month:
         </label>
+        <button className="primary" onClick={handlePreviousMonth} aria-label="Previous month">◀</button>
         <input
           id="month-view-input"
+          type="month"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          inputMode="numeric"
-          pattern="\d{4}-\d{2}"
-          placeholder="YYYY-MM"
           aria-describedby="month-view-help"
         />
+        <button className="primary" onClick={handleNextMonth} aria-label="Next month">▶</button>
         <span id="month-view-help" className="muted">
           Format: YYYY-MM
         </span>

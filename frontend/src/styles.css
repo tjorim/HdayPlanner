@@ -307,6 +307,13 @@ button:disabled {
   margin-left: 4px;
   font-size: 14px;
 }
+.holiday-name {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--badge-holiday-text);
+  font-weight: 600;
+}
 .item {
   font-size: 12px;
   margin-top: 4px;
@@ -318,6 +325,20 @@ button:disabled {
   border-radius: 4px;
   color: var(--event-text);
   font-weight: 500;
+}
+.event--no-title {
+  padding: 6px 8px;
+  opacity: 0.95;
+}
+.event-empty {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  line-height: 12px;
+  text-align: center;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.1);
+  color: rgba(0,0,0,0.6);
 }
 .event--holiday-full {
   background-color: var(--event-holiday-full);
