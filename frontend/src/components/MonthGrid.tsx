@@ -9,6 +9,13 @@ interface EventItemProps {
   event: HdayEvent;
 }
 
+type HolidayIndicator = {
+  key: string;
+  emoji: string;
+  title: string;
+  name: string;
+};
+
 /**
  * Accessible labels for time/location symbols
  */
@@ -184,8 +191,7 @@ export function MonthGrid({
           name: schoolHolidayInfo.name,
         },
       ].filter(
-        (holiday): holiday is { key: string; emoji: string; title: string; name: string } =>
-          Boolean(holiday),
+        (holiday): holiday is HolidayIndicator => Boolean(holiday),
       );
 
       // Build CSS classes
