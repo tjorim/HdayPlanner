@@ -1,55 +1,61 @@
 import { useEffect, useState } from 'react';
 
-export interface PublicHolidayName {
+export interface SchoolHolidayName {
   language: string;
   text: string;
 }
 
-export interface NationalHoliday {
+export interface SchoolHolidaySubdivision {
+  code: string;
+  shortName?: string;
+}
+
+export interface SchoolHoliday {
   id: string;
   startDate: string; // YYYY-MM-DD format
   endDate: string; // YYYY-MM-DD format
   type: string;
-  name: PublicHolidayName[];
+  name: SchoolHolidayName[];
   regionalScope: string;
   temporalScope: string;
   nationwide: boolean;
+  subdivisions: SchoolHolidaySubdivision[];
 }
 
 const DEFAULT_LANGUAGE = 'EN';
 
-export function getPublicHolidayName(
-  holiday: NationalHoliday,
-  language: string = DEFAULT_LANGUAGE,
-) {
+export function getSchoolHolidayName(holiday: SchoolHoliday, language: string = DEFAULT_LANGUAGE) {
   const match = holiday.name.find((entry) => entry.language === language);
   if (match?.text) {
     return match.text;
   }
-  return holiday.name[0]?.text ?? 'Public Holiday';
+  return holiday.name[0]?.text ?? 'School Holiday';
 }
 
 /**
- * Hook to fetch national holidays from OpenHolidays API
- * @param countryCode ISO 3166-1 alpha-2 country code (e.g., 'US', 'NL', 'DE')
+ * Hook to fetch school holidays from OpenHolidays API.
+ *
+ * @param countryCode ISO 3166-1 alpha-2 country code (e.g., 'NL')
  * @param year Year to fetch holidays for
+ * @param subdivisionCode ISO 3166-2 subdivision code (e.g., 'NL-NH')
  * @param language Language code for holiday names (default: 'EN')
  * @param enabled Whether to fetch holidays (for conditional loading)
  * @returns Object with holidays array, loading state, and error
  */
-export function useNationalHolidays(
+export function useSchoolHolidays(
   countryCode: string,
   year: number,
+  subdivisionCode: string,
   language: string = DEFAULT_LANGUAGE,
   enabled: boolean = true,
 ) {
-  const [holidays, setHolidays] = useState<NationalHoliday[]>([]);
+  const [holidays, setHolidays] = useState<SchoolHoliday[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const isValidYear = Number.isInteger(year) && year >= 1000 && year <= 9999;
-    if (!enabled || !countryCode || !isValidYear) {
+    if (!enabled || !countryCode || !subdivisionCode || !isValidYear) {
       setHolidays([]);
       setError(null);
       setLoading(false);
@@ -64,27 +70,26 @@ export function useNationalHolidays(
 
       try {
         const response = await fetch(
-          `https://openholidaysapi.org/PublicHolidays?countryIsoCode=${countryCode}` +
+          `https://openholidaysapi.org/SchoolHolidays?countryIsoCode=${countryCode}` +
             `&validFrom=${year}-01-01&validTo=${year}-12-31` +
-            `&languageIsoCode=${language}`,
+            `&languageIsoCode=${language}&subdivisionCode=${subdivisionCode}`,
           {
             headers: {
               Accept: 'application/json',
             },
-            // Timeout after 10 seconds
             signal: AbortSignal.timeout(10000),
           },
         );
 
         if (!cancelled && !response.ok) {
-          throw new Error(`Failed to fetch holidays: ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch school holidays: ${response.status} ${response.statusText}`);
         }
 
         if (cancelled) {
           return;
         }
 
-        const data: NationalHoliday[] = await response.json();
+        const data: SchoolHoliday[] = await response.json();
 
         if (!cancelled) {
           setHolidays(data);
@@ -92,20 +97,17 @@ export function useNationalHolidays(
       } catch (err) {
         if (!cancelled) {
           if (err instanceof Error) {
-            // Check for specific error types
             if (err.name === 'AbortError' || err.name === 'TimeoutError') {
-              setError('Request timeout: Unable to reach holiday API');
-            } else if (err.message.startsWith('Failed to fetch holidays:')) {
-              // HTTP error from response.ok check
+              setError('Request timeout: Unable to reach school holiday API');
+            } else if (err.message.startsWith('Failed to fetch school holidays:')) {
               setError(err.message);
             } else if (err.message.includes('Failed to fetch')) {
-              // Network error
-              setError('Network error: Unable to connect to holiday API');
+              setError('Network error: Unable to connect to school holiday API');
             } else {
               setError(err.message);
             }
           } else {
-            setError('Failed to fetch holidays');
+            setError('Failed to fetch school holidays');
           }
           setHolidays([]);
         }
@@ -121,22 +123,7 @@ export function useNationalHolidays(
     return () => {
       cancelled = true;
     };
-  }, [countryCode, year, language, enabled]);
+  }, [countryCode, year, subdivisionCode, language, enabled]);
 
   return { holidays, loading, error };
-}
-
-/**
- * Convert a date string from Nager.Date format to .hday format.
- *
- * @param nagerDate - Date string in `YYYY-MM-DD` format
- * @returns The date string converted to `YYYY/MM/DD` format; returns the original string unchanged if the input does not match `YYYY-MM-DD` format.
- */
-export function convertDateFormat(nagerDate: string): string {
-  // Basic validation: ensure format is YYYY-MM-DD
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(nagerDate)) {
-    console.warn(`Invalid date format: ${nagerDate}. Expected YYYY-MM-DD format.`);
-    return nagerDate;
-  }
-  return nagerDate.replace(/-/g, '/');
 }

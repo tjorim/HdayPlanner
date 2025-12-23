@@ -122,3 +122,43 @@ describe('MonthGrid - National Holidays', () => {
     screen.getByLabelText('2025/12/25 - Christmas Day');
   });
 });
+
+describe('MonthGrid - School Holidays', () => {
+  it('displays school holiday indicator and aria-label', () => {
+    const events: HdayEvent[] = [];
+    const ym = '2025-04';
+
+    const schoolHolidays = new Map([['2025/04/18', { name: 'Spring Break' }]]);
+
+    render(<MonthGrid events={events} ym={ym} schoolHolidays={schoolHolidays} />);
+
+    const holidayCell = screen.getByLabelText('2025/04/18 - School Holiday: Spring Break');
+    expect(holidayCell.className).toContain('day--school-holiday');
+
+    const indicator = screen.getByTitle('Spring Break');
+    expect(indicator.textContent).toBe('🏫');
+  });
+
+  it('includes both national and school holiday labels when overlapping', () => {
+    const events: HdayEvent[] = [];
+    const ym = '2025-04';
+
+    const nationalHolidays = new Map([['2025/04/18', { name: 'Good Friday', localName: 'Goede Vrijdag' }]]);
+    const schoolHolidays = new Map([['2025/04/18', { name: 'Spring Break' }]]);
+
+    render(
+      <MonthGrid
+        events={events}
+        ym={ym}
+        nationalHolidays={nationalHolidays}
+        schoolHolidays={schoolHolidays}
+      />,
+    );
+
+    const holidayCell = screen.getByLabelText(
+      '2025/04/18 - Good Friday - School Holiday: Spring Break',
+    );
+    expect(holidayCell.className).toContain('day--holiday');
+    expect(holidayCell.className).toContain('day--school-holiday');
+  });
+});

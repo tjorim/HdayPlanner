@@ -9,6 +9,10 @@ interface NationalHolidayInfo {
   localName: string;
 }
 
+interface SchoolHolidayInfo {
+  name: string;
+}
+
 interface EventItemProps {
   event: HdayEvent;
 }
@@ -61,16 +65,19 @@ function EventItem({ event }: EventItemProps) {
  * @param events - Array of events (HdayEvent) to be shown; events may be range or weekly types and are shown on any date they apply to.
  * @param ym - Year-month string in the format "YYYY-MM" identifying which month to render.
  * @param nationalHolidays - Optional map keyed by "YYYY/MM/DD" to holiday metadata used to mark and label holiday dates; defaults to an empty Map.
+ * @param schoolHolidays - Optional map keyed by "YYYY/MM/DD" to school holiday metadata used to mark and label school holiday dates; defaults to an empty Map.
  * @returns The calendar grid as a JSX element containing week rows and day cells.
  */
 export function MonthGrid({
   events,
   ym,
   nationalHolidays = new Map(),
+  schoolHolidays = new Map(),
 }: {
   events: HdayEvent[];
   ym: string;
   nationalHolidays?: Map<string, NationalHolidayInfo>;
+  schoolHolidays?: Map<string, SchoolHolidayInfo>;
 }) {
   const parts = ym.split('-').map(Number);
   const year = parts[0] ?? 0;
@@ -169,17 +176,20 @@ export function MonthGrid({
       const isoWeekday = getISOWeekday(currentDate); // 1=Monday, 7=Sunday for .hday format
       const isWeekend = isoWeekday === 6 || isoWeekday === 7; // Saturday=6, Sunday=7 in ISO
       const holidayInfo = nationalHolidays.get(dateStr);
+      const schoolHolidayInfo = schoolHolidays.get(dateStr);
 
       // Build CSS classes
       const classes = ['day'];
       if (isToday) classes.push('day--today');
       if (isWeekend) classes.push('day--weekend');
       if (holidayInfo) classes.push('day--holiday');
+      if (schoolHolidayInfo) classes.push('day--school-holiday');
 
       // Build aria-label
       let ariaLabel = dateStr;
       if (isToday) ariaLabel += ' (Today)';
       if (holidayInfo) ariaLabel += ` - ${holidayInfo.name}`;
+      if (schoolHolidayInfo) ariaLabel += ` - School Holiday: ${schoolHolidayInfo.name}`;
 
       // Filter all events that apply to this date in a single pass
       const todays = events.filter((ev) => {
@@ -214,6 +224,16 @@ export function MonthGrid({
                 aria-hidden="true"
               >
                 🎉
+              </span>
+            )}
+            {schoolHolidayInfo && (
+              <span
+                className="school-holiday-indicator"
+                title={schoolHolidayInfo.name}
+                role="img"
+                aria-hidden="true"
+              >
+                🏫
               </span>
             )}
           </div>
