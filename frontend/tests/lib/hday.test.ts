@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildPreviewLine,
   EVENT_COLORS,
   type EventFlag,
   getEventClass,
   getEventColor,
+  getEventTypeLabel,
   getTimeLocationSymbol,
   type HdayEvent,
   normalizeEventFlags,
@@ -218,6 +220,65 @@ describe('getEventColor', () => {
       expect(getEventColor(['in'])).toBe('#008899');
       expect(getEventColor(['in'])).not.toBe('#00FFFF');
     });
+  });
+});
+
+describe('getEventTypeLabel', () => {
+  it('returns Holiday for empty flags', () => {
+    expect(getEventTypeLabel([])).toBe('Holiday');
+  });
+
+  it('returns Business trip for business flag', () => {
+    expect(getEventTypeLabel(['business'])).toBe('Business trip');
+  });
+
+  it('returns Sick leave for ill flag', () => {
+    expect(getEventTypeLabel(['ill'])).toBe('Sick leave');
+  });
+
+  it('returns In office for in flag', () => {
+    expect(getEventTypeLabel(['in'])).toBe('In office');
+  });
+});
+
+describe('buildPreviewLine', () => {
+  it('returns empty string when required fields are missing', () => {
+    expect(
+      buildPreviewLine({
+        eventType: 'range',
+        start: '',
+        end: '',
+        weekday: 1,
+        title: '',
+        flags: [],
+      }),
+    ).toBe('');
+  });
+
+  it('builds a range line with normalized flags', () => {
+    expect(
+      buildPreviewLine({
+        eventType: 'range',
+        start: '2025/01/02',
+        end: '',
+        weekday: 1,
+        title: 'Trip',
+        flags: ['business'],
+      }),
+    ).toBe('b2025/01/02 # Trip');
+  });
+
+  it('builds a weekly line with flags', () => {
+    expect(
+      buildPreviewLine({
+        eventType: 'weekly',
+        start: '',
+        end: '',
+        weekday: 3,
+        title: 'Afternoon off',
+        flags: ['half_pm'],
+      }),
+    ).toBe('d3p # Afternoon off');
   });
 });
 

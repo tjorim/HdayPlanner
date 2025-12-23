@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
-import { getEventClass, getTimeLocationSymbol } from '../lib/hday';
+import { getEventClass, getEventTypeLabel, getTimeLocationSymbol } from '../lib/hday';
 import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUtils';
 
 interface PublicHolidayInfo {
@@ -31,7 +31,7 @@ const SYMBOL_LABELS: Record<string, string> = {
 /**
  * Renders a single event item within a calendar day cell, with an optional half-day symbol.
  *
- * The component displays the event's title (falls back to "Event" if missing)
+ * The component displays the event's title (falls back to the event type label if missing)
  * and, when present, a half-day symbol with an accessible label:
  * '◐' -> "Morning half-day event", '◑' -> "Afternoon half-day event".
  *
@@ -39,9 +39,12 @@ const SYMBOL_LABELS: Record<string, string> = {
  * @returns A JSX element representing the event item.
  */
 function EventItem({ event }: EventItemProps) {
-  const eventClass = getEventClass(event.flags);
+  const baseClass = getEventClass(event.flags);
+  const hasTitle = !!event.title && event.title.trim().length > 0;
+  const eventClass = `${baseClass} ${hasTitle ? '' : 'event--no-title'}`.trim();
   const symbol = getTimeLocationSymbol(event.flags);
   const symbolLabel = symbol ? SYMBOL_LABELS[symbol] : undefined;
+  const fallbackLabel = getEventTypeLabel(event.flags);
 
   return (
     <div className={`event-item ${eventClass}`}>
@@ -50,7 +53,7 @@ function EventItem({ event }: EventItemProps) {
           {symbol}
         </span>
       )}
-      {event.title || 'Event'}
+      {hasTitle ? event.title : fallbackLabel}
     </div>
   );
 }
@@ -94,18 +97,9 @@ export function MonthGrid({
   const leadingPad = first.isoWeekday() - 1; // Monday=0, Sunday=6
   const totalDays = last.date();
 
-  // Roving tabindex: track which day-cell has focus
+  // Roving tabindex: track which day-cell has focus (start on first real day)
   const [focusedIndex, setFocusedIndex] = useState<number>(leadingPad);
   const cellRefs = useRef<Array<HTMLDivElement | null>>([]);
-
-  useEffect(() => {
-    // Reset focus to first real day when month changes
-    const firstDayIndex = leadingPad;
-    setFocusedIndex(firstDayIndex);
-    // Focus the first real day
-    const el = cellRefs.current[firstDayIndex];
-    el?.focus();
-  }, [ym, leadingPad]);
 
   const clampToRealDay = (idx: number) => {
     const min = leadingPad;
@@ -113,20 +107,27 @@ export function MonthGrid({
     return Math.min(Math.max(idx, min), max);
   };
 
+  useEffect(() => {
+    setFocusedIndex((prev) => clampToRealDay(prev));
+  }, [leadingPad, totalDays]);
+
   const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
     let next: number;
+    // If no cell currently focused via keyboard, start from first real day
+    const base = focusedIndex >= 0 ? focusedIndex : leadingPad;
+
     switch (e.key) {
       case 'ArrowLeft':
-        next = focusedIndex - 1;
+        next = base - 1;
         break;
       case 'ArrowRight':
-        next = focusedIndex + 1;
+        next = base + 1;
         break;
       case 'ArrowUp':
-        next = focusedIndex - 7;
+        next = base - 7;
         break;
       case 'ArrowDown':
-        next = focusedIndex + 7;
+        next = base + 7;
         break;
       case 'Home':
         next = leadingPad;
@@ -217,14 +218,17 @@ export function MonthGrid({
           <div className="date">
             {dateStr}
             {publicHolidayInfo && (
-              <span
-                className="holiday-indicator"
-                title={publicHolidayInfo.localName}
-                role="img"
-                aria-hidden="true"
-              >
-                🎉
-              </span>
+              <>
+                <span
+                  className="holiday-indicator"
+                  title={publicHolidayInfo.localName}
+                  role="img"
+                  aria-hidden="true"
+                >
+                  🎉
+                </span>
+                <span className="holiday-name" aria-hidden="true"> {publicHolidayInfo.name}</span>
+              </>
             )}
             {schoolHolidayInfo && (
               <span

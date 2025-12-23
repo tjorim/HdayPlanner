@@ -370,6 +370,66 @@ export function getEventClass(flags?: EventFlag[]): string {
 }
 
 /**
+ * Return a human-readable label for the event type based on flags.
+ *
+ * @param flags - Optional list of event flags.
+ * @returns A label such as "Business trip" or "Holiday".
+ */
+export function getEventTypeLabel(flags?: EventFlag[]): string {
+  if (!flags || flags.length === 0) return 'Holiday';
+
+  if (flags.includes('business')) return 'Business trip';
+  if (flags.includes('weekend')) return 'Weekend';
+  if (flags.includes('birthday')) return 'Birthday';
+  if (flags.includes('ill')) return 'Sick leave';
+  if (flags.includes('course')) return 'Training';
+  if (flags.includes('in')) return 'In office';
+  if (flags.includes('other')) return 'Other';
+  return 'Holiday';
+}
+
+/**
+ * Build a preview .hday line from event inputs.
+ *
+ * @param params - Event inputs used to generate the raw line.
+ * @returns The .hday line, or an empty string if required fields are missing.
+ */
+export function buildPreviewLine(params: {
+  eventType: 'range' | 'weekly';
+  start: string;
+  end: string;
+  weekday: number;
+  title: string;
+  flags: EventFlag[];
+}): string {
+  const { eventType, start, end, weekday, title, flags } = params;
+  const hasRange = eventType === 'range' && !!start;
+  const hasWeekly = eventType === 'weekly' && !!weekday;
+
+  if (!hasRange && !hasWeekly) {
+    return '';
+  }
+
+  const normalizedFlags = normalizeEventFlags(flags);
+  const baseEvent: Omit<HdayEvent, 'raw'> = hasRange
+    ? {
+        type: 'range',
+        start,
+        end: end || start,
+        title,
+        flags: normalizedFlags,
+      }
+    : {
+        type: 'weekly',
+        weekday,
+        title,
+        flags: normalizedFlags,
+      };
+
+  return toLine(baseEvent);
+}
+
+/**
  * Sort events by date and type.
  *
  * Sorting order:
