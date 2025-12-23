@@ -50,18 +50,30 @@ Flags can be combined by concatenating them. Common patterns:
 
 | Flags | Meaning | Display Color |
 |-------|---------|---------------|
-| *(none)* | Regular vacation/holiday | Red (#FF0000) |
-| `a` | Half day AM off | Red with `,` (#FF9999) |
-| `p` | Half day PM off | Red with `'` (#FF9999) |
-| `b` | Business trip (full day) | Orange (#FFA500) |
-| `ba` | Business trip, half day AM | Orange with `,` (#FFCC77) |
-| `bp` | Business trip, half day PM | Orange with `'` (#FFCC77) |
+| *(none)* | Regular vacation/holiday | Red (#EC0000) |
+| `a` | Half day AM off | Pink with `,` (#FF8A8A) |
+| `p` | Half day PM off | Pink with `'` (#FF8A8A) |
+| `b` | Business trip (full day) | Orange (#FF9500) |
+| `ba` | Business trip, half day AM | Light Orange with `,` (#FFC04D) |
+| `bp` | Business trip, half day PM | Light Orange with `'` (#FFC04D) |
 | `s` | Training/course (full day) | Dark Yellow/Gold (#D9AD00) |
 | `sa` | Training, half day AM | Light Yellow with `,` (#F0D04D) |
 | `sp` | Training, half day PM | Light Yellow with `'` (#F0D04D) |
 | `k` | In office | Teal (#008899) |
 | `ka` | In office, half day AM | Light Teal with `,` (#00B8CC) |
 | `kp` | In office, half day PM | Light Teal with `'` (#00B8CC) |
+| `e` | Weekend | Dark Magenta (#990099) |
+| `ea` | Weekend, half day AM | Light Magenta with `,` (#CC66CC) |
+| `ep` | Weekend, half day PM | Light Magenta with `'` (#CC66CC) |
+| `h` | Birthday | Dark Blue (#0000CC) |
+| `ha` | Birthday, half day AM | Light Blue with `,` (#6666FF) |
+| `hp` | Birthday, half day PM | Light Blue with `'` (#6666FF) |
+| `i` | Ill/sick leave | Dark Olive (#336600) |
+| `ia` | Ill, half day AM | Light Olive with `,` (#669933) |
+| `ip` | Ill, half day PM | Light Olive with `'` (#669933) |
+| `u` | Other/unspecified | Dark Cyan (#008B8B) |
+| `ua` | Other, half day AM | Light Cyan with `,` (#4DB8B8) |
+| `up` | Other, half day PM | Light Cyan with `'` (#4DB8B8) |
 
 **Note:** Weekly recurring events (`d1-d7`) follow the same flag-based color scheme as above. For example, `d1` (Monday) is red, `d5b` (business Friday) is orange, `d2s` (training Tuesday) is dark yellow, etc. Location flags like `w`, `n`, `f` can also be combined (e.g., `d3w` for onsite Wednesday).
 
@@ -104,6 +116,21 @@ sa2024/03/12-2024/03/12 # Training in morning only
 k2024/07/01-2024/07/01 # In office despite vacation period
 kp2024/03/20-2024/03/20 # In office, leaving at noon
 
+# Weekend events
+e2024/06/15-2024/06/16 # Weekend work event
+ep2024/03/08-2024/03/08 # Weekend morning shift
+
+# Birthday
+h2024/05/20-2024/05/20 # Birthday
+
+# Sick leave
+i2024/02/10-2024/02/12 # Sick leave
+ia2024/03/05-2024/03/05 # Sick in morning, recovered PM
+
+# Other/unspecified
+u2024/04/22-2024/04/22 # Personal day
+ua2024/09/30-2024/09/30 # Appointment in morning
+
 # Weekly recurring (ISO weekday: 1=Mon, 7=Sun)
 d1 # Every Monday off
 d5 # Every Friday off
@@ -119,16 +146,24 @@ When rendered in team overview pages:
 
 | Color | Hex | Meaning |
 |-------|-----|---------|
-| Red | #FF0000 | Off work / vacation |
-| Pink | #FF9999 | Half day off (`,` = AM, `'` = PM) |
-| Orange | #FFA500 | Business trip |
-| Light Orange | #FFCC77 | Half day business |
-| Yellow | #D9AD00 | Training / course |
+| Red | #EC0000 | Off work / vacation |
+| Pink | #FF8A8A | Half day off (`,` = AM, `'` = PM) |
+| Orange | #FF9500 | Business trip |
+| Light Orange | #FFC04D | Half day business |
+| Dark Yellow/Gold | #D9AD00 | Training / course |
 | Light Yellow | #F0D04D | Half day training |
-| Cyan | #008899 | Other / in office |
-| Light Cyan | #00B8CC | Half day other |
-| Gray | #AAAAAA | Weekend |
-| Light Blue | #AAAAFF | Official holiday (CR day) |
+| Teal | #008899 | In office |
+| Light Teal | #00B8CC | Half day in office |
+| Dark Magenta | #990099 | Weekend event |
+| Light Magenta | #CC66CC | Half day weekend |
+| Dark Blue | #0000CC | Birthday |
+| Light Blue | #6666FF | Half day birthday |
+| Dark Olive | #336600 | Ill / sick leave |
+| Light Olive | #669933 | Half day ill |
+| Dark Cyan | #008B8B | Other / unspecified |
+| Light Cyan | #4DB8B8 | Half day other |
+| Gray | #AAAAAA | Weekend day (calendar background) |
+| Light Blue (bg) | #AAAAFF | Official holiday (CR day) |
 | Light Green | #BBFFBB | In during school vacation |
 | Green | #90EE90 | Regular work day / "today" marker |
 

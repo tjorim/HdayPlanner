@@ -43,6 +43,14 @@
   --event-course-half: #f0d04d;
   --event-in-office-full: #008899;
   --event-in-office-half: #00b8cc;
+  --event-weekend-full: #990099;
+  --event-weekend-half: #cc66cc;
+  --event-birthday-full: #0000cc;
+  --event-birthday-half: #6666ff;
+  --event-ill-full: #336600;
+  --event-ill-half: #669933;
+  --event-other-full: #008b8b;
+  --event-other-half: #4db8b8;
 }
 
 /* Dark theme */
@@ -90,6 +98,14 @@
   --event-course-half: #fdd835;
   --event-in-office-full: #00acc1;
   --event-in-office-half: #26c6da;
+  --event-weekend-full: #ba68c8;
+  --event-weekend-half: #e1bee7;
+  --event-birthday-full: #5c6bc0;
+  --event-birthday-half: #9fa8da;
+  --event-ill-full: #9ccc65;
+  --event-ill-half: #aed581;
+  --event-other-full: #4db6ac;
+  --event-other-half: #80cbc4;
 }
 
 body {
@@ -326,6 +342,30 @@ button:disabled {
 }
 .event--in-office-half {
   background-color: var(--event-in-office-half);
+}
+.event--weekend-full {
+  background-color: var(--event-weekend-full);
+}
+.event--weekend-half {
+  background-color: var(--event-weekend-half);
+}
+.event--birthday-full {
+  background-color: var(--event-birthday-full);
+}
+.event--birthday-half {
+  background-color: var(--event-birthday-half);
+}
+.event--ill-full {
+  background-color: var(--event-ill-full);
+}
+.event--ill-half {
+  background-color: var(--event-ill-half);
+}
+.event--other-full {
+  background-color: var(--event-other-full);
+}
+.event--other-half {
+  background-color: var(--event-other-half);
 }
 .half-day-symbol {
   font-weight: bold;

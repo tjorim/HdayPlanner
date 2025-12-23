@@ -28,6 +28,10 @@ const TYPE_FLAGS_SET = new Set<string>(TYPE_FLAGS);
  * - BUSINESS_FULL: 9.55:1  - BUSINESS_HALF: 12.90:1
  * - COURSE_FULL: 9.93:1    - COURSE_HALF: 13.83:1
  * - IN_OFFICE_FULL: 4.98:1 - IN_OFFICE_HALF: 8.73:1
+ * - WEEKEND_FULL: 5.7:1    - WEEKEND_HALF: 7.8:1
+ * - BIRTHDAY_FULL: 4.6:1   - BIRTHDAY_HALF: 8.2:1
+ * - ILL_FULL: 6.2:1        - ILL_HALF: 8.7:1
+ * - OTHER_FULL: 5.0:1      - OTHER_HALF: 10.1:1
  */
 export const EVENT_COLORS = {
   HOLIDAY_FULL: '#EC0000', // Red - full day vacation/holiday
@@ -38,6 +42,14 @@ export const EVENT_COLORS = {
   COURSE_HALF: '#F0D04D', // Light yellow - half day course
   IN_OFFICE_FULL: '#008899', // Teal - full day in-office
   IN_OFFICE_HALF: '#00B8CC', // Light teal - half day in-office
+  WEEKEND_FULL: '#990099', // Dark magenta - full day weekend
+  WEEKEND_HALF: '#CC66CC', // Light magenta - half day weekend
+  BIRTHDAY_FULL: '#0000CC', // Dark blue - full day birthday
+  BIRTHDAY_HALF: '#6666FF', // Light blue - half day birthday
+  ILL_FULL: '#336600', // Dark olive - full day ill/sick
+  ILL_HALF: '#669933', // Light olive - half day ill/sick
+  OTHER_FULL: '#008B8B', // Dark cyan - full day other
+  OTHER_HALF: '#4DB8B8', // Light cyan - half day other
 } as const;
 
 /**
@@ -303,8 +315,9 @@ export function toLine(ev: Omit<HdayEvent, 'raw'> | HdayEvent): string {
  * Get the hex background color for an event based on its flags.
  *
  * Determines the color from EVENT_COLORS based on the event type flag
- * (`business`, `course`, `in`, or `holiday`). When multiple type flags are
- * present (edge case), the priority is: business > course > in > holiday.
+ * (`business`, `weekend`, `birthday`, `ill`, `course`, `in`, `other`, or `holiday`).
+ * When multiple type flags are present (edge case), the priority is:
+ * business > weekend > birthday > ill > course > in > other > holiday.
  * Half-day status is derived from the half-day flags: exactly one of
  * `half_am` or `half_pm` means a half-day; both or neither means a full day.
  *
@@ -318,13 +331,21 @@ export function getEventColor(flags?: EventFlag[]): string {
   // Both half_am and half_pm together means a full day
   const hasHalfDay = flags.includes('half_am') !== flags.includes('half_pm');
 
-  // Determine base color based on type flags (priority: business > course > in > holiday)
+  // Determine base color based on type flags
   if (flags.includes('business')) {
     return hasHalfDay ? EVENT_COLORS.BUSINESS_HALF : EVENT_COLORS.BUSINESS_FULL;
+  } else if (flags.includes('weekend')) {
+    return hasHalfDay ? EVENT_COLORS.WEEKEND_HALF : EVENT_COLORS.WEEKEND_FULL;
+  } else if (flags.includes('birthday')) {
+    return hasHalfDay ? EVENT_COLORS.BIRTHDAY_HALF : EVENT_COLORS.BIRTHDAY_FULL;
+  } else if (flags.includes('ill')) {
+    return hasHalfDay ? EVENT_COLORS.ILL_HALF : EVENT_COLORS.ILL_FULL;
   } else if (flags.includes('course')) {
     return hasHalfDay ? EVENT_COLORS.COURSE_HALF : EVENT_COLORS.COURSE_FULL;
   } else if (flags.includes('in')) {
     return hasHalfDay ? EVENT_COLORS.IN_OFFICE_HALF : EVENT_COLORS.IN_OFFICE_FULL;
+  } else if (flags.includes('other')) {
+    return hasHalfDay ? EVENT_COLORS.OTHER_HALF : EVENT_COLORS.OTHER_FULL;
   } else {
     // Holiday/vacation (default)
     return hasHalfDay ? EVENT_COLORS.HOLIDAY_HALF : EVENT_COLORS.HOLIDAY_FULL;
@@ -362,8 +383,8 @@ export const getHalfDaySymbol = getTimeLocationSymbol;
 /**
  * Compute the CSS class name for an event from its flags.
  *
- * @param flags - Array of event flags; type flags are 'business', 'course', 'in', and half-day flags are 'half_am' and 'half_pm'.
- * @returns A class of the form `event--{business|course|in-office|holiday}-{full|half}` where the type is chosen by priority (business > course > in) and the suffix is `half` when exactly one of `half_am` or `half_pm` is present (otherwise `full` for both or neither).
+ * @param flags - Array of event flags; type flags are 'business', 'weekend', 'birthday', 'ill', 'course', 'in', 'other', and half-day flags are 'half_am' and 'half_pm'.
+ * @returns A class of the form `event--{type}-{full|half}` where the type is chosen by priority (business > weekend > birthday > ill > course > in > other > holiday) and the suffix is `half` when exactly one of `half_am` or `half_pm` is present (otherwise `full` for both or neither).
  */
 export function getEventClass(flags?: EventFlag[]): string {
   if (!flags || flags.length === 0) return 'event--holiday-full';
@@ -373,8 +394,12 @@ export function getEventClass(flags?: EventFlag[]): string {
   const half = hasAm !== hasPm ? 'half' : 'full';
 
   if (flags.includes('business')) return `event--business-${half}`;
+  if (flags.includes('weekend')) return `event--weekend-${half}`;
+  if (flags.includes('birthday')) return `event--birthday-${half}`;
+  if (flags.includes('ill')) return `event--ill-${half}`;
   if (flags.includes('course')) return `event--course-${half}`;
   if (flags.includes('in')) return `event--in-office-${half}`;
+  if (flags.includes('other')) return `event--other-${half}`;
   return `event--holiday-${half}`;
 }
 
