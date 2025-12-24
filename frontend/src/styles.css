@@ -188,10 +188,6 @@ body {
   background: linear-gradient(135deg, var(--surface-holiday), var(--surface-school-holiday));
 }
 
-.day--public-holiday.day--payday {
-  background: linear-gradient(135deg, var(--surface-holiday), var(--surface-payday));
-}
-
 .day--school-holiday.day--payday {
   background: linear-gradient(135deg, var(--surface-school-holiday), var(--surface-payday));
 }
