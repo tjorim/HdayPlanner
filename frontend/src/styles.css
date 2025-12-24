@@ -8,6 +8,7 @@
   --surface-alt: #f0f0f0;
   --surface-holiday: #fff4e6;
   --surface-school-holiday: #e8f1ff;
+  --surface-payday: #e8f5e9;
   --primary: #1976d2;
   --primary-shadow: rgba(25, 118, 210, 0.3);
   --primary-text: #fff;
@@ -22,6 +23,7 @@
   --badge-text: #37474f;
   --badge-holiday-bg: #e8f5e9;
   --badge-holiday-text: #1b5e20;
+  --badge-payday-text: #1b5e20;
   --badge-business-bg: #e3f2fd;
   --badge-business-text: #0d47a1;
   --badge-course-bg: #fff3e0;
@@ -64,6 +66,7 @@
   --surface-alt: #21262d;
   --surface-holiday: #4a3800;
   --surface-school-holiday: #1f2b44;
+  --surface-payday: #1b3b2a;
   --primary: #58a6ff;
   --primary-shadow: rgba(88, 166, 255, 0.3);
   --primary-text: #0d1117;
@@ -78,6 +81,7 @@
   --badge-text: #8b949e;
   --badge-holiday-bg: #1b4d1b;
   --badge-holiday-text: #7ee87e;
+  --badge-payday-text: #7ee87e;
   --badge-business-bg: #1a3a5c;
   --badge-business-text: #6cb6ff;
   --badge-course-bg: #5c4a1a;
@@ -168,6 +172,10 @@ body {
   background-color: var(--surface-school-holiday);
 }
 
+.day--payday {
+  background-color: var(--surface-payday);
+}
+
 .day--weekend.day--public-holiday {
   background-color: var(--surface-holiday);
 }
@@ -178,6 +186,14 @@ body {
 
 .day--public-holiday.day--school-holiday {
   background: linear-gradient(135deg, var(--surface-holiday), var(--surface-school-holiday));
+}
+
+.day--public-holiday.day--payday {
+  background: linear-gradient(135deg, var(--surface-holiday), var(--surface-payday));
+}
+
+.day--school-holiday.day--payday {
+  background: linear-gradient(135deg, var(--surface-school-holiday), var(--surface-payday));
 }
 
 .day--today {
@@ -205,6 +221,15 @@ body {
   margin-top: 2px;
   font-size: 11px;
   color: var(--badge-holiday-text);
+  font-weight: 600;
+}
+
+.payday-name {
+  display: block;
+  margin-left: 0.5em;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--badge-payday-text);
   font-weight: 600;
 }
 .event-item {

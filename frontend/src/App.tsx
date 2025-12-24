@@ -40,6 +40,7 @@ import {
 } from './lib/hday';
 import type { PublicHolidayInfo, SchoolHolidayInfo } from './types/holidays';
 import { dayjs, getWeekdayName } from './utils/dateTimeUtils';
+import { getMonthlyPaydayMap } from './utils/paydayUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 
@@ -246,6 +247,11 @@ export default function App() {
         'public',
       ),
     [holidays],
+  );
+
+  const paydayMap = useMemo(
+    () => getMonthlyPaydayMap(currentYear, publicHolidayMap),
+    [currentYear, publicHolidayMap],
   );
 
   const schoolHolidayMap = useMemo(
@@ -1180,6 +1186,7 @@ export default function App() {
               ym={month}
               publicHolidays={publicHolidayMap}
               schoolHolidays={schoolHolidayMap}
+              paydayMap={paydayMap}
             />
           )}
         </Card.Body>
