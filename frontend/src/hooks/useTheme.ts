@@ -66,6 +66,7 @@ export function useTheme() {
 
     return () => {
       window.clearTimeout(timeoutId);
+      root.classList.remove('theme-transition');
     };
   }, [theme]);
 
