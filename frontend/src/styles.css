@@ -139,6 +139,11 @@ body {
 .table td {
   color: var(--text);
 }
+
+.preview-card {
+  background-color: var(--surface-alt);
+  color: var(--text);
+}
 .calendar {
   display: flex;
   flex-direction: column;
