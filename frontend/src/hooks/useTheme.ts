@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 export type Theme = 'light' | 'dark';
 
 const THEME_KEY = 'hday-theme';
-const THEME_ATTRIBUTE = 'data-theme';
+const BOOTSTRAP_THEME_ATTRIBUTE = 'data-bs-theme';
 
 /**
  * Custom hook for managing application theme (light/dark mode).
@@ -47,10 +47,25 @@ export function useTheme() {
   // Apply theme to document root whenever it changes
   useEffect(() => {
     // Guard for SSR environments
-    if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
-      document.documentElement.setAttribute(THEME_ATTRIBUTE, theme);
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const root = document.documentElement;
+    root.setAttribute(BOOTSTRAP_THEME_ATTRIBUTE, theme);
+
+    if (typeof localStorage !== 'undefined') {
       localStorage.setItem(THEME_KEY, theme);
     }
+
+    root.classList.add('theme-transition');
+    const timeoutId = window.setTimeout(() => {
+      root.classList.remove('theme-transition');
+    }, 200);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [theme]);
 
   // Toggle between light and dark themes
