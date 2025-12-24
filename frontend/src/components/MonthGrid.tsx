@@ -3,17 +3,19 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
 import { getEventClass, getEventTypeLabel, getTimeLocationSymbol } from '../lib/hday';
 import type { PublicHolidayInfo, SchoolHolidayInfo } from '../types/holidays';
+import type { PaydayInfo } from '../types/payday';
 import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUtils';
 
 interface EventItemProps {
   event: HdayEvent;
 }
 
-type HolidayIndicator = {
+type DayIndicator = {
   key: string;
   emoji: string;
   title: string;
   name: string;
+  nameClassName?: string;
 };
 
 /**
@@ -75,11 +77,13 @@ export function MonthGrid({
   ym,
   publicHolidays = new Map(),
   schoolHolidays = new Map(),
+  paydayMap = new Map(),
 }: {
   events: HdayEvent[];
   ym: string;
   publicHolidays?: Map<string, PublicHolidayInfo>;
   schoolHolidays?: Map<string, SchoolHolidayInfo>;
+  paydayMap?: Map<string, PaydayInfo>;
 }) {
   const parts = ym.split('-').map(Number);
   const year = parts[0] ?? 0;
@@ -177,7 +181,8 @@ export function MonthGrid({
       const isWeekend = isoWeekday === 6 || isoWeekday === 7; // Saturday=6, Sunday=7 in ISO
       const publicHolidayInfo = publicHolidays.get(dateStr);
       const schoolHolidayInfo = schoolHolidays.get(dateStr);
-      const holidayIndicators = [
+      const paydayInfo = paydayMap.get(dateStr);
+      const dayIndicators = [
         publicHolidayInfo && {
           key: 'public',
           emoji: '🎉',
@@ -190,8 +195,15 @@ export function MonthGrid({
           title: schoolHolidayInfo.name,
           name: schoolHolidayInfo.name,
         },
+        paydayInfo && {
+          key: 'payday',
+          emoji: '💶',
+          title: paydayInfo.name,
+          name: paydayInfo.name,
+          nameClassName: 'payday-name',
+        },
       ].filter(
-        (holiday): holiday is HolidayIndicator => Boolean(holiday),
+        (holiday): holiday is DayIndicator => Boolean(holiday),
       );
 
       // Build CSS classes
@@ -200,12 +212,14 @@ export function MonthGrid({
       if (isWeekend) classes.push('day--weekend');
       if (publicHolidayInfo) classes.push('day--public-holiday');
       if (schoolHolidayInfo) classes.push('day--school-holiday');
+      if (paydayInfo) classes.push('day--payday');
 
       // Build aria-label
       let ariaLabel = dateStr;
       if (isToday) ariaLabel += ' (Today)';
       if (publicHolidayInfo) ariaLabel += ` - ${publicHolidayInfo.name}`;
       if (schoolHolidayInfo) ariaLabel += ` - School Holiday: ${schoolHolidayInfo.name}`;
+      if (paydayInfo) ariaLabel += ` - ${paydayInfo.name}`;
 
       // Filter all events that apply to this date in a single pass
       const todays = events.filter((ev) => {
@@ -232,7 +246,7 @@ export function MonthGrid({
         >
           <div className="date">
             {dateStr}
-            {holidayIndicators.map((holiday) => (
+            {dayIndicators.map((holiday) => (
               <span
                 key={`indicator-${holiday.key}`}
                 className="holiday-indicator"
@@ -243,8 +257,12 @@ export function MonthGrid({
                 {holiday.emoji}
               </span>
             ))}
-            {holidayIndicators.map((holiday) => (
-              <span key={`name-${holiday.key}`} className="holiday-name" aria-hidden="true">
+            {dayIndicators.map((holiday) => (
+              <span
+                key={`name-${holiday.key}`}
+                className={holiday.nameClassName ?? 'holiday-name'}
+                aria-hidden="true"
+              >
                 {holiday.name}
               </span>
             ))}
