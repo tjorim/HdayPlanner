@@ -1,10 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  convertDateFormat,
-  type PublicHoliday,
-  usePublicHolidays,
-} from '../../src/hooks/usePublicHolidays';
+import { type PublicHoliday, usePublicHolidays } from '../../src/hooks/usePublicHolidays';
+import { convertDateFormat } from '../../src/hooks/useOpenHolidays';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
