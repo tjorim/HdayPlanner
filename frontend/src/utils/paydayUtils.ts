@@ -21,9 +21,11 @@ const getPaydayForMonth = (
   publicHolidayMap: Map<string, PublicHolidayInfo>,
 ) => {
   const scheduledPayday = dayjs(`${year}-${pad2(month)}-${PAYDAY_DAY_OF_MONTH}`);
-  const isDecemberChristmas =
-    month === 12 && PAYDAY_DAY_OF_MONTH === 25 && !isBusinessDay(scheduledPayday, publicHolidayMap);
-  let payday = isDecemberChristmas ? dayjs(`${year}-12-23`) : scheduledPayday;
+  const isDecemberChristmasHoliday =
+    month === 12 &&
+    scheduledPayday.date() === 25 &&
+    publicHolidayMap.has(formatHdayDate(scheduledPayday));
+  let payday = isDecemberChristmasHoliday ? dayjs(`${year}-12-23`) : scheduledPayday;
   while (!isBusinessDay(payday, publicHolidayMap)) {
     payday = payday.subtract(1, 'day');
   }
