@@ -201,6 +201,7 @@ body {
 }
 .holiday-name {
   display: block;
+  margin-left: 0.5em;
   margin-top: 2px;
   font-size: 11px;
   color: var(--badge-holiday-text);

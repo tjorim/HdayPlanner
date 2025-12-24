@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
 import { getEventClass, getEventTypeLabel, getTimeLocationSymbol } from '../lib/hday';
 import type { PublicHolidayInfo, SchoolHolidayInfo } from '../types/holidays';
@@ -8,6 +8,13 @@ import { dayjs, formatHdayDate, getISOWeekday, pad2 } from '../utils/dateTimeUti
 interface EventItemProps {
   event: HdayEvent;
 }
+
+type HolidayIndicator = {
+  key: string;
+  emoji: string;
+  title: string;
+  name: string;
+};
 
 /**
  * Accessible labels for time/location symbols
@@ -170,6 +177,22 @@ export function MonthGrid({
       const isWeekend = isoWeekday === 6 || isoWeekday === 7; // Saturday=6, Sunday=7 in ISO
       const publicHolidayInfo = publicHolidays.get(dateStr);
       const schoolHolidayInfo = schoolHolidays.get(dateStr);
+      const holidayIndicators = [
+        publicHolidayInfo && {
+          key: 'public',
+          emoji: '🎉',
+          title: publicHolidayInfo.localName,
+          name: publicHolidayInfo.name,
+        },
+        schoolHolidayInfo && {
+          key: 'school',
+          emoji: '🏫',
+          title: schoolHolidayInfo.name,
+          name: schoolHolidayInfo.name,
+        },
+      ].filter(
+        (holiday): holiday is HolidayIndicator => Boolean(holiday),
+      );
 
       // Build CSS classes
       const classes = ['day'];
@@ -209,32 +232,22 @@ export function MonthGrid({
         >
           <div className="date">
             {dateStr}
-            {publicHolidayInfo && (
-              <>
-                <span
-                  className="holiday-indicator"
-                  title={publicHolidayInfo.localName}
-                  role="img"
-                  aria-hidden="true"
-                >
-                  🎉
-                </span>
-                <span className="holiday-name" aria-hidden="true"> {publicHolidayInfo.name}</span>
-              </>
-            )}
-            {schoolHolidayInfo && (
-              <>
-                <span
-                  className="holiday-indicator"
-                  title={schoolHolidayInfo.name}
-                  role="img"
-                  aria-hidden="true"
-                >
-                  🏫
-                </span>
-                <span className="holiday-name" aria-hidden="true"> {schoolHolidayInfo.name}</span>
-              </>
-            )}
+            {holidayIndicators.map((holiday) => (
+              <span
+                key={`indicator-${holiday.key}`}
+                className="holiday-indicator"
+                title={holiday.title}
+                role="img"
+                aria-hidden="true"
+              >
+                {holiday.emoji}
+              </span>
+            ))}
+            {holidayIndicators.map((holiday) => (
+              <span key={`name-${holiday.key}`} className="holiday-name" aria-hidden="true">
+                {holiday.name}
+              </span>
+            ))}
           </div>
           {todays.map((ev) => (
             <EventItem key={ev.raw || `${ev.type}-${ev.start || ev.weekday}`} event={ev} />
