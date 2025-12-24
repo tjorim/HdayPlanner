@@ -4,6 +4,7 @@ export type Theme = 'light' | 'dark';
 
 const THEME_KEY = 'hday-theme';
 const BOOTSTRAP_THEME_ATTRIBUTE = 'data-bs-theme';
+const THEME_TRANSITION_DURATION_MS = 200;
 
 /**
  * Custom hook for managing application theme (light/dark mode).
@@ -61,7 +62,7 @@ export function useTheme() {
     root.classList.add('theme-transition');
     const timeoutId = window.setTimeout(() => {
       root.classList.remove('theme-transition');
-    }, 200);
+    }, THEME_TRANSITION_DURATION_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
