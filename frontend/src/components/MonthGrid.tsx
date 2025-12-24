@@ -233,19 +233,20 @@ export function MonthGrid({
           <div className="date">
             {dateStr}
             {holidayIndicators.map((holiday) => (
-              <Fragment key={holiday.key}>
-                <span
-                  className="holiday-indicator"
-                  title={holiday.title}
-                  role="img"
-                  aria-hidden="true"
-                >
-                  {holiday.emoji}
-                </span>
-                <span className="holiday-name" aria-hidden="true">
-                  {holiday.name}
-                </span>
-              </Fragment>
+              <span
+                key={`indicator-${holiday.key}`}
+                className="holiday-indicator"
+                title={holiday.title}
+                role="img"
+                aria-hidden="true"
+              >
+                {holiday.emoji}
+              </span>
+            ))}
+            {holidayIndicators.map((holiday) => (
+              <span key={`name-${holiday.key}`} className="holiday-name" aria-hidden="true">
+                {holiday.name}
+              </span>
             ))}
           </div>
           {todays.map((ev) => (
