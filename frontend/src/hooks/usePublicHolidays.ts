@@ -66,10 +66,3 @@ export function usePublicHolidays(
     unknownError: 'Failed to fetch holidays',
   });
 }
-
-/**
- * Convert a date string from API format to .hday format.
- *
- * @param apiDate - Date string in `YYYY-MM-DD` format
- * @returns The date string converted to `YYYY/MM/DD` format; returns the original string unchanged if the input does not match `YYYY-MM-DD` format.
- */
