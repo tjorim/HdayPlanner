@@ -55,7 +55,7 @@
 }
 
 /* Dark theme */
-[data-theme='dark'] {
+[data-bs-theme='dark'] {
   --bg: #0d1117;
   --text: #c9d1d9;
   --text-muted: #8b949e;

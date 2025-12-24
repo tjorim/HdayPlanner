@@ -4,12 +4,12 @@ import { useTheme } from '../../src/hooks/useTheme';
 
 describe('useTheme', () => {
   const THEME_KEY = 'hday-theme';
-  const THEME_ATTRIBUTE = 'data-theme';
+  const THEME_ATTRIBUTE = 'data-bs-theme';
 
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
-    // Clear data-theme attribute
+    // Clear data-bs-theme attribute
     document.documentElement.removeAttribute(THEME_ATTRIBUTE);
   });
 
