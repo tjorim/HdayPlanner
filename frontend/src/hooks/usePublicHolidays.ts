@@ -73,11 +73,3 @@ export function usePublicHolidays(
  * @param apiDate - Date string in `YYYY-MM-DD` format
  * @returns The date string converted to `YYYY/MM/DD` format; returns the original string unchanged if the input does not match `YYYY-MM-DD` format.
  */
-export function convertDateFormat(apiDate: string): string {
-  // Basic validation: ensure format is YYYY-MM-DD
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(apiDate)) {
-    console.warn(`Invalid date format: ${apiDate}. Expected YYYY-MM-DD format.`);
-    return apiDate;
-  }
-  return apiDate.replace(/-/g, '/');
-}

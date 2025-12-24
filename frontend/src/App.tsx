@@ -17,11 +17,8 @@ import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { MonthGrid } from './components/MonthGrid';
 import { ToastContainer } from './components/ToastContainer';
 import { useErrorToast } from './hooks/useErrorToast';
-import {
-  convertDateFormat,
-  getPublicHolidayName,
-  usePublicHolidays,
-} from './hooks/usePublicHolidays';
+import { getPublicHolidayName, usePublicHolidays } from './hooks/usePublicHolidays';
+import { convertDateFormat } from './hooks/useOpenHolidays';
 import { getSchoolHolidayName, useSchoolHolidays } from './hooks/useSchoolHolidays';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
