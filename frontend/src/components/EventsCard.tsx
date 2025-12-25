@@ -129,7 +129,7 @@ export function EventsCard({
       </Card.Header>
 
       <Card.Body>
-        <Table striped bordered hover responsive className="align-middle">
+        <Table striped bordered hover responsive className="align-middle" aria-label="Events table">
           <thead>
             <tr>
               {canEdit && (

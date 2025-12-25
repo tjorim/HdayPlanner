@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { HdayEvent } from '../lib/hday';
 import { getEventClass, getEventTypeLabel, getTimeLocationSymbol } from '../lib/hday';
 import type { PublicHolidayInfo, SchoolHolidayInfo } from '../types/holidays';

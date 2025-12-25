@@ -30,7 +30,7 @@ const renderApp = async () => {
 };
 
 const getEventsTableBody = () => {
-  const table = screen.getByRole('table');
+  const table = screen.getByRole('table', { name: /events table/i });
   const tbody = table.querySelector('tbody');
   if (!tbody) {
     throw new Error('Events table body not found');

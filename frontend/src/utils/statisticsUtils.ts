@@ -16,7 +16,6 @@ const TYPE_PRIORITY: TypeFlag[] = [
   'holiday',
 ];
 
-const HALF_DAY_FLAGS: EventFlag[] = ['half_am', 'half_pm'];
 
 function getPrimaryType(flags?: EventFlag[]): TypeFlag {
   if (!flags || flags.length === 0) {
