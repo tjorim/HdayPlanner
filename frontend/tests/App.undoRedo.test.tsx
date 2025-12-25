@@ -134,27 +134,29 @@ describe('Undo/Redo history', () => {
       }
     }
 
-    global.FileReader = MockFileReader as unknown as typeof FileReader;
+    try {
+      global.FileReader = MockFileReader as unknown as typeof FileReader;
 
-    await renderApp();
-    await addRangeEvent('2025-01-02');
+      await renderApp();
+      await addRangeEvent('2025-01-02');
 
-    const content = '2025/02/01-2025/02/01 # Upload test';
-    const uploadInput = screen.getByLabelText(/upload/i);
-    const file = new File([content], 'test.hday', { type: 'text/plain' });
-    fireEvent.change(uploadInput, { target: { files: [file] } });
+      const content = '2025/02/01-2025/02/01 # Upload test';
+      const uploadInput = screen.getByLabelText(/upload/i);
+      const file = new File([content], 'test.hday', { type: 'text/plain' });
+      fireEvent.change(uploadInput, { target: { files: [file] } });
 
-    const matches = await within(getEventsTableBody()).findAllByText('2025/02/01');
-    expect(matches.length).toBeGreaterThan(0);
+      const matches = await within(getEventsTableBody()).findAllByText('2025/02/01');
+      expect(matches.length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole('button', { name: /undo/i }));
-    await waitFor(() => {
-      expect(within(getEventsTableBody()).queryAllByText('2025/02/01')).toHaveLength(0);
-    });
+      fireEvent.click(screen.getByRole('button', { name: /undo/i }));
+      await waitFor(() => {
+        expect(within(getEventsTableBody()).queryAllByText('2025/02/01')).toHaveLength(0);
+      });
 
-    const previousMatches = await within(getEventsTableBody()).findAllByText('2025/01/02');
-    expect(previousMatches.length).toBeGreaterThan(0);
-
-    global.FileReader = originalFileReader;
+      const previousMatches = await within(getEventsTableBody()).findAllByText('2025/01/02');
+      expect(previousMatches.length).toBeGreaterThan(0);
+    } finally {
+      global.FileReader = originalFileReader;
+    }
   });
 });

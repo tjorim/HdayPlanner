@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import {
   Accordion,
   Button,
@@ -140,6 +140,73 @@ const TIME_LOCATION_FLAGS: ReadonlyArray<TimeLocationFlag> = [
 const TYPE_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TYPE_FLAGS;
 const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATION_FLAGS;
 
+// Maximum number of undo/redo history states to keep in memory
+const MAX_HISTORY = 50;
+
+// Document state with undo/redo history
+type DocumentState = {
+  doc: HdayDocument;
+  historyPast: HdayDocument[];
+  historyFuture: HdayDocument[];
+};
+
+// Actions for the document reducer
+type DocumentAction =
+  | { type: 'SET_DOC'; payload: HdayDocument }
+  | { type: 'UPDATE_DOC'; updater: (prev: HdayDocument) => HdayDocument; skipHistory?: boolean }
+  | { type: 'UNDO' }
+  | { type: 'REDO' };
+
+/**
+ * Reducer for managing document state with undo/redo history.
+ * This ensures all state updates happen atomically without nested setters.
+ */
+function documentReducer(state: DocumentState, action: DocumentAction): DocumentState {
+  switch (action.type) {
+    case 'SET_DOC':
+      return { ...state, doc: action.payload };
+
+    case 'UPDATE_DOC': {
+      const nextDoc = action.updater(state.doc);
+      if (nextDoc === state.doc || action.skipHistory) {
+        return { ...state, doc: nextDoc };
+      }
+      return {
+        doc: nextDoc,
+        historyPast: [...state.historyPast, state.doc].slice(-MAX_HISTORY),
+        historyFuture: [],
+      };
+    }
+
+    case 'UNDO': {
+      if (state.historyPast.length === 0) {
+        return state;
+      }
+      const previousDoc = state.historyPast[state.historyPast.length - 1]!;
+      return {
+        doc: previousDoc,
+        historyPast: state.historyPast.slice(0, -1),
+        historyFuture: [state.doc, ...state.historyFuture],
+      };
+    }
+
+    case 'REDO': {
+      if (state.historyFuture.length === 0) {
+        return state;
+      }
+      const nextDoc = state.historyFuture[0]!;
+      return {
+        doc: nextDoc,
+        historyPast: [...state.historyPast, state.doc],
+        historyFuture: state.historyFuture.slice(1),
+      };
+    }
+
+    default:
+      return state;
+  }
+}
+
 /**
  * Main application component for the Holiday Planner UI.
  *
@@ -157,13 +224,13 @@ const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATI
  */
 export default function App() {
   const [user, setUser] = useState('testuser');
-  const [doc, setDoc] = useState<HdayDocument>({ raw: '', events: [] });
-  const docRef = useRef(doc);
+  const [{ doc, historyPast, historyFuture }, dispatch] = useReducer(documentReducer, {
+    doc: { raw: '', events: [] },
+    historyPast: [],
+    historyFuture: [],
+  });
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
-  const [historyPast, setHistoryPast] = useState<HdayDocument[]>([]);
-  const [historyFuture, setHistoryFuture] = useState<HdayDocument[]>([]);
-  const MAX_HISTORY = 50;
 
   const handlePreviousMonth = React.useCallback(() => {
     setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
@@ -212,10 +279,6 @@ export default function App() {
   React.useEffect(() => {
     eventEndRef.current = eventEnd;
   }, [eventEnd]);
-
-  React.useEffect(() => {
-    docRef.current = doc;
-  }, [doc]);
 
   // Validation error states
   const [startDateError, setStartDateError] = useState('');
@@ -297,7 +360,7 @@ export default function App() {
   const load = useCallback(async () => {
     try {
       const d = await getHday(user);
-      setDoc(d);
+      dispatch({ type: 'SET_DOC', payload: d });
     } catch (error) {
       console.error('Failed to load from API:', error);
       showToast('Failed to load from API. Make sure the backend is running.', 'error');
@@ -333,8 +396,7 @@ export default function App() {
         setRawText(result);
         try {
           const events = parseHday(result);
-          const isInitialUpload =
-            docRef.current.events.length === 0 && docRef.current.raw.trim() === '';
+          const isInitialUpload = doc.events.length === 0 && doc.raw.trim() === '';
           applyDocChange((prevDoc) => ({ ...prevDoc, raw: result, events }), isInitialUpload);
         } catch (error) {
           console.error('Failed to parse file:', error);
@@ -387,44 +449,21 @@ export default function App() {
 
   const applyDocChange = useCallback(
     (updater: (prevDoc: HdayDocument) => HdayDocument, skipHistory = false) => {
-      setDoc((prevDoc) => {
-        const nextDoc = updater(prevDoc);
-        if (nextDoc !== prevDoc && !skipHistory) {
-          setHistoryPast((prevHistory) => [...prevHistory, prevDoc].slice(-MAX_HISTORY));
-          setHistoryFuture([]);
-        }
-        return nextDoc;
-      });
+      dispatch({ type: 'UPDATE_DOC', updater, skipHistory });
     },
-    [MAX_HISTORY],
+    [],
   );
 
   const handleUndo = useCallback(() => {
-    setHistoryPast((prevHistory) => {
-      if (prevHistory.length === 0) {
-        return prevHistory;
-      }
-      const previousDoc = prevHistory[prevHistory.length - 1];
-      setHistoryFuture((prevFuture) => [docRef.current, ...prevFuture]);
-      setDoc(previousDoc);
-      setSelectedIndices(new Set());
-      setEditIndex(-1);
-      return prevHistory.slice(0, -1);
-    });
+    dispatch({ type: 'UNDO' });
+    setSelectedIndices(new Set());
+    setEditIndex(-1);
   }, []);
 
   const handleRedo = useCallback(() => {
-    setHistoryFuture((prevFuture) => {
-      if (prevFuture.length === 0) {
-        return prevFuture;
-      }
-      const nextDoc = prevFuture[0];
-      setHistoryPast((prevHistory) => [...prevHistory, docRef.current]);
-      setDoc(nextDoc);
-      setSelectedIndices(new Set());
-      setEditIndex(-1);
-      return prevFuture.slice(1);
-    });
+    dispatch({ type: 'REDO' });
+    setSelectedIndices(new Set());
+    setEditIndex(-1);
   }, []);
 
   // Validate start date in real-time
@@ -1522,7 +1561,7 @@ export default function App() {
       <ConfirmationDialog
         isOpen={showConfirmDialog}
         title="Confirm Clear All"
-        message="Are you sure you want to clear all events? This action cannot be undone."
+        message="Are you sure you want to clear all events?"
         confirmLabel="Clear All"
         cancelLabel="Cancel"
         onConfirm={confirmClearAll}
