@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Button, Card, Form, Stack } from 'react-bootstrap';
 import type { HdayEvent } from '../lib/hday';
 import type { PublicHolidayInfo, SchoolHolidayInfo } from '../types/holidays';
 import type { PaydayInfo } from '../types/payday';
+import { dayjs } from '../utils/dateTimeUtils';
 import { MonthGrid } from './MonthGrid';
 
 type MonthViewCardProps = {
@@ -27,6 +29,38 @@ export function MonthViewCard({
   onPreviousMonth,
   onResetMonth,
 }: MonthViewCardProps) {
+  const [monthInput, setMonthInput] = useState(month);
+  const [isMonthValid, setIsMonthValid] = useState(true);
+
+  useEffect(() => {
+    setMonthInput(month);
+    setIsMonthValid(true);
+  }, [month]);
+
+  const validateMonthInput = (value: string) => {
+    const pattern = /^\d{4}-\d{2}$/;
+    if (!pattern.test(value)) {
+      return false;
+    }
+    return dayjs(`${value}-01`, 'YYYY-MM-DD', true).isValid();
+  };
+
+  const handleMonthInputChange = (value: string) => {
+    setMonthInput(value);
+    const isValid = validateMonthInput(value);
+    setIsMonthValid(isValid);
+    if (isValid) {
+      onChangeMonth(value);
+    }
+  };
+
+  const handleMonthInputBlur = () => {
+    if (!validateMonthInput(monthInput)) {
+      setMonthInput(month);
+      setIsMonthValid(true);
+    }
+  };
+
   return (
     <Card className="mb-4 shadow-sm">
       <Card.Header>
@@ -45,10 +79,15 @@ export function MonthViewCard({
           </Button>
           <Form.Control
             id="month-view-input"
-            type="month"
-            value={month}
-            onChange={(event) => onChangeMonth(event.target.value)}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]{4}-[0-9]{2}"
+            placeholder="YYYY-MM"
+            value={monthInput}
+            onChange={(event) => handleMonthInputChange(event.target.value)}
+            onBlur={handleMonthInputBlur}
             aria-describedby="month-view-help"
+            aria-invalid={!isMonthValid}
             style={{ maxWidth: '180px' }}
           />
           <Button variant="outline-primary" onClick={onNextMonth} aria-label="Next month">
