@@ -34,8 +34,11 @@ import { getMonthlyPaydayMap } from './utils/paydayUtils';
 import { calculateYearlyStatistics } from './utils/statisticsUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
-const ANNUAL_ALLOWANCE_KEY = 'annual-vacation-allowance';
+const ANNUAL_ALLOWANCE_VALUE_KEY = 'annual-vacation-allowance';
+const ANNUAL_ALLOWANCE_UNIT_KEY = 'annual-vacation-allowance-unit';
 const DEFAULT_ANNUAL_ALLOWANCE = '';
+const DEFAULT_ALLOWANCE_UNIT = 'hours';
+const HOURS_PER_DAY = 8;
 
 // Error message constants
 const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)';
@@ -212,33 +215,43 @@ export default function App() {
   });
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
-  const [annualAllowance, setAnnualAllowance] = useState<number | ''>(() => {
+  const [annualAllowanceInput, setAnnualAllowanceInput] = useState<string>(() => {
     const stored =
-      typeof window !== 'undefined' ? window.localStorage.getItem(ANNUAL_ALLOWANCE_KEY) : null;
-    if (stored === null || stored === '') {
-      return DEFAULT_ANNUAL_ALLOWANCE;
-    }
-    const parsed = Number.parseFloat(stored);
-    return Number.isFinite(parsed) ? parsed : DEFAULT_ANNUAL_ALLOWANCE;
+      typeof window !== 'undefined' ? window.localStorage.getItem(ANNUAL_ALLOWANCE_VALUE_KEY) : null;
+    return stored ?? DEFAULT_ANNUAL_ALLOWANCE;
   });
-  const handleAnnualAllowanceChange = useCallback((value: number | '') => {
-    if (value === '') {
-      setAnnualAllowance('');
-      return;
-    }
-    if (!Number.isFinite(value)) {
-      setAnnualAllowance('');
-      return;
-    }
-    setAnnualAllowance(Math.max(0, value));
+  const [annualAllowanceUnit, setAnnualAllowanceUnit] = useState<'days' | 'hours'>(() => {
+    const stored =
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem(ANNUAL_ALLOWANCE_UNIT_KEY)
+        : null;
+    return stored === 'days' || stored === 'hours' ? stored : DEFAULT_ALLOWANCE_UNIT;
+  });
+  const handleAnnualAllowanceChange = useCallback((value: string) => {
+    setAnnualAllowanceInput(value);
   }, []);
+  const handleAnnualAllowanceUnitChange = useCallback((value: 'days' | 'hours') => {
+    setAnnualAllowanceUnit(value);
+  }, []);
+
+  const parsedAllowance = useMemo(() => {
+    if (annualAllowanceInput.trim() === '') {
+      return null;
+    }
+    const parsed = Number.parseFloat(annualAllowanceInput);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return null;
+    }
+    return annualAllowanceUnit === 'hours' ? parsed / HOURS_PER_DAY : parsed;
+  }, [annualAllowanceInput, annualAllowanceUnit]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
-    window.localStorage.setItem(ANNUAL_ALLOWANCE_KEY, annualAllowance === '' ? '' : String(annualAllowance));
-  }, [annualAllowance]);
+    window.localStorage.setItem(ANNUAL_ALLOWANCE_VALUE_KEY, annualAllowanceInput);
+    window.localStorage.setItem(ANNUAL_ALLOWANCE_UNIT_KEY, annualAllowanceUnit);
+  }, [annualAllowanceInput, annualAllowanceUnit]);
 
   const handlePreviousMonth = React.useCallback(() => {
     setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
@@ -363,7 +376,7 @@ export default function App() {
   );
 
   const vacationUsed = statistics.totalsByType.holiday ?? 0;
-  const vacationRemaining = (annualAllowance === '' ? 0 : annualAllowance) - vacationUsed;
+  const vacationRemaining = (parsedAllowance ?? 0) - vacationUsed;
 
   // Create a mapping from sorted indices to original indices for edit/delete operations
   const sortedToOriginalIndex = useMemo(() => {
@@ -1089,12 +1102,16 @@ export default function App() {
       )}
 
       <StatisticsCard
-        annualAllowance={annualAllowance}
+        annualAllowanceInput={annualAllowanceInput}
+        annualAllowanceUnit={annualAllowanceUnit}
+        hoursPerDay={HOURS_PER_DAY}
         currentYear={currentYear}
         statistics={statistics}
+        allowanceDays={parsedAllowance}
         vacationRemaining={vacationRemaining}
         vacationUsed={vacationUsed}
         onAnnualAllowanceChange={handleAnnualAllowanceChange}
+        onAnnualAllowanceUnitChange={handleAnnualAllowanceUnitChange}
       />
 
       <EventsCard

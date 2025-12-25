@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import { useMemo } from 'react';
 import { Accordion, Col, Form, Row, Table } from 'react-bootstrap';
 import type { TypeFlag } from '../lib/hday';
 import type { YearlyStatistics } from '../utils/statisticsUtils';
@@ -26,12 +26,16 @@ const STAT_TYPE_LABELS: Record<TypeFlag, string> = {
 };
 
 type StatisticsCardProps = {
-  annualAllowance: number | '';
+  annualAllowanceInput: string;
+  annualAllowanceUnit: 'days' | 'hours';
+  allowanceDays: number | null;
+  hoursPerDay: number;
   currentYear: number;
   statistics: YearlyStatistics;
   vacationRemaining: number;
   vacationUsed: number;
-  onAnnualAllowanceChange: (value: number | '') => void;
+  onAnnualAllowanceChange: (value: string) => void;
+  onAnnualAllowanceUnitChange: (value: 'days' | 'hours') => void;
 };
 
 function formatDayCount(value: number): string {
@@ -42,23 +46,23 @@ function formatDayCount(value: number): string {
 }
 
 export function StatisticsCard({
-  annualAllowance,
+  annualAllowanceInput,
+  annualAllowanceUnit,
+  allowanceDays,
+  hoursPerDay,
   currentYear,
   statistics,
   vacationRemaining,
   vacationUsed,
   onAnnualAllowanceChange,
+  onAnnualAllowanceUnitChange,
 }: StatisticsCardProps) {
-  const handleAllowanceChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    if (value === '') {
-      onAnnualAllowanceChange('');
-      return;
+  const helperText = useMemo(() => {
+    if (annualAllowanceUnit === 'hours') {
+      return `Converted to days using ${hoursPerDay} hours/day.`;
     }
-    const parsedValue = Number.parseFloat(value);
-    const safeValue = Number.isNaN(parsedValue) ? '' : Math.max(0, parsedValue);
-    onAnnualAllowanceChange(safeValue);
-  };
+    return 'Days';
+  }, [annualAllowanceUnit, hoursPerDay]);
 
   return (
     <Accordion className="mb-4 shadow-sm">
@@ -72,14 +76,33 @@ export function StatisticsCard({
             <Col md={4} lg={3}>
               <Form.Group controlId="annual-allowance">
                 <Form.Label>Annual vacation allowance</Form.Label>
-                <Form.Control
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={annualAllowance}
-                  onChange={handleAllowanceChange}
-                />
-                <Form.Text className="text-muted">Days</Form.Text>
+                <Row className="g-2">
+                  <Col xs={7}>
+                    <Form.Control
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={annualAllowanceUnit === 'hours' ? 'e.g. 160' : 'e.g. 20'}
+                      value={annualAllowanceInput}
+                      onChange={(event) => onAnnualAllowanceChange(event.target.value)}
+                      aria-describedby="annual-allowance-help"
+                    />
+                  </Col>
+                  <Col xs={5}>
+                    <Form.Select
+                      value={annualAllowanceUnit}
+                      onChange={(event) =>
+                        onAnnualAllowanceUnitChange(event.target.value as 'days' | 'hours')
+                      }
+                      aria-label="Annual allowance unit"
+                    >
+                      <option value="days">Days</option>
+                      <option value="hours">Hours</option>
+                    </Form.Select>
+                  </Col>
+                </Row>
+                <Form.Text id="annual-allowance-help" className="text-muted">
+                  {helperText}
+                </Form.Text>
               </Form.Group>
             </Col>
             <Col md={4} lg={3}>
@@ -88,7 +111,7 @@ export function StatisticsCard({
             </Col>
             <Col md={4} lg={3}>
               <div className="text-muted small text-uppercase">Vacation days remaining</div>
-              {annualAllowance === '' ? (
+              {allowanceDays === null ? (
                 <div className="fs-4 fw-semibold text-muted">—</div>
               ) : (
                 <div className={`fs-4 fw-semibold ${vacationRemaining < 0 ? 'text-danger' : ''}`}>
