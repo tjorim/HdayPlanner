@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useReducer, useState } from 're
 import {
   Accordion,
   Button,
-  ButtonGroup,
   Card,
   Col,
   Container,
@@ -10,11 +9,12 @@ import {
   Modal,
   Row,
   Stack,
-  Table,
 } from 'react-bootstrap';
 import { getHday, type HdayDocument, putHday } from './api/hday';
 import { ConfirmationDialog } from './components/ConfirmationDialog';
-import { MonthGrid } from './components/MonthGrid';
+import { EventsCard } from './components/EventsCard';
+import { MonthViewCard } from './components/MonthViewCard';
+import { StatisticsCard } from './components/StatisticsCard';
 import { ToastContainer } from './components/ToastContainer';
 import { useErrorToast } from './hooks/useErrorToast';
 import { getPublicHolidayName, usePublicHolidays } from './hooks/usePublicHolidays';
@@ -141,35 +141,6 @@ const TIME_LOCATION_FLAGS: ReadonlyArray<TimeLocationFlag> = [
 const TYPE_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TYPE_FLAGS;
 const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATION_FLAGS;
 
-const STAT_TYPE_ORDER: TypeFlag[] = [
-  'holiday',
-  'business',
-  'weekend',
-  'birthday',
-  'ill',
-  'course',
-  'in',
-  'other',
-];
-
-const STAT_TYPE_LABELS: Record<TypeFlag, string> = {
-  holiday: 'Holiday',
-  business: 'Business trip',
-  weekend: 'Weekend',
-  birthday: 'Birthday',
-  ill: 'Sick leave',
-  course: 'Training',
-  in: 'In office',
-  other: 'Other',
-};
-
-function formatDayCount(value: number): string {
-  if (Number.isInteger(value)) {
-    return value.toString();
-  }
-  return value.toFixed(1);
-}
-
 // Maximum number of undo/redo history states to keep in memory
 const MAX_HISTORY = 50;
 
@@ -262,6 +233,13 @@ export default function App() {
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
   const [annualAllowance, setAnnualAllowance] = useState(25);
+  const handleAnnualAllowanceChange = useCallback((value: number) => {
+    if (!Number.isFinite(value)) {
+      setAnnualAllowance(0);
+      return;
+    }
+    setAnnualAllowance(Math.max(0, value));
+  }, []);
 
   const handlePreviousMonth = React.useCallback(() => {
     setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
@@ -1181,277 +1159,52 @@ export default function App() {
         </Accordion>
       )}
 
-      <Card className="mb-4 shadow-sm">
-        <Card.Header className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-          <h2 className="h5 mb-0">Statistics</h2>
-          <span className="text-muted">Year {currentYear}</span>
-        </Card.Header>
-        <Card.Body>
-          <Row className="g-3 align-items-end">
-            <Col md={4} lg={3}>
-              <Form.Group controlId="annual-allowance">
-                <Form.Label>Annual vacation allowance</Form.Label>
-                <Form.Control
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={annualAllowance}
-                  onChange={(e) => {
-                    const value = Number.parseFloat(e.target.value);
-                    const safeValue = Number.isNaN(value) ? 0 : Math.max(0, value);
-                    setAnnualAllowance(safeValue);
-                  }}
-                />
-                <Form.Text className="text-muted">Days</Form.Text>
-              </Form.Group>
-            </Col>
-            <Col md={4} lg={3}>
-              <div className="text-muted small text-uppercase">Vacation days used</div>
-              <div className="fs-4 fw-semibold">{formatDayCount(vacationUsed)}</div>
-            </Col>
-            <Col md={4} lg={3}>
-              <div className="text-muted small text-uppercase">Vacation days remaining</div>
-              <div className={`fs-4 fw-semibold ${vacationRemaining < 0 ? 'text-danger' : ''}`}>
-                {vacationRemaining < 0
-                  ? `${formatDayCount(Math.abs(vacationRemaining))} over`
-                  : formatDayCount(vacationRemaining)}
-              </div>
-            </Col>
-          </Row>
+      <StatisticsCard
+        annualAllowance={annualAllowance}
+        currentYear={currentYear}
+        statistics={statistics}
+        vacationRemaining={vacationRemaining}
+        vacationUsed={vacationUsed}
+        onAnnualAllowanceChange={handleAnnualAllowanceChange}
+      />
 
-          <div className="mt-4">
-            <h3 className="h6 text-uppercase text-muted">Breakdown by type</h3>
-            <Table striped bordered hover responsive className="align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Days</th>
-                </tr>
-              </thead>
-              <tbody>
-                {STAT_TYPE_ORDER.map((type) => (
-                  <tr key={type}>
-                    <td>{STAT_TYPE_LABELS[type]}</td>
-                    <td>{formatDayCount(statistics.totalsByType[type] ?? 0)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        </Card.Body>
-      </Card>
+      <EventsCard
+        canEdit={!USE_BACKEND}
+        events={doc.events}
+        selectedIndices={selectedIndices}
+        sortedEvents={sortedEvents}
+        sortedToOriginalIndex={sortedToOriginalIndex}
+        historyFuture={historyFuture.length}
+        historyPast={historyPast.length}
+        importFileInputRef={importFileInputRef}
+        selectAllCheckboxRef={selectAllCheckboxRef}
+        onBulkDelete={handleBulkDelete}
+        onBulkDuplicate={handleBulkDuplicate}
+        onClearAll={handleClearAll}
+        onDuplicate={handleDuplicate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onImportFile={handleImportFile}
+        onImportFileChange={handleImportFileChange}
+        onNewEvent={handleOpenCreateModal}
+        onRedo={handleRedo}
+        onSelectAll={handleSelectAll}
+        onToggleSelect={handleToggleSelect}
+        onUndo={handleUndo}
+        getEventAriaLabel={getEventAriaLabel}
+      />
 
-      <Card className="mb-4 shadow-sm">
-        <Card.Header className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-          <h2 className="h5 mb-0">Events</h2>
-          {!USE_BACKEND && (
-            <Stack direction="horizontal" gap={2} className="flex-wrap">
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                onClick={handleUndo}
-                disabled={historyPast.length === 0}
-                title="Undo (Ctrl+Z)"
-              >
-                <i className="bi bi-arrow-counterclockwise me-2" aria-hidden="true" />
-                Undo
-              </Button>
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                onClick={handleRedo}
-                disabled={historyFuture.length === 0}
-                title="Redo (Ctrl+Y)"
-              >
-                <i className="bi bi-arrow-clockwise me-2" aria-hidden="true" />
-                Redo
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleOpenCreateModal}>
-                <i className="bi bi-plus-lg me-2" aria-hidden="true" />
-                New event
-              </Button>
-              <Button variant="outline-secondary" size="sm" onClick={handleClearAll}>
-                Clear table
-              </Button>
-              <Button
-                variant="outline-danger"
-                size="sm"
-                onClick={handleBulkDelete}
-                disabled={selectedIndices.size === 0}
-                title="Delete selected events"
-              >
-                {selectedIndices.size === 0
-                  ? 'Delete Selected'
-                  : selectedIndices.size === 1
-                    ? 'Delete 1 event'
-                    : `Delete ${selectedIndices.size} events`}
-              </Button>
-              <Button
-                variant="outline-primary"
-                size="sm"
-                onClick={handleBulkDuplicate}
-                disabled={selectedIndices.size === 0}
-                title="Duplicate selected events"
-              >
-                {selectedIndices.size === 0
-                  ? 'Duplicate Selected'
-                  : selectedIndices.size === 1
-                    ? 'Duplicate 1 event'
-                    : `Duplicate ${selectedIndices.size} events`}
-              </Button>
-              <Button variant="outline-primary" size="sm" onClick={handleImportFile}>
-                Import from .hday
-              </Button>
-              <input
-                ref={importFileInputRef}
-                type="file"
-                accept=".hday,.txt"
-                onChange={handleImportFileChange}
-                style={{ display: 'none' }}
-                aria-label="Import .hday file"
-              />
-            </Stack>
-          )}
-        </Card.Header>
-
-        <Card.Body>
-          <Table striped bordered hover responsive className="align-middle">
-            <thead>
-              <tr>
-                {!USE_BACKEND && (
-                  <th>
-                    <input
-                      ref={selectAllCheckboxRef}
-                      type="checkbox"
-                      checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
-                      onChange={handleSelectAll}
-                      aria-label="Select or deselect all events in the table"
-                      title="Select/deselect all events"
-                    />
-                  </th>
-                )}
-                <th>#</th>
-                <th>Type</th>
-                <th>Start</th>
-                <th>End/Weekday</th>
-                <th>Flags</th>
-                <th>Title</th>
-                {!USE_BACKEND && <th>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedEvents.map((ev, sortedIdx) => {
-                const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1;
-                return (
-                  <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
-                    {!USE_BACKEND && (
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedIndices.has(originalIdx)}
-                          onChange={() => handleToggleSelect(originalIdx)}
-                          disabled={originalIdx === -1}
-                          aria-label={getEventAriaLabel(ev)}
-                        />
-                      </td>
-                    )}
-                    <td>{sortedIdx + 1}</td>
-                    <td>{ev.type}</td>
-                    <td>{ev.start || ''}</td>
-                    <td>
-                      {ev.type === 'weekly' && ev.weekday
-                        ? getWeekdayName(ev.weekday)
-                        : ev.end || ''}
-                    </td>
-                    <td>{ev.flags?.join(', ')}</td>
-                    <td>{ev.title || ''}</td>
-                    {!USE_BACKEND && (
-                      <td>
-                        <ButtonGroup size="sm">
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => handleEdit(originalIdx)}
-                            disabled={ev.type === 'unknown' || originalIdx === -1}
-                            title={
-                              ev.type === 'unknown'
-                                ? 'Cannot edit unknown event types'
-                                : 'Edit event'
-                            }
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline-primary"
-                            onClick={() => handleDuplicate(originalIdx)}
-                            disabled={originalIdx === -1}
-                            title="Duplicate this event"
-                          >
-                            Duplicate
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            onClick={() => handleDelete(originalIdx)}
-                            disabled={originalIdx === -1}
-                          >
-                            Delete
-                          </Button>
-                        </ButtonGroup>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
-
-      <Card className="mb-4 shadow-sm">
-        <Card.Header>
-          <h2 className="h5 mb-0">Month view</h2>
-        </Card.Header>
-        <Card.Body>
-          <Stack direction="horizontal" gap={2} className="flex-wrap mb-3">
-            <Form.Label htmlFor="month-view-input" className="mb-0">
-              Select month:
-            </Form.Label>
-            <Button
-              variant="outline-secondary"
-              onClick={() => setMonth(getCurrentMonth())}
-              aria-label="Jump to current month"
-            >
-              This month
-            </Button>
-            <Button variant="outline-primary" onClick={handlePreviousMonth} aria-label="Previous month">
-              <i className="bi bi-chevron-left" aria-hidden="true" />
-            </Button>
-            <Form.Control
-              id="month-view-input"
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              aria-describedby="month-view-help"
-              style={{ maxWidth: '180px' }}
-            />
-            <Button variant="outline-primary" onClick={handleNextMonth} aria-label="Next month">
-              <i className="bi bi-chevron-right" aria-hidden="true" />
-            </Button>
-            <Form.Text id="month-view-help" className="text-muted">
-              Format: YYYY-MM (use the month picker)
-            </Form.Text>
-          </Stack>
-
-          {month && (
-            <MonthGrid
-              events={doc.events}
-              ym={month}
-              publicHolidays={publicHolidayMap}
-              schoolHolidays={schoolHolidayMap}
-              paydayMap={paydayMap}
-            />
-          )}
-        </Card.Body>
-      </Card>
+      <MonthViewCard
+        events={doc.events}
+        month={month}
+        paydayMap={paydayMap}
+        publicHolidayMap={publicHolidayMap}
+        schoolHolidayMap={schoolHolidayMap}
+        onChangeMonth={setMonth}
+        onNextMonth={handleNextMonth}
+        onPreviousMonth={handlePreviousMonth}
+        onResetMonth={() => setMonth(getCurrentMonth())}
+      />
 
       {!USE_BACKEND && (
         <Modal
