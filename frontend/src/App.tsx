@@ -34,6 +34,7 @@ import { getMonthlyPaydayMap } from './utils/paydayUtils';
 import { calculateYearlyStatistics } from './utils/statisticsUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
+const ANNUAL_ALLOWANCE_KEY = 'annual-vacation-allowance';
 
 // Error message constants
 const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)';
@@ -210,7 +211,11 @@ export default function App() {
   });
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
-  const [annualAllowance, setAnnualAllowance] = useState(25);
+  const [annualAllowance, setAnnualAllowance] = useState(() => {
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(ANNUAL_ALLOWANCE_KEY) : null;
+    const parsed = stored ? Number.parseFloat(stored) : Number.NaN;
+    return Number.isFinite(parsed) ? parsed : 25;
+  });
   const handleAnnualAllowanceChange = useCallback((value: number) => {
     if (!Number.isFinite(value)) {
       setAnnualAllowance(0);
@@ -218,6 +223,13 @@ export default function App() {
     }
     setAnnualAllowance(Math.max(0, value));
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem(ANNUAL_ALLOWANCE_KEY, String(annualAllowance));
+  }, [annualAllowance]);
 
   const handlePreviousMonth = React.useCallback(() => {
     setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));

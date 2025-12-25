@@ -93,7 +93,14 @@ export function StatisticsCard({
 
           <div className="mt-4">
             <h3 className="h6 text-uppercase text-muted">Breakdown by type</h3>
-            <Table striped bordered hover responsive className="align-middle mb-0">
+            <Table
+              striped
+              bordered
+              hover
+              responsive
+              className="align-middle mb-0"
+              aria-label="Statistics breakdown by type"
+            >
               <thead>
                 <tr>
                   <th>Type</th>
