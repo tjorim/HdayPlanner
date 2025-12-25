@@ -56,7 +56,7 @@ export function StatisticsCard({
   };
 
   return (
-    <Accordion className="mb-4 shadow-sm" defaultActiveKey="statistics">
+    <Accordion className="mb-4 shadow-sm">
       <Accordion.Item eventKey="statistics">
         <Accordion.Header>Statistics</Accordion.Header>
         <Accordion.Body>

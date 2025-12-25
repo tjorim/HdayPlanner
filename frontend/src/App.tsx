@@ -1,19 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import {
-  Accordion,
-  Button,
-  Card,
-  Col,
-  Container,
-  Form,
-  Modal,
-  Row,
-  Stack,
-} from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
 import { getHday, type HdayDocument, putHday } from './api/hday';
 import { ConfirmationDialog } from './components/ConfirmationDialog';
+import { EventModal } from './components/EventModal';
 import { EventsCard } from './components/EventsCard';
+import { HeaderCard } from './components/HeaderCard';
 import { MonthViewCard } from './components/MonthViewCard';
+import { RawContentAccordion } from './components/RawContentAccordion';
 import { StatisticsCard } from './components/StatisticsCard';
 import { ToastContainer } from './components/ToastContainer';
 import { useErrorToast } from './hooks/useErrorToast';
@@ -41,21 +34,6 @@ import { getMonthlyPaydayMap } from './utils/paydayUtils';
 import { calculateYearlyStatistics } from './utils/statisticsUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
-
-type FlagCheckboxProps = {
-  id: string;
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-  name: string;
-  type?: 'checkbox' | 'radio';
-};
-
-function FlagCheckbox({ id, label, checked, onChange, name, type = 'checkbox' }: FlagCheckboxProps) {
-  return (
-    <Form.Check id={id} name={name} type={type} label={label} checked={checked} onChange={onChange} />
-  );
-}
 
 // Error message constants
 const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)';
@@ -1069,94 +1047,24 @@ export default function App() {
     <Container fluid="md" className="py-4">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <Card className="mb-4 shadow-sm">
-        <Card.Body className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-          <div>
-            <Card.Title as="h1" className="mb-1">
-              Holiday Planner
-            </Card.Title>
-            <div className="text-muted">
-              Plan time off, track flags, and review holidays at a glance.
-            </div>
-          </div>
-
-          <Stack direction="horizontal" gap={2} className="flex-wrap">
-            <Button
-              variant="outline-secondary"
-              onClick={toggleTheme}
-              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            >
-              <i
-                className={`bi bi-${theme === 'light' ? 'moon-stars' : 'sun'} me-2`}
-                aria-hidden="true"
-              />
-              {theme === 'light' ? 'Dark' : 'Light'}
-            </Button>
-
-            {USE_BACKEND ? (
-              <>
-                <Form.Control
-                  value={user}
-                  onChange={(e) => setUser(e.target.value)}
-                  placeholder="Username"
-                />
-                <Button variant="primary" onClick={load}>
-                  Load from API
-                </Button>
-                <Button variant="primary" onClick={save}>
-                  Save to API
-                </Button>
-              </>
-            ) : (
-              <>
-              <Form.Control
-                type="file"
-                accept=".hday,.txt"
-                onChange={handleFileUpload}
-                aria-label="Upload .hday or .txt file"
-              />
-              <Button variant="primary" onClick={handleDownload}>
-                Download .hday
-              </Button>
-            </>
-            )}
-          </Stack>
-        </Card.Body>
-      </Card>
+      <HeaderCard
+        theme={theme}
+        user={user}
+        useBackend={USE_BACKEND}
+        onToggleTheme={toggleTheme}
+        onUserChange={setUser}
+        onLoad={load}
+        onSave={save}
+        onFileUpload={handleFileUpload}
+        onDownload={handleDownload}
+      />
 
       {!USE_BACKEND && (
-        <Accordion className="mb-4 shadow-sm">
-          <Accordion.Item eventKey="raw-content">
-            <Accordion.Header>Raw .hday content</Accordion.Header>
-            <Accordion.Body>
-              <p className="text-muted">
-                Paste your <code>.hday</code> content below (or load a file), click <b>Parse</b>,
-                then edit and <b>Download</b> back to <code>.hday</code>. Flags: <code>a</code>=half
-                AM, <code>p</code>=half PM, <code>b</code>=business, <code>e</code>=weekend,{' '}
-                <code>h</code>=birthday, <code>i</code>=ill, <code>k</code>=in, <code>s</code>=course,{' '}
-                <code>u</code>=other, <code>w</code>=onsite, <code>n</code>=no fly, <code>f</code>=can fly;
-                weekly: <code>d1-d7</code> (Mon-Sun) with flags after (e.g., <code>d3pb</code>).
-              </p>
-              <Form.Group controlId="hdayText">
-                <Form.Label>Raw .hday content</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={8}
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  placeholder={`Example:\n2024/12/23-2025/01/05 # Kerstvakantie\np2024/07/17-2024/07/17\na2025/03/25-2025/03/25`}
-                  className="textarea-mono"
-                />
-              </Form.Group>
-              <div className="mt-3">
-                <Button variant="primary" onClick={handleParse}>
-                  Parse raw content
-                </Button>
-              </div>
-            </Accordion.Body>
-          </Accordion.Item>
-        </Accordion>
+        <RawContentAccordion
+          rawText={rawText}
+          onChangeRawText={setRawText}
+          onParse={handleParse}
+        />
       )}
 
       <StatisticsCard
@@ -1207,215 +1115,38 @@ export default function App() {
       />
 
       {!USE_BACKEND && (
-        <Modal
+        <EventModal
           show={showEventModal}
+          editIndex={editIndex}
+          formRef={formRef}
+          eventType={eventType}
+          eventWeekday={eventWeekday}
+          eventStart={eventStart}
+          eventEnd={eventEnd}
+          eventTitle={eventTitle}
+          eventFlags={eventFlags}
+          startDateError={startDateError}
+          endDateError={endDateError}
+          previewLine={previewLine}
+          typeFlagOptions={TYPE_FLAG_OPTIONS}
+          timeLocationFlagOptions={TIME_LOCATION_FLAG_OPTIONS}
+          typeFlagsAsEventFlags={TYPE_FLAGS_AS_EVENT_FLAGS}
+          timeLocationFlagsAsEventFlags={TIME_LOCATION_FLAGS_AS_EVENT_FLAGS}
           onHide={() => {
             setShowEventModal(false);
             handleResetForm();
           }}
           onEntered={handleModalEntered}
-          size="lg"
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>{editIndex >= 0 ? 'Edit event' : 'New event'}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body ref={formRef}>
-            <Form>
-              <Row className="g-3">
-                <Col xs={12}>
-                  <Card className="preview-card border-0">
-                    <Card.Body className="py-2">
-                      <div className="small text-uppercase text-muted">Preview</div>
-                      <div className="fw-semibold">
-                        {getEventTypeLabel(eventFlags)}{' '}
-                        {eventType === 'weekly'
-                          ? eventWeekday
-                            ? `· ${getWeekdayName(eventWeekday)}`
-                            : ''
-                          : eventStart
-                            ? eventEnd && eventEnd !== eventStart
-                              ? `· ${eventStart} → ${eventEnd}`
-                              : `· ${eventStart}`
-                            : '· Select a date'}
-                      </div>
-                      {eventTitle && <div className="text-muted">{eventTitle}</div>}
-                      {eventFlags.length > 0 && (
-                        <div className="text-muted small">
-                          Flags: {eventFlags.join(', ')}
-                        </div>
-                      )}
-                      <div className="mt-2">
-                        <div className="small text-uppercase text-muted">Raw line</div>
-                        <div className="font-monospace">
-                          {previewLine || 'Fill in the required fields to preview the .hday line.'}
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={6}>
-                  <Form.Group controlId="eventType">
-                    <Form.Label>Event type</Form.Label>
-                    <Form.Select
-                      value={eventType}
-                      onChange={(e) => setEventType(e.target.value as 'range' | 'weekly')}
-                    >
-                      <option value="range">Range (start-end)</option>
-                      <option value="weekly">Weekly (weekday)</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-
-                <Col md={6}>
-                  <Form.Group controlId="eventTitle">
-                    <Form.Label>Comment (optional)</Form.Label>
-                    <Form.Control
-                      aria-label="Comment"
-                      value={eventTitle}
-                      onChange={(e) => setEventTitle(e.target.value)}
-                      placeholder="Optional comment"
-                    />
-                  </Form.Group>
-                </Col>
-
-                {eventType === 'range' ? (
-                  <>
-                    <Col md={6}>
-                      <Form.Group controlId="eventStart">
-                        <Form.Label>
-                          Start (YYYY/MM/DD) <span className="required-indicator">*</span>
-                        </Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={eventStart ? eventStart.replace(/\//g, '-') : ''}
-                          onChange={(e) =>
-                            handleStartDateChange(
-                              e.target.value ? e.target.value.replace(/-/g, '/') : '',
-                            )
-                          }
-                          className={startDateError ? 'input-error' : ''}
-                          aria-invalid={!!startDateError}
-                          aria-required="true"
-                          aria-describedby={startDateError ? 'eventStart-error' : undefined}
-                        />
-                        <div className="error-message-wrapper">
-                          {startDateError && (
-                            <div id="eventStart-error" className="error-message" role="alert">
-                              {startDateError}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group controlId="eventEnd">
-                        <Form.Label>End (YYYY/MM/DD)</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={eventEnd ? eventEnd.replace(/\//g, '-') : ''}
-                          onChange={(e) =>
-                            handleEndDateChange(
-                              e.target.value ? e.target.value.replace(/-/g, '/') : '',
-                            )
-                          }
-                          className={endDateError ? 'input-error' : ''}
-                          aria-invalid={!!endDateError}
-                          aria-describedby={endDateError ? 'eventEnd-error' : undefined}
-                        />
-                        <div className="error-message-wrapper">
-                          {endDateError && (
-                            <div id="eventEnd-error" className="error-message" role="alert">
-                              {endDateError}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                  </>
-                ) : (
-                  <Col md={6}>
-                    <Form.Group controlId="eventWeekday">
-                      <Form.Label>Weekday</Form.Label>
-                      <Form.Select
-                        value={eventWeekday}
-                        onChange={(e) => setEventWeekday(parseInt(e.target.value, 10))}
-                      >
-                        <option value="1">Mon</option>
-                        <option value="2">Tue</option>
-                        <option value="3">Wed</option>
-                        <option value="4">Thu</option>
-                        <option value="5">Fri</option>
-                        <option value="6">Sat</option>
-                        <option value="7">Sun</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                )}
-
-                <Col xs={12}>
-                  <fieldset className="border rounded p-3">
-                    <legend className="float-none w-auto px-2 fs-6">Type Flags</legend>
-                    <Row className="g-2">
-                      {TYPE_FLAG_OPTIONS.map(([flag, label]) => (
-                        <Col sm={6} lg={4} key={flag}>
-                          <FlagCheckbox
-                            id={`type-flag-${flag}`}
-                            name="type-flag"
-                            type="radio"
-                            label={label}
-                            checked={
-                              flag === 'none'
-                                ? !eventFlags.some((f) =>
-                                    TYPE_FLAGS_AS_EVENT_FLAGS.includes(f),
-                                  )
-                                : eventFlags.includes(flag)
-                            }
-                            onChange={() => handleTypeFlagChange(flag)}
-                          />
-                        </Col>
-                      ))}
-                    </Row>
-                  </fieldset>
-                </Col>
-
-                <Col xs={12}>
-                  <fieldset className="border rounded p-3">
-                    <legend className="float-none w-auto px-2 fs-6">Time / Location Flags</legend>
-                    <Row className="g-2">
-                      {TIME_LOCATION_FLAG_OPTIONS.map(([flag, label]) => (
-                        <Col sm={6} lg={4} key={flag}>
-                          <FlagCheckbox
-                            id={`time-flag-${flag}`}
-                            name="time-flag"
-                            type="radio"
-                            label={label}
-                            checked={
-                              flag === 'none'
-                                ? !eventFlags.some((f) =>
-                                    TIME_LOCATION_FLAGS_AS_EVENT_FLAGS.includes(f),
-                                  )
-                                : eventFlags.includes(flag)
-                            }
-                            onChange={() => handleTimeFlagChange(flag)}
-                          />
-                        </Col>
-                      ))}
-                    </Row>
-                  </fieldset>
-                </Col>
-              </Row>
-            </Form>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="outline-secondary" onClick={handleResetForm}>
-              Reset form
-            </Button>
-            <Button variant="primary" onClick={handleSubmitEvent}>
-              {editIndex >= 0 ? 'Update' : 'Add'}
-            </Button>
-          </Modal.Footer>
-        </Modal>
+          onEventTypeChange={setEventType}
+          onEventTitleChange={setEventTitle}
+          onEventWeekdayChange={setEventWeekday}
+          onStartDateChange={handleStartDateChange}
+          onEndDateChange={handleEndDateChange}
+          onTypeFlagChange={handleTypeFlagChange}
+          onTimeFlagChange={handleTimeFlagChange}
+          onResetForm={handleResetForm}
+          onSubmit={handleSubmitEvent}
+        />
       )}
 
       {/* Confirmation dialog */}
