@@ -385,7 +385,7 @@ export default function App() {
     [doc.events, currentYear],
   );
 
-  const vacationUsed = statistics.totalsByType.holiday;
+  const vacationUsed = statistics.totalsByType.holiday ?? 0;
   const vacationRemaining = annualAllowance - vacationUsed;
 
   // Create a mapping from sorted indices to original indices for edit/delete operations
@@ -1198,7 +1198,8 @@ export default function App() {
                   value={annualAllowance}
                   onChange={(e) => {
                     const value = Number.parseFloat(e.target.value);
-                    setAnnualAllowance(Number.isNaN(value) ? 0 : value);
+                    const safeValue = Number.isNaN(value) ? 0 : Math.max(0, value);
+                    setAnnualAllowance(safeValue);
                   }}
                 />
                 <Form.Text className="text-muted">Days</Form.Text>
@@ -1231,7 +1232,7 @@ export default function App() {
                 {STAT_TYPE_ORDER.map((type) => (
                   <tr key={type}>
                     <td>{STAT_TYPE_LABELS[type]}</td>
-                    <td>{formatDayCount(statistics.totalsByType[type])}</td>
+                    <td>{formatDayCount(statistics.totalsByType[type] ?? 0)}</td>
                   </tr>
                 ))}
               </tbody>

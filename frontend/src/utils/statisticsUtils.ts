@@ -23,14 +23,7 @@ function getPrimaryType(flags?: EventFlag[]): TypeFlag {
     return 'holiday';
   }
 
-  for (const type of TYPE_PRIORITY) {
-    if (type === 'holiday') continue;
-    if (flags.includes(type)) {
-      return type;
-    }
-  }
-
-  return 'holiday';
+  return TYPE_PRIORITY.find((type) => type !== 'holiday' && flags.includes(type)) ?? 'holiday';
 }
 
 function isHalfDay(flags?: EventFlag[]): boolean {
@@ -82,16 +75,13 @@ function getWeeklyDaysInYear(event: HdayEvent, yearStart: dayjs.Dayjs, yearEnd: 
 }
 
 export function calculateYearlyStatistics(events: HdayEvent[], year: number): YearlyStatistics {
-  const totalsByType: Record<TypeFlag, number> = {
-    business: 0,
-    weekend: 0,
-    birthday: 0,
-    ill: 0,
-    course: 0,
-    in: 0,
-    other: 0,
-    holiday: 0,
-  };
+  const totalsByType = TYPE_PRIORITY.reduce<Record<TypeFlag, number>>(
+    (totals, type) => {
+      totals[type] = 0;
+      return totals;
+    },
+    {} as Record<TypeFlag, number>,
+  );
 
   const yearStart = dayjs(`${year}-01-01`);
   const yearEnd = dayjs(`${year}-12-31`);
