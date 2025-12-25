@@ -121,7 +121,7 @@ describe('MonthGrid - Public Holidays', () => {
     render(<MonthGrid events={events} ym={ym} publicHolidays={publicHolidays} />);
 
     // getByLabelText will throw if element with this aria-label doesn't exist
-    screen.getByLabelText('2025/12/25 - Christmas Day');
+    screen.getByLabelText(/2025\/12\/25(?: \(Today\))? - Christmas Day/);
   });
 });
 
