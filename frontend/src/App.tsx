@@ -163,6 +163,7 @@ export default function App() {
   const [showEventModal, setShowEventModal] = useState(false);
   const [historyPast, setHistoryPast] = useState<HdayDocument[]>([]);
   const [historyFuture, setHistoryFuture] = useState<HdayDocument[]>([]);
+  const MAX_HISTORY = 50;
 
   const handlePreviousMonth = React.useCallback(() => {
     setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
@@ -386,12 +387,12 @@ export default function App() {
     setDoc((prevDoc) => {
       const nextDoc = updater(prevDoc);
       if (nextDoc !== prevDoc) {
-        setHistoryPast((prevHistory) => [...prevHistory, prevDoc]);
+        setHistoryPast((prevHistory) => [...prevHistory, prevDoc].slice(-MAX_HISTORY));
         setHistoryFuture([]);
       }
       return nextDoc;
     });
-  }, []);
+  }, [MAX_HISTORY]);
 
   const handleUndo = useCallback(() => {
     setHistoryPast((prevHistory) => {
