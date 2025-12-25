@@ -245,7 +245,7 @@ export function MonthGrid({
           onFocus={() => setFocusedIndex(i)}
         >
           <div className="date">
-            {dateStr}
+            {d}
             {dayIndicators.map((holiday) => (
               <span
                 key={`indicator-${holiday.key}`}
