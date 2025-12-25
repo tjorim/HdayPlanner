@@ -228,6 +228,10 @@ export default function App() {
     return stored === 'days' || stored === 'hours' ? stored : DEFAULT_ALLOWANCE_UNIT;
   });
   const handleAnnualAllowanceChange = useCallback((value: string) => {
+    if (value.trim() === '') {
+      setAnnualAllowanceInput('');
+      return;
+    }
     setAnnualAllowanceInput(value);
   }, []);
   const handleAnnualAllowanceUnitChange = useCallback((value: 'days' | 'hours') => {
