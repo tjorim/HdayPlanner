@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import {
   Accordion,
   Button,
@@ -140,6 +140,73 @@ const TIME_LOCATION_FLAGS: ReadonlyArray<TimeLocationFlag> = [
 const TYPE_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TYPE_FLAGS;
 const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATION_FLAGS;
 
+// Maximum number of undo/redo history states to keep in memory
+const MAX_HISTORY = 50;
+
+// Document state with undo/redo history
+type DocumentState = {
+  doc: HdayDocument;
+  historyPast: HdayDocument[];
+  historyFuture: HdayDocument[];
+};
+
+// Actions for the document reducer
+type DocumentAction =
+  | { type: 'SET_DOC'; payload: HdayDocument }
+  | { type: 'UPDATE_DOC'; updater: (prev: HdayDocument) => HdayDocument; skipHistory?: boolean }
+  | { type: 'UNDO' }
+  | { type: 'REDO' };
+
+/**
+ * Reducer for managing document state with undo/redo history.
+ * This ensures all state updates happen atomically without nested setters.
+ */
+function documentReducer(state: DocumentState, action: DocumentAction): DocumentState {
+  switch (action.type) {
+    case 'SET_DOC':
+      return { ...state, doc: action.payload };
+
+    case 'UPDATE_DOC': {
+      const nextDoc = action.updater(state.doc);
+      if (nextDoc === state.doc || action.skipHistory) {
+        return { ...state, doc: nextDoc };
+      }
+      return {
+        doc: nextDoc,
+        historyPast: [...state.historyPast, state.doc].slice(-MAX_HISTORY),
+        historyFuture: [],
+      };
+    }
+
+    case 'UNDO': {
+      if (state.historyPast.length === 0) {
+        return state;
+      }
+      const previousDoc = state.historyPast[state.historyPast.length - 1]!;
+      return {
+        doc: previousDoc,
+        historyPast: state.historyPast.slice(0, -1),
+        historyFuture: [state.doc, ...state.historyFuture],
+      };
+    }
+
+    case 'REDO': {
+      if (state.historyFuture.length === 0) {
+        return state;
+      }
+      const nextDoc = state.historyFuture[0]!;
+      return {
+        doc: nextDoc,
+        historyPast: [...state.historyPast, state.doc],
+        historyFuture: state.historyFuture.slice(1),
+      };
+    }
+
+    default:
+      return state;
+  }
+}
+
 /**
  * Main application component for the Holiday Planner UI.
  *
@@ -157,7 +224,11 @@ const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATI
  */
 export default function App() {
   const [user, setUser] = useState('testuser');
-  const [doc, setDoc] = useState<HdayDocument>({ raw: '', events: [] });
+  const [{ doc, historyPast, historyFuture }, dispatch] = useReducer(documentReducer, {
+    doc: { raw: '', events: [] },
+    historyPast: [],
+    historyFuture: [],
+  });
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
 
@@ -289,7 +360,7 @@ export default function App() {
   const load = useCallback(async () => {
     try {
       const d = await getHday(user);
-      setDoc(d);
+      dispatch({ type: 'SET_DOC', payload: d });
     } catch (error) {
       console.error('Failed to load from API:', error);
       showToast('Failed to load from API. Make sure the backend is running.', 'error');
@@ -322,7 +393,19 @@ export default function App() {
     reader.onload = (event) => {
       const result = event.target?.result;
       if (typeof result === 'string') {
-        setRawText(result);
+        try {
+          const events = parseHday(result);
+          const isInitialUpload = doc.events.length === 0 && doc.raw.trim() === '';
+          applyDocChange((prevDoc) => ({ ...prevDoc, raw: result, events }), isInitialUpload);
+          // rawText will be set by the useEffect that watches doc.events
+        } catch (error) {
+          console.error('Failed to parse file:', error);
+          setRawText(result); // Only set on error so user can see/edit invalid content
+          showToast(
+            'Failed to parse file. Please make sure the file contains valid .hday format.',
+            'error',
+          );
+        }
       }
     };
     reader.onerror = () => {
@@ -336,8 +419,16 @@ export default function App() {
   }
 
   function handleParse() {
-    const events = parseHday(rawText);
-    setDoc({ raw: rawText, events });
+    try {
+      const events = parseHday(rawText);
+      applyDocChange((prevDoc) => ({ ...prevDoc, raw: rawText, events }));
+    } catch (error) {
+      console.error('Failed to parse raw content:', error);
+      showToast(
+        'Failed to parse raw content. Please check the .hday format and try again.',
+        'error',
+      );
+    }
   }
 
   const handleDownload = useCallback(() => {
@@ -363,6 +454,25 @@ export default function App() {
     setEventFlags([]);
     setStartDateError('');
     setEndDateError('');
+  }, []);
+
+  const applyDocChange = useCallback(
+    (updater: (prevDoc: HdayDocument) => HdayDocument, skipHistory = false) => {
+      dispatch({ type: 'UPDATE_DOC', updater, skipHistory });
+    },
+    [],
+  );
+
+  const handleUndo = useCallback(() => {
+    dispatch({ type: 'UNDO' });
+    setSelectedIndices(new Set());
+    setEditIndex(-1);
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    dispatch({ type: 'REDO' });
+    setSelectedIndices(new Set());
+    setEditIndex(-1);
   }, []);
 
   // Validate start date in real-time
@@ -496,7 +606,7 @@ export default function App() {
     const indicesToDelete = new Set(selectedIndices);
     const count = indicesToDelete.size;
 
-    setDoc((prevDoc) => ({
+    applyDocChange((prevDoc) => ({
       ...prevDoc,
       events: prevDoc.events.filter((_, idx) => !indicesToDelete.has(idx)),
     }));
@@ -506,13 +616,13 @@ export default function App() {
 
     // Show success toast after scheduling state updates
     showToast(`Deleted ${count} event(s)`, 'success');
-  }, [selectedIndices, showToast]);
+  }, [applyDocChange, selectedIndices, showToast]);
 
   const handleDuplicate = useCallback(
     (index: number) => {
       let duplicated = false;
 
-      setDoc((prevDoc) => {
+      applyDocChange((prevDoc) => {
         // Validate bounds with current state
         if (index < 0 || index >= prevDoc.events.length) {
           return prevDoc;
@@ -556,7 +666,7 @@ export default function App() {
         return updated;
       });
     },
-    [showToast],
+    [applyDocChange, showToast],
   );
 
   const handleBulkDuplicate = useCallback(() => {
@@ -573,7 +683,7 @@ export default function App() {
 
     let duplicatedCount = 0;
 
-    setDoc((prevDoc) => {
+    applyDocChange((prevDoc) => {
       const newEvents = [...prevDoc.events];
 
       // Validate indices against the current events array
@@ -602,7 +712,7 @@ export default function App() {
 
     // Clear selection after duplication
     setSelectedIndices(new Set());
-  }, [selectedIndices, showToast]);
+  }, [applyDocChange, selectedIndices, showToast]);
 
   const handleImportFile = useCallback(() => {
     importFileInputRef.current?.click();
@@ -620,7 +730,7 @@ export default function App() {
           try {
             const importedEvents = parseHday(result);
             // Use functional update to avoid stale closure
-            setDoc((prevDoc) => ({
+            applyDocChange((prevDoc) => ({
               ...prevDoc,
               events: [...prevDoc.events, ...importedEvents],
             }));
@@ -649,7 +759,7 @@ export default function App() {
       // Reset input so same file can be imported again
       e.target.value = '';
     },
-    [showToast],
+    [applyDocChange, showToast],
   );
 
   // Auto-sync events to text in standalone mode
@@ -681,6 +791,26 @@ export default function App() {
         if (!USE_BACKEND) {
           e.preventDefault();
           handleDownload();
+        }
+      }
+
+      // Ctrl+Z / Cmd+Z - Undo (standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        if (!USE_BACKEND) {
+          e.preventDefault();
+          if (e.shiftKey) {
+            handleRedo();
+          } else {
+            handleUndo();
+          }
+        }
+      }
+
+      // Ctrl+Y / Cmd+Y - Redo (standalone mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        if (!USE_BACKEND) {
+          e.preventDefault();
+          handleRedo();
         }
       }
 
@@ -742,6 +872,8 @@ export default function App() {
     handleSelectAll,
     handleBulkDelete,
     handleBulkDuplicate,
+    handleRedo,
+    handleUndo,
   ]);
 
   function handleAddOrUpdate() {
@@ -808,12 +940,14 @@ export default function App() {
 
     // Update or add event
     if (editIndex >= 0) {
-      const newEvents = [...doc.events];
-      newEvents[editIndex] = newEvent;
-      setDoc({ ...doc, events: newEvents });
+      applyDocChange((prevDoc) => {
+        const newEvents = [...prevDoc.events];
+        newEvents[editIndex] = newEvent;
+        return { ...prevDoc, events: newEvents };
+      });
       setEditIndex(-1);
     } else {
-      setDoc({ ...doc, events: [...doc.events, newEvent] });
+      applyDocChange((prevDoc) => ({ ...prevDoc, events: [...prevDoc.events, newEvent] }));
     }
 
     handleResetForm();
@@ -872,8 +1006,10 @@ export default function App() {
   }
 
   function handleDelete(index: number) {
-    const newEvents = doc.events.filter((_, i) => i !== index);
-    setDoc({ ...doc, events: newEvents });
+    applyDocChange((prevDoc) => ({
+      ...prevDoc,
+      events: prevDoc.events.filter((_, i) => i !== index),
+    }));
   }
 
   function handleClearAll() {
@@ -881,7 +1017,7 @@ export default function App() {
   }
 
   function confirmClearAll() {
-    setDoc({ ...doc, events: [] });
+    applyDocChange((prevDoc) => ({ ...prevDoc, events: [] }));
     setRawText('');
     setShowConfirmDialog(false);
   }
@@ -957,26 +1093,23 @@ export default function App() {
               </>
             ) : (
               <>
-                <Form.Control
-                  type="file"
-                  accept=".hday,.txt"
-                  onChange={handleFileUpload}
-                  aria-label="Upload .hday or .txt file"
-                />
-                <Button variant="primary" onClick={handleParse}>
-                  Parse
-                </Button>
-                <Button variant="primary" onClick={handleDownload}>
-                  Download .hday
-                </Button>
-              </>
+              <Form.Control
+                type="file"
+                accept=".hday,.txt"
+                onChange={handleFileUpload}
+                aria-label="Upload .hday or .txt file"
+              />
+              <Button variant="primary" onClick={handleDownload}>
+                Download .hday
+              </Button>
+            </>
             )}
           </Stack>
         </Card.Body>
       </Card>
 
       {!USE_BACKEND && (
-        <Accordion className="mb-4 shadow-sm" defaultActiveKey="raw-content">
+        <Accordion className="mb-4 shadow-sm">
           <Accordion.Item eventKey="raw-content">
             <Accordion.Header>Raw .hday content</Accordion.Header>
             <Accordion.Body>
@@ -999,6 +1132,11 @@ export default function App() {
                   className="textarea-mono"
                 />
               </Form.Group>
+              <div className="mt-3">
+                <Button variant="primary" onClick={handleParse}>
+                  Parse raw content
+                </Button>
+              </div>
             </Accordion.Body>
           </Accordion.Item>
         </Accordion>
@@ -1009,6 +1147,26 @@ export default function App() {
           <h2 className="h5 mb-0">Events</h2>
           {!USE_BACKEND && (
             <Stack direction="horizontal" gap={2} className="flex-wrap">
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={handleUndo}
+                disabled={historyPast.length === 0}
+                title="Undo (Ctrl+Z)"
+              >
+                <i className="bi bi-arrow-counterclockwise me-2" aria-hidden="true" />
+                Undo
+              </Button>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={handleRedo}
+                disabled={historyFuture.length === 0}
+                title="Redo (Ctrl+Y)"
+              >
+                <i className="bi bi-arrow-clockwise me-2" aria-hidden="true" />
+                Redo
+              </Button>
               <Button variant="primary" size="sm" onClick={handleOpenCreateModal}>
                 <i className="bi bi-plus-lg me-2" aria-hidden="true" />
                 New event
@@ -1158,6 +1316,13 @@ export default function App() {
             <Form.Label htmlFor="month-view-input" className="mb-0">
               Select month:
             </Form.Label>
+            <Button
+              variant="outline-secondary"
+              onClick={() => setMonth(getCurrentMonth())}
+              aria-label="Jump to current month"
+            >
+              This month
+            </Button>
             <Button variant="outline-primary" onClick={handlePreviousMonth} aria-label="Previous month">
               <i className="bi bi-chevron-left" aria-hidden="true" />
             </Button>
@@ -1173,7 +1338,7 @@ export default function App() {
               <i className="bi bi-chevron-right" aria-hidden="true" />
             </Button>
             <Form.Text id="month-view-help" className="text-muted">
-              Format: YYYY-MM
+              Format: YYYY-MM (use the month picker)
             </Form.Text>
           </Stack>
 
@@ -1207,7 +1372,7 @@ export default function App() {
             <Form>
               <Row className="g-3">
                 <Col xs={12}>
-                  <Card className="bg-light border-0">
+                  <Card className="preview-card border-0">
                     <Card.Body className="py-2">
                       <div className="small text-uppercase text-muted">Preview</div>
                       <div className="fw-semibold">
@@ -1405,7 +1570,7 @@ export default function App() {
       <ConfirmationDialog
         isOpen={showConfirmDialog}
         title="Confirm Clear All"
-        message="Are you sure you want to clear all events? This action cannot be undone."
+        message="Are you sure you want to clear all events?"
         confirmLabel="Clear All"
         cancelLabel="Cancel"
         onConfirm={confirmClearAll}
