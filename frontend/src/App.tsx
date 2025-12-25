@@ -38,6 +38,7 @@ import {
 import type { PublicHolidayInfo, SchoolHolidayInfo } from './types/holidays';
 import { dayjs, getWeekdayName } from './utils/dateTimeUtils';
 import { getMonthlyPaydayMap } from './utils/paydayUtils';
+import { calculateYearlyStatistics } from './utils/statisticsUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 
@@ -140,6 +141,35 @@ const TIME_LOCATION_FLAGS: ReadonlyArray<TimeLocationFlag> = [
 const TYPE_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TYPE_FLAGS;
 const TIME_LOCATION_FLAGS_AS_EVENT_FLAGS: ReadonlyArray<EventFlag> = TIME_LOCATION_FLAGS;
 
+const STAT_TYPE_ORDER: TypeFlag[] = [
+  'holiday',
+  'business',
+  'weekend',
+  'birthday',
+  'ill',
+  'course',
+  'in',
+  'other',
+];
+
+const STAT_TYPE_LABELS: Record<TypeFlag, string> = {
+  holiday: 'Holiday',
+  business: 'Business trip',
+  weekend: 'Weekend',
+  birthday: 'Birthday',
+  ill: 'Sick leave',
+  course: 'Training',
+  in: 'In office',
+  other: 'Other',
+};
+
+function formatDayCount(value: number): string {
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+  return value.toFixed(1);
+}
+
 // Maximum number of undo/redo history states to keep in memory
 const MAX_HISTORY = 50;
 
@@ -231,6 +261,7 @@ export default function App() {
   });
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
+  const [annualAllowance, setAnnualAllowance] = useState(25);
 
   const handlePreviousMonth = React.useCallback(() => {
     setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
@@ -348,6 +379,14 @@ export default function App() {
 
   // Sort events by date for display (range events by start date, weekly by weekday, unknown last)
   const sortedEvents = useMemo(() => sortEvents(doc.events), [doc.events]);
+
+  const statistics = useMemo(
+    () => calculateYearlyStatistics(doc.events, currentYear),
+    [doc.events, currentYear],
+  );
+
+  const vacationUsed = statistics.totalsByType.holiday;
+  const vacationRemaining = annualAllowance - vacationUsed;
 
   // Create a mapping from sorted indices to original indices for edit/delete operations
   const sortedToOriginalIndex = useMemo(() => {
@@ -1141,6 +1180,65 @@ export default function App() {
           </Accordion.Item>
         </Accordion>
       )}
+
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <h2 className="h5 mb-0">Statistics</h2>
+          <span className="text-muted">Year {currentYear}</span>
+        </Card.Header>
+        <Card.Body>
+          <Row className="g-3 align-items-end">
+            <Col md={4} lg={3}>
+              <Form.Group controlId="annual-allowance">
+                <Form.Label>Annual vacation allowance</Form.Label>
+                <Form.Control
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={annualAllowance}
+                  onChange={(e) => {
+                    const value = Number.parseFloat(e.target.value);
+                    setAnnualAllowance(Number.isNaN(value) ? 0 : value);
+                  }}
+                />
+                <Form.Text className="text-muted">Days</Form.Text>
+              </Form.Group>
+            </Col>
+            <Col md={4} lg={3}>
+              <div className="text-muted small text-uppercase">Vacation days used</div>
+              <div className="fs-4 fw-semibold">{formatDayCount(vacationUsed)}</div>
+            </Col>
+            <Col md={4} lg={3}>
+              <div className="text-muted small text-uppercase">Vacation days remaining</div>
+              <div className={`fs-4 fw-semibold ${vacationRemaining < 0 ? 'text-danger' : ''}`}>
+                {vacationRemaining < 0
+                  ? `${formatDayCount(Math.abs(vacationRemaining))} over`
+                  : formatDayCount(vacationRemaining)}
+              </div>
+            </Col>
+          </Row>
+
+          <div className="mt-4">
+            <h3 className="h6 text-uppercase text-muted">Breakdown by type</h3>
+            <Table striped bordered hover responsive className="align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {STAT_TYPE_ORDER.map((type) => (
+                  <tr key={type}>
+                    <td>{STAT_TYPE_LABELS[type]}</td>
+                    <td>{formatDayCount(statistics.totalsByType[type])}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </Card.Body>
+      </Card>
 
       <Card className="mb-4 shadow-sm">
         <Card.Header className="d-flex flex-wrap align-items-center justify-content-between gap-2">
