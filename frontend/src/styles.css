@@ -149,17 +149,20 @@ body {
   flex-direction: column;
   gap: 6px;
   margin-top: 10px;
+  max-width: 100%;
 }
 
 .calendar-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+  min-width: 0;
 }
 
 .day {
   border: 1px solid var(--border);
   min-height: 90px;
+  min-width: 0;
   padding: 6px;
   border-radius: 6px;
   background: var(--day-bg);
@@ -240,6 +243,7 @@ body {
   border-radius: 4px;
   color: var(--event-text);
   font-weight: 500;
+  word-break: break-word;
 }
 .event--no-title {
   padding: 6px 8px;
@@ -296,6 +300,30 @@ body {
 .half-day-symbol {
   font-weight: bold;
   margin-right: 4px;
+}
+
+@media (max-width: 576px) {
+  .calendar {
+    gap: 4px;
+  }
+
+  .calendar-row {
+    gap: 4px;
+  }
+
+  .day {
+    min-height: 70px;
+    padding: 4px;
+  }
+
+  .event-item {
+    font-size: 11px;
+  }
+
+  .holiday-name,
+  .payday-name {
+    font-size: 10px;
+  }
 }
 label {
   font-weight: 600;
