@@ -35,6 +35,7 @@ import { calculateYearlyStatistics } from './utils/statisticsUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 const ANNUAL_ALLOWANCE_KEY = 'annual-vacation-allowance';
+const DEFAULT_ANNUAL_ALLOWANCE = '';
 
 // Error message constants
 const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)';
@@ -211,14 +212,22 @@ export default function App() {
   });
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
-  const [annualAllowance, setAnnualAllowance] = useState(() => {
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(ANNUAL_ALLOWANCE_KEY) : null;
-    const parsed = stored ? Number.parseFloat(stored) : Number.NaN;
-    return Number.isFinite(parsed) ? parsed : 25;
+  const [annualAllowance, setAnnualAllowance] = useState<number | ''>(() => {
+    const stored =
+      typeof window !== 'undefined' ? window.localStorage.getItem(ANNUAL_ALLOWANCE_KEY) : null;
+    if (stored === null || stored === '') {
+      return DEFAULT_ANNUAL_ALLOWANCE;
+    }
+    const parsed = Number.parseFloat(stored);
+    return Number.isFinite(parsed) ? parsed : DEFAULT_ANNUAL_ALLOWANCE;
   });
-  const handleAnnualAllowanceChange = useCallback((value: number) => {
+  const handleAnnualAllowanceChange = useCallback((value: number | '') => {
+    if (value === '') {
+      setAnnualAllowance('');
+      return;
+    }
     if (!Number.isFinite(value)) {
-      setAnnualAllowance(0);
+      setAnnualAllowance('');
       return;
     }
     setAnnualAllowance(Math.max(0, value));
@@ -228,7 +237,7 @@ export default function App() {
     if (typeof window === 'undefined') {
       return;
     }
-    window.localStorage.setItem(ANNUAL_ALLOWANCE_KEY, String(annualAllowance));
+    window.localStorage.setItem(ANNUAL_ALLOWANCE_KEY, annualAllowance === '' ? '' : String(annualAllowance));
   }, [annualAllowance]);
 
   const handlePreviousMonth = React.useCallback(() => {
@@ -354,7 +363,7 @@ export default function App() {
   );
 
   const vacationUsed = statistics.totalsByType.holiday ?? 0;
-  const vacationRemaining = annualAllowance - vacationUsed;
+  const vacationRemaining = (annualAllowance === '' ? 0 : annualAllowance) - vacationUsed;
 
   // Create a mapping from sorted indices to original indices for edit/delete operations
   const sortedToOriginalIndex = useMemo(() => {

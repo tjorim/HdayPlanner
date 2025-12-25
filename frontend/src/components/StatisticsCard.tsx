@@ -26,12 +26,12 @@ const STAT_TYPE_LABELS: Record<TypeFlag, string> = {
 };
 
 type StatisticsCardProps = {
-  annualAllowance: number;
+  annualAllowance: number | '';
   currentYear: number;
   statistics: YearlyStatistics;
   vacationRemaining: number;
   vacationUsed: number;
-  onAnnualAllowanceChange: (value: number) => void;
+  onAnnualAllowanceChange: (value: number | '') => void;
 };
 
 function formatDayCount(value: number): string {
@@ -50,8 +50,13 @@ export function StatisticsCard({
   onAnnualAllowanceChange,
 }: StatisticsCardProps) {
   const handleAllowanceChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const value = Number.parseFloat(event.target.value);
-    const safeValue = Number.isNaN(value) ? 0 : Math.max(0, value);
+    const { value } = event.target;
+    if (value === '') {
+      onAnnualAllowanceChange('');
+      return;
+    }
+    const parsedValue = Number.parseFloat(value);
+    const safeValue = Number.isNaN(parsedValue) ? '' : Math.max(0, parsedValue);
     onAnnualAllowanceChange(safeValue);
   };
 
@@ -83,11 +88,15 @@ export function StatisticsCard({
             </Col>
             <Col md={4} lg={3}>
               <div className="text-muted small text-uppercase">Vacation days remaining</div>
-              <div className={`fs-4 fw-semibold ${vacationRemaining < 0 ? 'text-danger' : ''}`}>
-                {vacationRemaining < 0
-                  ? `${formatDayCount(Math.abs(vacationRemaining))} over`
-                  : formatDayCount(vacationRemaining)}
-              </div>
+              {annualAllowance === '' ? (
+                <div className="fs-4 fw-semibold text-muted">—</div>
+              ) : (
+                <div className={`fs-4 fw-semibold ${vacationRemaining < 0 ? 'text-danger' : ''}`}>
+                  {vacationRemaining < 0
+                    ? `${formatDayCount(Math.abs(vacationRemaining))} over`
+                    : formatDayCount(vacationRemaining)}
+                </div>
+              )}
             </Col>
           </Row>
 
