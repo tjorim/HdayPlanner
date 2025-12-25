@@ -393,13 +393,14 @@ export default function App() {
     reader.onload = (event) => {
       const result = event.target?.result;
       if (typeof result === 'string') {
-        setRawText(result);
         try {
           const events = parseHday(result);
           const isInitialUpload = doc.events.length === 0 && doc.raw.trim() === '';
           applyDocChange((prevDoc) => ({ ...prevDoc, raw: result, events }), isInitialUpload);
+          // rawText will be set by the useEffect that watches doc.events
         } catch (error) {
           console.error('Failed to parse file:', error);
+          setRawText(result); // Only set on error so user can see/edit invalid content
           showToast(
             'Failed to parse file. Please make sure the file contains valid .hday format.',
             'error',
@@ -418,8 +419,16 @@ export default function App() {
   }
 
   function handleParse() {
-    const events = parseHday(rawText);
-    applyDocChange((prevDoc) => ({ ...prevDoc, raw: rawText, events }));
+    try {
+      const events = parseHday(rawText);
+      applyDocChange((prevDoc) => ({ ...prevDoc, raw: rawText, events }));
+    } catch (error) {
+      console.error('Failed to parse raw content:', error);
+      showToast(
+        'Failed to parse raw content. Please check the .hday format and try again.',
+        'error',
+      );
+    }
   }
 
   const handleDownload = useCallback(() => {

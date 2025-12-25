@@ -115,6 +115,47 @@ describe('Undo/Redo history', () => {
     expect(restoredSecond.length).toBeGreaterThan(0);
   });
 
+  it('skips history for initial file upload to empty document', async () => {
+    const originalFileReader = global.FileReader;
+    class MockFileReader {
+      result: string | ArrayBuffer | null = null;
+      onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+      onerror: (() => void) | null = null;
+      readAsText(file: File) {
+        file
+          .text()
+          .then((text) => {
+            this.result = text;
+            this.onload?.({ target: this } as ProgressEvent<FileReader>);
+          })
+          .catch(() => {
+            this.onerror?.();
+          });
+      }
+    }
+
+    try {
+      global.FileReader = MockFileReader as unknown as typeof FileReader;
+
+      await renderApp();
+      // No events added first - uploading to empty document
+
+      const content = '2025/01/15-2025/01/15 # Initial upload';
+      const uploadInput = screen.getByLabelText(/upload/i);
+      const file = new File([content], 'test.hday', { type: 'text/plain' });
+      fireEvent.change(uploadInput, { target: { files: [file] } });
+
+      const matches = await within(getEventsTableBody()).findAllByText('2025/01/15');
+      expect(matches.length).toBeGreaterThan(0);
+
+      // Undo should be disabled since initial upload skipped history
+      const undoButton = screen.getByRole('button', { name: /undo/i });
+      expect(undoButton).toBeDisabled();
+    } finally {
+      global.FileReader = originalFileReader;
+    }
+  });
+
   it('tracks history for file uploads after an existing change', async () => {
     const originalFileReader = global.FileReader;
     class MockFileReader {
