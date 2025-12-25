@@ -158,7 +158,7 @@ export function MonthGrid({
       if (i < leadingPad || i >= leadingPad + totalDays) {
         rowCells.push(
           <div
-            className="day"
+            className="day p-1 p-sm-2"
             role="presentation"
             aria-hidden="true"
             tabIndex={-1}
@@ -207,7 +207,7 @@ export function MonthGrid({
       );
 
       // Build CSS classes
-      const classes = ['day'];
+      const classes = ['day', 'p-1', 'p-sm-2'];
       if (isToday) classes.push('day--today');
       if (isWeekend) classes.push('day--weekend');
       if (publicHolidayInfo) classes.push('day--public-holiday');
@@ -274,14 +274,14 @@ export function MonthGrid({
       );
     }
     rowElements.push(
-      <div className="calendar-row" key={`row-${r}`}>
+      <div className="calendar-row gap-2 gap-sm-3" key={`row-${r}`}>
         {rowCells}
       </div>,
     );
   }
 
   return (
-    <div className="calendar" onKeyDown={handleKeyDown}>
+    <div className="calendar gap-2 gap-sm-3" onKeyDown={handleKeyDown}>
       {rowElements}
     </div>
   );
