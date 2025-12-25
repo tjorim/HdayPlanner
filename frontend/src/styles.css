@@ -147,20 +147,20 @@ body {
 .calendar {
   display: flex;
   flex-direction: column;
-  gap: 6px;
   margin-top: 10px;
+  max-width: 100%;
 }
 
 .calendar-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  min-width: 0;
 }
 
 .day {
   border: 1px solid var(--border);
   min-height: 90px;
-  padding: 6px;
+  min-width: 0;
   border-radius: 6px;
   background: var(--day-bg);
 }
@@ -240,6 +240,7 @@ body {
   border-radius: 4px;
   color: var(--event-text);
   font-weight: 500;
+  word-break: break-word;
 }
 .event--no-title {
   padding: 6px 8px;

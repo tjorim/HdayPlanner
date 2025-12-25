@@ -1,20 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import {
-  Accordion,
-  Button,
-  ButtonGroup,
-  Card,
-  Col,
-  Container,
-  Form,
-  Modal,
-  Row,
-  Stack,
-  Table,
-} from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
 import { getHday, type HdayDocument, putHday } from './api/hday';
 import { ConfirmationDialog } from './components/ConfirmationDialog';
-import { MonthGrid } from './components/MonthGrid';
+import { EventModal } from './components/EventModal';
+import { EventsCard } from './components/EventsCard';
+import { HeaderCard } from './components/HeaderCard';
+import { MonthViewCard } from './components/MonthViewCard';
+import { RawContentAccordion } from './components/RawContentAccordion';
+import { StatisticsCard } from './components/StatisticsCard';
 import { ToastContainer } from './components/ToastContainer';
 import { useErrorToast } from './hooks/useErrorToast';
 import { getPublicHolidayName, usePublicHolidays } from './hooks/usePublicHolidays';
@@ -38,23 +31,14 @@ import {
 import type { PublicHolidayInfo, SchoolHolidayInfo } from './types/holidays';
 import { dayjs, getWeekdayName } from './utils/dateTimeUtils';
 import { getMonthlyPaydayMap } from './utils/paydayUtils';
+import { calculateYearlyStatistics } from './utils/statisticsUtils';
 
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
-
-type FlagCheckboxProps = {
-  id: string;
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-  name: string;
-  type?: 'checkbox' | 'radio';
-};
-
-function FlagCheckbox({ id, label, checked, onChange, name, type = 'checkbox' }: FlagCheckboxProps) {
-  return (
-    <Form.Check id={id} name={name} type={type} label={label} checked={checked} onChange={onChange} />
-  );
-}
+const ANNUAL_ALLOWANCE_VALUE_KEY = 'annual-vacation-allowance';
+const ANNUAL_ALLOWANCE_UNIT_KEY = 'annual-vacation-allowance-unit';
+const DEFAULT_ANNUAL_ALLOWANCE = '';
+const DEFAULT_ALLOWANCE_UNIT = 'hours';
+const HOURS_PER_DAY = 8;
 
 // Error message constants
 const ERROR_INVALID_DATE_FORMAT = 'Invalid date format or impossible date (use YYYY/MM/DD)';
@@ -231,6 +215,47 @@ export default function App() {
   });
   const [month, setMonth] = useState(getCurrentMonth());
   const [showEventModal, setShowEventModal] = useState(false);
+  const [annualAllowanceInput, setAnnualAllowanceInput] = useState<string>(() => {
+    const stored =
+      typeof window !== 'undefined' ? window.localStorage.getItem(ANNUAL_ALLOWANCE_VALUE_KEY) : null;
+    return stored ?? DEFAULT_ANNUAL_ALLOWANCE;
+  });
+  const [annualAllowanceUnit, setAnnualAllowanceUnit] = useState<'days' | 'hours'>(() => {
+    const stored =
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem(ANNUAL_ALLOWANCE_UNIT_KEY)
+        : null;
+    return stored === 'days' || stored === 'hours' ? stored : DEFAULT_ALLOWANCE_UNIT;
+  });
+  const handleAnnualAllowanceChange = useCallback((value: string) => {
+    if (value.trim() === '') {
+      setAnnualAllowanceInput('');
+      return;
+    }
+    setAnnualAllowanceInput(value);
+  }, []);
+  const handleAnnualAllowanceUnitChange = useCallback((value: 'days' | 'hours') => {
+    setAnnualAllowanceUnit(value);
+  }, []);
+
+  const parsedAllowance = useMemo(() => {
+    if (annualAllowanceInput.trim() === '') {
+      return null;
+    }
+    const parsed = Number.parseFloat(annualAllowanceInput);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return null;
+    }
+    return annualAllowanceUnit === 'hours' ? parsed / HOURS_PER_DAY : parsed;
+  }, [annualAllowanceInput, annualAllowanceUnit]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem(ANNUAL_ALLOWANCE_VALUE_KEY, annualAllowanceInput);
+    window.localStorage.setItem(ANNUAL_ALLOWANCE_UNIT_KEY, annualAllowanceUnit);
+  }, [annualAllowanceInput, annualAllowanceUnit]);
 
   const handlePreviousMonth = React.useCallback(() => {
     setMonth((prev) => dayjs(prev + '-01').subtract(1, 'month').format('YYYY-MM'));
@@ -348,6 +373,14 @@ export default function App() {
 
   // Sort events by date for display (range events by start date, weekly by weekday, unknown last)
   const sortedEvents = useMemo(() => sortEvents(doc.events), [doc.events]);
+
+  const statistics = useMemo(
+    () => calculateYearlyStatistics(doc.events, currentYear),
+    [doc.events, currentYear],
+  );
+
+  const vacationUsed = statistics.totalsByType.holiday ?? 0;
+  const vacationRemaining = (parsedAllowance ?? 0) - vacationUsed;
 
   // Create a mapping from sorted indices to original indices for edit/delete operations
   const sortedToOriginalIndex = useMemo(() => {
@@ -1052,518 +1085,110 @@ export default function App() {
     <Container fluid="md" className="py-4">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <Card className="mb-4 shadow-sm">
-        <Card.Body className="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-          <div>
-            <Card.Title as="h1" className="mb-1">
-              Holiday Planner
-            </Card.Title>
-            <div className="text-muted">
-              Plan time off, track flags, and review holidays at a glance.
-            </div>
-          </div>
-
-          <Stack direction="horizontal" gap={2} className="flex-wrap">
-            <Button
-              variant="outline-secondary"
-              onClick={toggleTheme}
-              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            >
-              <i
-                className={`bi bi-${theme === 'light' ? 'moon-stars' : 'sun'} me-2`}
-                aria-hidden="true"
-              />
-              {theme === 'light' ? 'Dark' : 'Light'}
-            </Button>
-
-            {USE_BACKEND ? (
-              <>
-                <Form.Control
-                  value={user}
-                  onChange={(e) => setUser(e.target.value)}
-                  placeholder="Username"
-                />
-                <Button variant="primary" onClick={load}>
-                  Load from API
-                </Button>
-                <Button variant="primary" onClick={save}>
-                  Save to API
-                </Button>
-              </>
-            ) : (
-              <>
-              <Form.Control
-                type="file"
-                accept=".hday,.txt"
-                onChange={handleFileUpload}
-                aria-label="Upload .hday or .txt file"
-              />
-              <Button variant="primary" onClick={handleDownload}>
-                Download .hday
-              </Button>
-            </>
-            )}
-          </Stack>
-        </Card.Body>
-      </Card>
+      <HeaderCard
+        theme={theme}
+        user={user}
+        useBackend={USE_BACKEND}
+        onToggleTheme={toggleTheme}
+        onUserChange={setUser}
+        onLoad={load}
+        onSave={save}
+        onFileUpload={handleFileUpload}
+        onDownload={handleDownload}
+      />
 
       {!USE_BACKEND && (
-        <Accordion className="mb-4 shadow-sm">
-          <Accordion.Item eventKey="raw-content">
-            <Accordion.Header>Raw .hday content</Accordion.Header>
-            <Accordion.Body>
-              <p className="text-muted">
-                Paste your <code>.hday</code> content below (or load a file), click <b>Parse</b>,
-                then edit and <b>Download</b> back to <code>.hday</code>. Flags: <code>a</code>=half
-                AM, <code>p</code>=half PM, <code>b</code>=business, <code>e</code>=weekend,{' '}
-                <code>h</code>=birthday, <code>i</code>=ill, <code>k</code>=in, <code>s</code>=course,{' '}
-                <code>u</code>=other, <code>w</code>=onsite, <code>n</code>=no fly, <code>f</code>=can fly;
-                weekly: <code>d1-d7</code> (Mon-Sun) with flags after (e.g., <code>d3pb</code>).
-              </p>
-              <Form.Group controlId="hdayText">
-                <Form.Label>Raw .hday content</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={8}
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  placeholder={`Example:\n2024/12/23-2025/01/05 # Kerstvakantie\np2024/07/17-2024/07/17\na2025/03/25-2025/03/25`}
-                  className="textarea-mono"
-                />
-              </Form.Group>
-              <div className="mt-3">
-                <Button variant="primary" onClick={handleParse}>
-                  Parse raw content
-                </Button>
-              </div>
-            </Accordion.Body>
-          </Accordion.Item>
-        </Accordion>
+        <RawContentAccordion
+          rawText={rawText}
+          onChangeRawText={setRawText}
+          onParse={handleParse}
+        />
       )}
 
-      <Card className="mb-4 shadow-sm">
-        <Card.Header className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-          <h2 className="h5 mb-0">Events</h2>
-          {!USE_BACKEND && (
-            <Stack direction="horizontal" gap={2} className="flex-wrap">
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                onClick={handleUndo}
-                disabled={historyPast.length === 0}
-                title="Undo (Ctrl+Z)"
-              >
-                <i className="bi bi-arrow-counterclockwise me-2" aria-hidden="true" />
-                Undo
-              </Button>
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                onClick={handleRedo}
-                disabled={historyFuture.length === 0}
-                title="Redo (Ctrl+Y)"
-              >
-                <i className="bi bi-arrow-clockwise me-2" aria-hidden="true" />
-                Redo
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleOpenCreateModal}>
-                <i className="bi bi-plus-lg me-2" aria-hidden="true" />
-                New event
-              </Button>
-              <Button variant="outline-secondary" size="sm" onClick={handleClearAll}>
-                Clear table
-              </Button>
-              <Button
-                variant="outline-danger"
-                size="sm"
-                onClick={handleBulkDelete}
-                disabled={selectedIndices.size === 0}
-                title="Delete selected events"
-              >
-                {selectedIndices.size === 0
-                  ? 'Delete Selected'
-                  : selectedIndices.size === 1
-                    ? 'Delete 1 event'
-                    : `Delete ${selectedIndices.size} events`}
-              </Button>
-              <Button
-                variant="outline-primary"
-                size="sm"
-                onClick={handleBulkDuplicate}
-                disabled={selectedIndices.size === 0}
-                title="Duplicate selected events"
-              >
-                {selectedIndices.size === 0
-                  ? 'Duplicate Selected'
-                  : selectedIndices.size === 1
-                    ? 'Duplicate 1 event'
-                    : `Duplicate ${selectedIndices.size} events`}
-              </Button>
-              <Button variant="outline-primary" size="sm" onClick={handleImportFile}>
-                Import from .hday
-              </Button>
-              <input
-                ref={importFileInputRef}
-                type="file"
-                accept=".hday,.txt"
-                onChange={handleImportFileChange}
-                style={{ display: 'none' }}
-                aria-label="Import .hday file"
-              />
-            </Stack>
-          )}
-        </Card.Header>
+      <StatisticsCard
+        annualAllowanceInput={annualAllowanceInput}
+        annualAllowanceUnit={annualAllowanceUnit}
+        hoursPerDay={HOURS_PER_DAY}
+        currentYear={currentYear}
+        statistics={statistics}
+        allowanceDays={parsedAllowance}
+        vacationRemaining={vacationRemaining}
+        vacationUsed={vacationUsed}
+        onAnnualAllowanceChange={handleAnnualAllowanceChange}
+        onAnnualAllowanceUnitChange={handleAnnualAllowanceUnitChange}
+      />
 
-        <Card.Body>
-          <Table striped bordered hover responsive className="align-middle">
-            <thead>
-              <tr>
-                {!USE_BACKEND && (
-                  <th>
-                    <input
-                      ref={selectAllCheckboxRef}
-                      type="checkbox"
-                      checked={selectedIndices.size === doc.events.length && doc.events.length > 0}
-                      onChange={handleSelectAll}
-                      aria-label="Select or deselect all events in the table"
-                      title="Select/deselect all events"
-                    />
-                  </th>
-                )}
-                <th>#</th>
-                <th>Type</th>
-                <th>Start</th>
-                <th>End/Weekday</th>
-                <th>Flags</th>
-                <th>Title</th>
-                {!USE_BACKEND && <th>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedEvents.map((ev, sortedIdx) => {
-                const originalIdx = sortedToOriginalIndex[sortedIdx] ?? -1;
-                return (
-                  <tr key={originalIdx !== -1 ? originalIdx : `fallback-${sortedIdx}`}>
-                    {!USE_BACKEND && (
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedIndices.has(originalIdx)}
-                          onChange={() => handleToggleSelect(originalIdx)}
-                          disabled={originalIdx === -1}
-                          aria-label={getEventAriaLabel(ev)}
-                        />
-                      </td>
-                    )}
-                    <td>{sortedIdx + 1}</td>
-                    <td>{ev.type}</td>
-                    <td>{ev.start || ''}</td>
-                    <td>
-                      {ev.type === 'weekly' && ev.weekday
-                        ? getWeekdayName(ev.weekday)
-                        : ev.end || ''}
-                    </td>
-                    <td>{ev.flags?.join(', ')}</td>
-                    <td>{ev.title || ''}</td>
-                    {!USE_BACKEND && (
-                      <td>
-                        <ButtonGroup size="sm">
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => handleEdit(originalIdx)}
-                            disabled={ev.type === 'unknown' || originalIdx === -1}
-                            title={
-                              ev.type === 'unknown'
-                                ? 'Cannot edit unknown event types'
-                                : 'Edit event'
-                            }
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline-primary"
-                            onClick={() => handleDuplicate(originalIdx)}
-                            disabled={originalIdx === -1}
-                            title="Duplicate this event"
-                          >
-                            Duplicate
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            onClick={() => handleDelete(originalIdx)}
-                            disabled={originalIdx === -1}
-                          >
-                            Delete
-                          </Button>
-                        </ButtonGroup>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
+      <EventsCard
+        canEdit={!USE_BACKEND}
+        events={doc.events}
+        selectedIndices={selectedIndices}
+        sortedEvents={sortedEvents}
+        sortedToOriginalIndex={sortedToOriginalIndex}
+        historyFuture={historyFuture.length}
+        historyPast={historyPast.length}
+        importFileInputRef={importFileInputRef}
+        selectAllCheckboxRef={selectAllCheckboxRef}
+        onBulkDelete={handleBulkDelete}
+        onBulkDuplicate={handleBulkDuplicate}
+        onClearAll={handleClearAll}
+        onDuplicate={handleDuplicate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onImportFile={handleImportFile}
+        onImportFileChange={handleImportFileChange}
+        onNewEvent={handleOpenCreateModal}
+        onRedo={handleRedo}
+        onSelectAll={handleSelectAll}
+        onToggleSelect={handleToggleSelect}
+        onUndo={handleUndo}
+        getEventAriaLabel={getEventAriaLabel}
+      />
 
-      <Card className="mb-4 shadow-sm">
-        <Card.Header>
-          <h2 className="h5 mb-0">Month view</h2>
-        </Card.Header>
-        <Card.Body>
-          <Stack direction="horizontal" gap={2} className="flex-wrap mb-3">
-            <Form.Label htmlFor="month-view-input" className="mb-0">
-              Select month:
-            </Form.Label>
-            <Button
-              variant="outline-secondary"
-              onClick={() => setMonth(getCurrentMonth())}
-              aria-label="Jump to current month"
-            >
-              This month
-            </Button>
-            <Button variant="outline-primary" onClick={handlePreviousMonth} aria-label="Previous month">
-              <i className="bi bi-chevron-left" aria-hidden="true" />
-            </Button>
-            <Form.Control
-              id="month-view-input"
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              aria-describedby="month-view-help"
-              style={{ maxWidth: '180px' }}
-            />
-            <Button variant="outline-primary" onClick={handleNextMonth} aria-label="Next month">
-              <i className="bi bi-chevron-right" aria-hidden="true" />
-            </Button>
-            <Form.Text id="month-view-help" className="text-muted">
-              Format: YYYY-MM (use the month picker)
-            </Form.Text>
-          </Stack>
-
-          {month && (
-            <MonthGrid
-              events={doc.events}
-              ym={month}
-              publicHolidays={publicHolidayMap}
-              schoolHolidays={schoolHolidayMap}
-              paydayMap={paydayMap}
-            />
-          )}
-        </Card.Body>
-      </Card>
+      <MonthViewCard
+        events={doc.events}
+        month={month}
+        paydayMap={paydayMap}
+        publicHolidayMap={publicHolidayMap}
+        schoolHolidayMap={schoolHolidayMap}
+        onChangeMonth={setMonth}
+        onNextMonth={handleNextMonth}
+        onPreviousMonth={handlePreviousMonth}
+        onResetMonth={() => setMonth(getCurrentMonth())}
+      />
 
       {!USE_BACKEND && (
-        <Modal
+        <EventModal
           show={showEventModal}
+          editIndex={editIndex}
+          formRef={formRef}
+          eventType={eventType}
+          eventWeekday={eventWeekday}
+          eventStart={eventStart}
+          eventEnd={eventEnd}
+          eventTitle={eventTitle}
+          eventFlags={eventFlags}
+          startDateError={startDateError}
+          endDateError={endDateError}
+          previewLine={previewLine}
+          typeFlagOptions={TYPE_FLAG_OPTIONS}
+          timeLocationFlagOptions={TIME_LOCATION_FLAG_OPTIONS}
+          typeFlagsAsEventFlags={TYPE_FLAGS_AS_EVENT_FLAGS}
+          timeLocationFlagsAsEventFlags={TIME_LOCATION_FLAGS_AS_EVENT_FLAGS}
           onHide={() => {
             setShowEventModal(false);
             handleResetForm();
           }}
           onEntered={handleModalEntered}
-          size="lg"
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>{editIndex >= 0 ? 'Edit event' : 'New event'}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body ref={formRef}>
-            <Form>
-              <Row className="g-3">
-                <Col xs={12}>
-                  <Card className="preview-card border-0">
-                    <Card.Body className="py-2">
-                      <div className="small text-uppercase text-muted">Preview</div>
-                      <div className="fw-semibold">
-                        {getEventTypeLabel(eventFlags)}{' '}
-                        {eventType === 'weekly'
-                          ? eventWeekday
-                            ? `· ${getWeekdayName(eventWeekday)}`
-                            : ''
-                          : eventStart
-                            ? eventEnd && eventEnd !== eventStart
-                              ? `· ${eventStart} → ${eventEnd}`
-                              : `· ${eventStart}`
-                            : '· Select a date'}
-                      </div>
-                      {eventTitle && <div className="text-muted">{eventTitle}</div>}
-                      {eventFlags.length > 0 && (
-                        <div className="text-muted small">
-                          Flags: {eventFlags.join(', ')}
-                        </div>
-                      )}
-                      <div className="mt-2">
-                        <div className="small text-uppercase text-muted">Raw line</div>
-                        <div className="font-monospace">
-                          {previewLine || 'Fill in the required fields to preview the .hday line.'}
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={6}>
-                  <Form.Group controlId="eventType">
-                    <Form.Label>Event type</Form.Label>
-                    <Form.Select
-                      value={eventType}
-                      onChange={(e) => setEventType(e.target.value as 'range' | 'weekly')}
-                    >
-                      <option value="range">Range (start-end)</option>
-                      <option value="weekly">Weekly (weekday)</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-
-                <Col md={6}>
-                  <Form.Group controlId="eventTitle">
-                    <Form.Label>Comment (optional)</Form.Label>
-                    <Form.Control
-                      aria-label="Comment"
-                      value={eventTitle}
-                      onChange={(e) => setEventTitle(e.target.value)}
-                      placeholder="Optional comment"
-                    />
-                  </Form.Group>
-                </Col>
-
-                {eventType === 'range' ? (
-                  <>
-                    <Col md={6}>
-                      <Form.Group controlId="eventStart">
-                        <Form.Label>
-                          Start (YYYY/MM/DD) <span className="required-indicator">*</span>
-                        </Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={eventStart ? eventStart.replace(/\//g, '-') : ''}
-                          onChange={(e) =>
-                            handleStartDateChange(
-                              e.target.value ? e.target.value.replace(/-/g, '/') : '',
-                            )
-                          }
-                          className={startDateError ? 'input-error' : ''}
-                          aria-invalid={!!startDateError}
-                          aria-required="true"
-                          aria-describedby={startDateError ? 'eventStart-error' : undefined}
-                        />
-                        <div className="error-message-wrapper">
-                          {startDateError && (
-                            <div id="eventStart-error" className="error-message" role="alert">
-                              {startDateError}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group controlId="eventEnd">
-                        <Form.Label>End (YYYY/MM/DD)</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={eventEnd ? eventEnd.replace(/\//g, '-') : ''}
-                          onChange={(e) =>
-                            handleEndDateChange(
-                              e.target.value ? e.target.value.replace(/-/g, '/') : '',
-                            )
-                          }
-                          className={endDateError ? 'input-error' : ''}
-                          aria-invalid={!!endDateError}
-                          aria-describedby={endDateError ? 'eventEnd-error' : undefined}
-                        />
-                        <div className="error-message-wrapper">
-                          {endDateError && (
-                            <div id="eventEnd-error" className="error-message" role="alert">
-                              {endDateError}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                  </>
-                ) : (
-                  <Col md={6}>
-                    <Form.Group controlId="eventWeekday">
-                      <Form.Label>Weekday</Form.Label>
-                      <Form.Select
-                        value={eventWeekday}
-                        onChange={(e) => setEventWeekday(parseInt(e.target.value, 10))}
-                      >
-                        <option value="1">Mon</option>
-                        <option value="2">Tue</option>
-                        <option value="3">Wed</option>
-                        <option value="4">Thu</option>
-                        <option value="5">Fri</option>
-                        <option value="6">Sat</option>
-                        <option value="7">Sun</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                )}
-
-                <Col xs={12}>
-                  <fieldset className="border rounded p-3">
-                    <legend className="float-none w-auto px-2 fs-6">Type Flags</legend>
-                    <Row className="g-2">
-                      {TYPE_FLAG_OPTIONS.map(([flag, label]) => (
-                        <Col sm={6} lg={4} key={flag}>
-                          <FlagCheckbox
-                            id={`type-flag-${flag}`}
-                            name="type-flag"
-                            type="radio"
-                            label={label}
-                            checked={
-                              flag === 'none'
-                                ? !eventFlags.some((f) =>
-                                    TYPE_FLAGS_AS_EVENT_FLAGS.includes(f),
-                                  )
-                                : eventFlags.includes(flag)
-                            }
-                            onChange={() => handleTypeFlagChange(flag)}
-                          />
-                        </Col>
-                      ))}
-                    </Row>
-                  </fieldset>
-                </Col>
-
-                <Col xs={12}>
-                  <fieldset className="border rounded p-3">
-                    <legend className="float-none w-auto px-2 fs-6">Time / Location Flags</legend>
-                    <Row className="g-2">
-                      {TIME_LOCATION_FLAG_OPTIONS.map(([flag, label]) => (
-                        <Col sm={6} lg={4} key={flag}>
-                          <FlagCheckbox
-                            id={`time-flag-${flag}`}
-                            name="time-flag"
-                            type="radio"
-                            label={label}
-                            checked={
-                              flag === 'none'
-                                ? !eventFlags.some((f) =>
-                                    TIME_LOCATION_FLAGS_AS_EVENT_FLAGS.includes(f),
-                                  )
-                                : eventFlags.includes(flag)
-                            }
-                            onChange={() => handleTimeFlagChange(flag)}
-                          />
-                        </Col>
-                      ))}
-                    </Row>
-                  </fieldset>
-                </Col>
-              </Row>
-            </Form>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="outline-secondary" onClick={handleResetForm}>
-              Reset form
-            </Button>
-            <Button variant="primary" onClick={handleSubmitEvent}>
-              {editIndex >= 0 ? 'Update' : 'Add'}
-            </Button>
-          </Modal.Footer>
-        </Modal>
+          onEventTypeChange={setEventType}
+          onEventTitleChange={setEventTitle}
+          onEventWeekdayChange={setEventWeekday}
+          onStartDateChange={handleStartDateChange}
+          onEndDateChange={handleEndDateChange}
+          onTypeFlagChange={handleTypeFlagChange}
+          onTimeFlagChange={handleTimeFlagChange}
+          onResetForm={handleResetForm}
+          onSubmit={handleSubmitEvent}
+        />
       )}
 
       {/* Confirmation dialog */}
