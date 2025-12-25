@@ -333,7 +333,9 @@ export default function App() {
         setRawText(result);
         try {
           const events = parseHday(result);
-          applyDocChange((prevDoc) => ({ ...prevDoc, raw: result, events }));
+          const isInitialUpload =
+            docRef.current.events.length === 0 && docRef.current.raw.trim() === '';
+          applyDocChange((prevDoc) => ({ ...prevDoc, raw: result, events }), isInitialUpload);
         } catch (error) {
           console.error('Failed to parse file:', error);
           showToast(
@@ -383,16 +385,19 @@ export default function App() {
     setEndDateError('');
   }, []);
 
-  const applyDocChange = useCallback((updater: (prevDoc: HdayDocument) => HdayDocument) => {
-    setDoc((prevDoc) => {
-      const nextDoc = updater(prevDoc);
-      if (nextDoc !== prevDoc) {
-        setHistoryPast((prevHistory) => [...prevHistory, prevDoc].slice(-MAX_HISTORY));
-        setHistoryFuture([]);
-      }
-      return nextDoc;
-    });
-  }, [MAX_HISTORY]);
+  const applyDocChange = useCallback(
+    (updater: (prevDoc: HdayDocument) => HdayDocument, skipHistory = false) => {
+      setDoc((prevDoc) => {
+        const nextDoc = updater(prevDoc);
+        if (nextDoc !== prevDoc && !skipHistory) {
+          setHistoryPast((prevHistory) => [...prevHistory, prevDoc].slice(-MAX_HISTORY));
+          setHistoryFuture([]);
+        }
+        return nextDoc;
+      });
+    },
+    [MAX_HISTORY],
+  );
 
   const handleUndo = useCallback(() => {
     setHistoryPast((prevHistory) => {

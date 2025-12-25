@@ -115,7 +115,7 @@ describe('Undo/Redo history', () => {
     expect(restoredSecond.length).toBeGreaterThan(0);
   });
 
-  it('tracks history for file uploads', async () => {
+  it('tracks history for file uploads after an existing change', async () => {
     const originalFileReader = global.FileReader;
     class MockFileReader {
       result: string | ArrayBuffer | null = null;
@@ -137,6 +137,7 @@ describe('Undo/Redo history', () => {
     global.FileReader = MockFileReader as unknown as typeof FileReader;
 
     await renderApp();
+    await addRangeEvent('2025-01-02');
 
     const content = '2025/02/01-2025/02/01 # Upload test';
     const uploadInput = screen.getByLabelText(/upload/i);
@@ -150,6 +151,9 @@ describe('Undo/Redo history', () => {
     await waitFor(() => {
       expect(within(getEventsTableBody()).queryAllByText('2025/02/01')).toHaveLength(0);
     });
+
+    const previousMatches = await within(getEventsTableBody()).findAllByText('2025/01/02');
+    expect(previousMatches.length).toBeGreaterThan(0);
 
     global.FileReader = originalFileReader;
   });
