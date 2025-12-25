@@ -103,6 +103,11 @@ export function StatisticsCard({
                 <Form.Text id="annual-allowance-help" className="text-muted">
                   {helperText}
                 </Form.Text>
+                {annualAllowanceInput.trim() !== '' && allowanceDays === null && (
+                  <Form.Text className="text-danger">
+                    Please enter a valid positive number.
+                  </Form.Text>
+                )}
               </Form.Group>
             </Col>
             <Col md={4} lg={3}>
